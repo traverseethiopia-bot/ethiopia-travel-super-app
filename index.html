@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethiopia Travel - Book Tours & Experiences</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f5f5; color: #1a1a2e; }
+        
+        /* ===== LOGIN ===== */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1B5E20, #2E7D32); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+        .login-screen.hidden { display: none; }
+        .login-container { background: white; border-radius: 24px; padding: 40px; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: fadeIn 0.6s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .login-logo { text-align: center; margin-bottom: 30px; }
+        .login-logo .logo-icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+        .login-logo h2 { font-size: 1.8rem; font-weight: 700; color: #1B5E20; }
+        .login-logo p { color: #6C757D; }
+        .role-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 25px; }
+        .role-tab { padding: 12px 8px; border: 2px solid #DEE2E6; background: white; border-radius: 16px; cursor: pointer; font-size: 0.75rem; font-weight: 600; text-align: center; transition: all 0.3s; }
+        .role-tab:hover { border-color: #1B5E20; background: #E8F5E9; }
+        .role-tab.active { background: #1B5E20; color: white; border-color: #1B5E20; }
+        .role-tab .tab-icon { display: block; font-size: 1.5rem; margin-bottom: 3px; }
+        .input-group { margin-bottom: 18px; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #495057; font-size: 0.9rem; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 14px 16px; border: 2px solid #DEE2E6; border-radius: 16px; font-size: 1rem; transition: all 0.3s; background: #f8f9fa; }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { outline: none; border-color: #1B5E20; background: white; }
+        .input-group textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+        .login-btn { width: 100%; padding: 16px; border: none; border-radius: 16px; font-size: 1.05rem; font-weight: 700; cursor: pointer; color: white; background: linear-gradient(135deg, #1B5E20, #2E7D32); transition: all 0.3s; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(27, 94, 32, 0.3); }
+        .login-error { color: #DC3545; text-align: center; margin-top: 15px; display: none; font-size: 0.9rem; padding: 12px; background: #FFF0F0; border-radius: 12px; }
+        .login-error.show { display: block; }
+        .switch-link { text-align: center; margin-top: 15px; color: #1B5E20; cursor: pointer; font-weight: 500; }
+        .switch-link:hover { text-decoration: underline; }
+        .login-hint { text-align: center; margin-top: 15px; color: #6C757D; font-size: 0.85rem; padding: 12px; background: #f8f9fa; border-radius: 12px; }
+        
+        /* ===== LANGUAGE ===== */
+        .language-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 9998; padding: 20px; }
+        .language-screen.hidden { display: none; }
+        .language-container { text-align: center; max-width: 500px; width: 100%; }
+        .language-container h2 { font-size: 2rem; margin-bottom: 10px; }
+        .language-container p { color: #6C757D; margin-bottom: 30px; }
+        .lang-options { display: grid; gap: 12px; }
+        .lang-option { padding: 20px; border: 3px solid #DEE2E6; border-radius: 24px; cursor: pointer; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 15px; background: white; transition: all 0.3s; }
+        .lang-option:hover { border-color: #1B5E20; background: #E8F5E9; transform: translateX(5px); }
+        .lang-option .lang-flag { font-size: 2.2rem; }
+        .lang-option .lang-name { font-size: 1.1rem; }
+        
+        /* ===== HEADER ===== */
+        .header { background: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E9ECEF; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 10px; }
+        .header-logo { font-size: 1.4rem; font-weight: 800; color: #1B5E20; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .header-logo span { font-size: 1.8rem; }
+        .header-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .badge-pill { padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: #E3F2FD; color: #1565C0; }
+        .badge-pill.telebirr { background: #FFF8E1; color: #F57F17; }
+        .badge-pill.role { background: #E8F5E9; color: #1B5E20; }
+        .badge-pill.role.admin { background: #F3E5F5; color: #6A1B9A; }
+        .badge-pill.role.host { background: #E0F2F1; color: #00695C; }
+        .btn-logout { background: #DC3545; color: white; border: none; padding: 8px 18px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.3s; }
+        .btn-logout:hover { background: #C82333; transform: translateY(-1px); }
+        .lang-switch { background: #f8f9fa; border: 2px solid #DEE2E6; padding: 7px 14px; border-radius: 20px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.3s; }
+        .lang-switch:hover { background: #E9ECEF; }
+        
+        /* ===== NAV ===== */
+        .nav-tabs { display: flex; overflow-x: auto; background: white; padding: 8px 20px; gap: 6px; border-bottom: 2px solid #E9ECEF; position: sticky; top: 72px; z-index: 99; }
+        .nav-tab { padding: 10px 20px; border: none; background: transparent; border-radius: 25px; cursor: pointer; white-space: nowrap; font-size: 0.85rem; font-weight: 500; transition: all 0.3s; color: #495057; }
+        .nav-tab:hover { background: #f8f9fa; }
+        .nav-tab.active { background: #1B5E20; color: white; font-weight: 600; }
+        .nav-tab i { margin-right: 6px; }
+        
+        /* ===== MAIN ===== */
+        .main-content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+        .section-title { font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; }
+        .section-subtitle { font-size: 1rem; color: #6C757D; margin-bottom: 20px; }
+        
+        /* ===== SEARCH BAR ===== */
+        .search-bar { background: white; border-radius: 60px; padding: 12px; display: flex; align-items: center; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 30px; flex-wrap: wrap; }
+        .search-bar input { flex: 1; border: none; padding: 12px 20px; font-size: 1rem; min-width: 150px; background: transparent; }
+        .search-bar input:focus { outline: none; }
+        .search-bar select { border: none; padding: 12px 20px; font-size: 1rem; background: transparent; color: #495057; min-width: 120px; }
+        .search-bar select:focus { outline: none; }
+        .search-btn { background: #1B5E20; color: white; border: none; padding: 12px 30px; border-radius: 40px; cursor: pointer; font-weight: 600; transition: all 0.3s; }
+        .search-btn:hover { background: #2E7D32; transform: scale(1.02); }
+        
+        /* ===== CATEGORIES ===== */
+        .categories { display: flex; gap: 16px; overflow-x: auto; padding: 10px 0 20px; margin-bottom: 20px; }
+        .category-item { text-align: center; cursor: pointer; padding: 10px 20px; border-radius: 30px; border: 2px solid transparent; transition: all 0.3s; min-width: 80px; background: white; }
+        .category-item:hover { border-color: #1B5E20; background: #E8F5E9; }
+        .category-item.active { border-color: #1B5E20; background: #1B5E20; color: white; }
+        .category-item .cat-icon { font-size: 1.8rem; display: block; margin-bottom: 4px; }
+        .category-item .cat-name { font-size: 0.75rem; font-weight: 500; }
+        
+        /* ===== CARDS ===== */
+        .card { background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #E9ECEF; transition: all 0.3s; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 10px 40px rgba(0,0,0,0.12); }
+        .card-img { height: 200px; background: linear-gradient(135deg, #1B5E20, #2E7D32); display: flex; align-items: center; justify-content: center; font-size: 4rem; color: white; position: relative; }
+        .card-img .wishlist-btn { position: absolute; top: 12px; right: 12px; background: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; font-size: 1.1rem; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card-img .wishlist-btn:hover { transform: scale(1.1); }
+        .card-img .wishlist-btn.liked { color: #DC3545; }
+        .card-body { padding: 16px; }
+        .card-body h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 6px; }
+        .card-body .location { font-size: 0.85rem; color: #6C757D; margin-bottom: 6px; }
+        .card-body .location i { margin-right: 4px; }
+        .card-body .rating { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; color: #f59e0b; margin-bottom: 6px; }
+        .card-body .price { font-size: 1.1rem; font-weight: 700; color: #1B5E20; }
+        .card-body .price span { font-weight: 400; color: #6C757D; font-size: 0.85rem; }
+        .card-body .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+        .card-body .tag { padding: 2px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; background: #f8f9fa; color: #495057; }
+        .card-body .tag.featured { background: #FFF8E1; color: #F57F17; }
+        .card-body .tag.new { background: #E3F2FD; color: #1565C0; }
+        .card-body .btn { width: 100%; padding: 10px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+        .btn-primary { background: #1B5E20; color: white; }
+        .btn-primary:hover { background: #2E7D32; }
+        .btn-accent { background: #FF6B35; color: white; }
+        .btn-accent:hover { background: #e55a2b; }
+        .btn-outline { background: transparent; color: #1B5E20; border: 2px solid #1B5E20; }
+        .btn-outline:hover { background: #1B5E20; color: white; }
+        .btn-danger { background: #DC3545; color: white; }
+        .btn-danger:hover { background: #C82333; }
+        .btn-success { background: #28A745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
+        .btn-lg { padding: 14px 32px; font-size: 1.05rem; }
+        .btn-block { width: 100%; display: block; }
+        
+        /* ===== GRIDS ===== */
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+        
+        /* ===== STATS ===== */
+        .stat-card { padding: 20px; border-radius: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .stat-card .stat-number { font-size: 2.2rem; font-weight: 800; display: block; }
+        .stat-card .stat-label { font-size: 0.85rem; font-weight: 500; opacity: 0.8; }
+        .stat-card.purple { background: linear-gradient(135deg, #E8E0F7, #D1C4E9); color: #4A148C; }
+        .stat-card.green { background: linear-gradient(135deg, #E0F2E9, #B2DFDB); color: #004D40; }
+        .stat-card.pink { background: linear-gradient(135deg, #FDE0E8, #F8BBD0); color: #880E4F; }
+        .stat-card.blue { background: linear-gradient(135deg, #E3F2FD, #BBDEFB); color: #0D47A1; }
+        .stat-card.orange { background: linear-gradient(135deg, #FFF3E0, #FFE0B2); color: #E65100; }
+        
+        /* ===== DETAIL PAGE ===== */
+        .detail-hero { background: linear-gradient(135deg, #1B5E20, #2E7D32); border-radius: 24px; padding: 40px; color: white; margin-bottom: 30px; }
+        .detail-hero h1 { font-size: 2.2rem; margin-bottom: 10px; }
+        .detail-hero .detail-meta { display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.95rem; opacity: 0.9; }
+        .detail-hero .detail-meta i { margin-right: 6px; }
+        .detail-body { display: grid; grid-template-columns: 1fr; gap: 30px; }
+        @media (min-width: 1024px) { .detail-body { grid-template-columns: 2fr 1fr; } }
+        .detail-description { background: white; border-radius: 20px; padding: 24px; }
+        .detail-description h3 { margin-bottom: 12px; }
+        .detail-description p { color: #495057; line-height: 1.8; }
+        .detail-sidebar { background: white; border-radius: 20px; padding: 24px; border: 1px solid #E9ECEF; position: sticky; top: 100px; }
+        .detail-sidebar .price-large { font-size: 2rem; font-weight: 700; color: #1B5E20; }
+        .detail-sidebar .price-large span { font-size: 1rem; font-weight: 400; color: #6C757D; }
+        .detail-sidebar .booking-form .input-group { margin-bottom: 12px; }
+        .detail-sidebar .booking-form .input-group label { font-size: 0.8rem; }
+        .detail-sidebar .booking-form .input-group input { padding: 10px 14px; font-size: 0.95rem; }
+        
+        /* ===== BOOKING MODAL ===== */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 24px; padding: 30px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.3s ease; }
+        .modal .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal .modal-header h2 { font-size: 1.4rem; }
+        .modal .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6C757D; }
+        .modal .modal-close:hover { color: #1a1a2e; }
+        
+        /* ===== TOAST ===== */
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1A1A2E; color: white; padding: 14px 28px; border-radius: 30px; z-index: 2000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3); font-weight: 500; }
+        .toast.show { display: block; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(50px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        
+        /* ===== FOOTER ===== */
+        .footer { background: #1A1A2E; color: white; padding: 40px 20px; margin-top: 40px; }
+        .footer-grid { display: grid; grid-template-columns: 1fr; gap: 30px; max-width: 1400px; margin: 0 auto; }
+        @media (min-width: 640px) { .footer-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .footer-grid { grid-template-columns: repeat(4, 1fr); } }
+        .footer h3 { font-size: 1.2rem; margin-bottom: 15px; }
+        .footer p { opacity: 0.8; font-size: 0.9rem; line-height: 1.8; }
+        .footer a { color: white; opacity: 0.8; text-decoration: none; display: block; margin-bottom: 8px; }
+        .footer a:hover { opacity: 1; }
+        .footer-bottom { text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; opacity: 0.6; font-size: 0.85rem; }
+        
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .login-container { padding: 25px; }
+            .role-tabs { grid-template-columns: repeat(2, 1fr); }
+            .search-bar { border-radius: 24px; padding: 16px; flex-direction: column; }
+            .search-bar input { width: 100%; }
+            .search-bar select { width: 100%; }
+            .search-btn { width: 100%; justify-content: center; }
+            .header { padding: 10px 16px; }
+            .header-logo { font-size: 1.1rem; }
+            .nav-tabs { top: 60px; padding: 6px 12px; }
+            .nav-tab { padding: 6px 14px; font-size: 0.75rem; }
+            .detail-hero { padding: 20px; }
+            .detail-hero h1 { font-size: 1.4rem; }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+        }
+        
+        @media (max-width: 480px) {
+            .grid-4 { grid-template-columns: 1fr; }
+            .role-tabs { grid-template-columns: 1fr 1fr; }
+            .role-tab { font-size: 0.7rem; padding: 8px 4px; }
+        }
+        
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #1B5E20; border-radius: 3px; }
+        
+        /* ===== HOST DASHBOARD ===== */
+        .host-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 30px; }
+        .host-stat { background: white; padding: 20px; border-radius: 16px; text-align: center; border: 1px solid #E9ECEF; }
+        .host-stat .num { font-size: 2rem; font-weight: 800; color: #1B5E20; }
+        .host-stat .label { font-size: 0.85rem; color: #6C757D; }
+        
+        /* ===== ADMIN ===== */
+        .admin-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 768px) { .admin-grid { grid-template-columns: 1fr 1fr; } }
+        .admin-card { background: white; border-radius: 16px; padding: 20px; border: 1px solid #E9ECEF; }
+        .admin-card h3 { margin-bottom: 12px; }
+        .admin-card .list-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f8f9fa; }
+        .admin-card .list-item:last-child { border-bottom: none; }
+        .admin-card .status-badge { padding: 2px 12px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+        .status-badge.approved { background: #D4EDDA; color: #155724; }
+        .status-badge.pending { background: #FFF3CD; color: #856404; }
+        .status-badge.rejected { background: #F8D7DA; color: #721C24; }
+        .status-badge.active { background: #D4EDDA; color: #155724; }
+        .status-badge.inactive { background: #F8D7DA; color: #721C24; }
+    </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-container" id="loginContainer"></div>
+</div>
+
+<!-- ===== LANGUAGE SCREEN ===== -->
+<div class="language-screen hidden" id="languageScreen">
+    <div class="language-container">
+        <h2>🌍 Choose Your Language</h2>
+        <p>Select your preferred language for the best experience</p>
+        <div class="lang-options">
+            <div class="lang-option" onclick="selectLanguage('en')"><span class="lang-flag">🇬🇧</span><span class="lang-name">English</span></div>
+            <div class="lang-option" onclick="selectLanguage('am')"><span class="lang-flag">🇪🇹</span><span class="lang-name">አማርኛ (Amharic)</span></div>
+            <div class="lang-option" onclick="selectLanguage('om')"><span class="lang-flag">🇪🇹</span><span class="lang-name">Oromoo (Oromo)</span></div>
+            <div class="lang-option" onclick="selectLanguage('es')"><span class="lang-flag">🇪🇸</span><span class="lang-name">Español</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="mainApp" style="display:none;">
+    <div class="header">
+        <div class="header-logo" onclick="navG('home')"><span>🇪🇹</span> Ethiopia Travel</div>
+        <div class="header-actions">
+            <span class="badge-pill telebirr"><i class="fas fa-mobile-alt"></i> Telebirr: 0911626671</span>
+            <button class="lang-switch" onclick="showLanguageScreen()">🌐 <span id="currentLangDisplay">EN</span></button>
+            <span class="badge-pill role" id="userBadge"></span>
+            <button class="btn-logout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </div>
+
+    <div class="nav-tabs" id="navTabs"></div>
+    <div id="mainContent" class="main-content"></div>
+
+    <div class="footer">
+        <div class="footer-grid">
+            <div>
+                <h3>🇪🇹 Ethiopia Travel</h3>
+                <p>Complete Travel Ecosystem by Traverse Tour & Travel PLC</p>
+                <p style="margin-top:10px;">📞 +251 91 162 6671</p>
+                <p>📧 bookings@ethiopiatravelapp.com</p>
+            </div>
+            <div>
+                <h3>Quick Links</h3>
+                <a href="#" onclick="navG('home')">🏠 Home</a>
+                <a href="#" onclick="navG('tours')">🏛 Tours</a>
+                <a href="#" onclick="navG('host')">🏨 List Your Tour</a>
+            </div>
+            <div>
+                <h3>Support</h3>
+                <a href="#">Help Center</a>
+                <a href="#">Safety Tips</a>
+                <a href="#">Contact Us</a>
+            </div>
+            <div>
+                <h3>Follow Us</h3>
+                <a href="#"><i class="fab fa-facebook"></i> Facebook</a>
+                <a href="#"><i class="fab fa-instagram"></i> Instagram</a>
+                <a href="#"><i class="fab fa-youtube"></i> YouTube</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 Traverse Tour & Travel PLC. All rights reserved.</div>
+    </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============================================
+// DATA STORE - COMPLETE DATABASE
+// ============================================
+
+// Users System
+const USERS = {
+    admin: { user: '1111', pass: '1111', role: 'admin', name: 'Administrator' },
+    host: { user: '2222', pass: '2222', role: 'host', name: 'Traverse Ethiopia Tour' },
+    guest: { user: '3333', pass: '3333', role: 'guest', name: 'Guest User' }
+};
+
+// Registered Users (tourists)
+let registeredUsers = JSON.parse(localStorage.getItem('eta_users')) || [];
+
+// Tours Database
+let tours = JSON.parse(localStorage.getItem('eta_tours')) || [
+    {
+        id: 1,
+        name: 'Northern Historic Route - 7 Days',
+        category: 'historical',
+        duration: '7 Days',
+        price: 1250,
+        rating: 4.8,
+        reviews: 42,
+        guide: 'Kurabachew Endeshaw',
+        company: 'Traverse Ethiopia Tour',
+        description: 'Explore the ancient wonders of Ethiopia! Visit the rock-hewn churches of Lalibela, the castles of Gondar, the obelisks of Axum, and the monasteries of Lake Tana. This journey takes you through 3,000 years of history.',
+        location: 'Lalibela, Gondar, Axum, Bahir Dar',
+        image: '🏛️',
+        status: 'approved',
+        featured: true,
+        hostId: 'host_1',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 2,
+        name: 'Omo Valley Cultural Expedition - 15 Days',
+        category: 'cultural',
+        duration: '15 Days',
+        price: 2850,
+        rating: 5.0,
+        reviews: 28,
+        guide: 'Kurabachew Endeshaw',
+        company: 'Traverse Ethiopia Tour',
+        description: 'Experience the incredible cultural diversity of Ethiopia\'s Omo Valley. Visit 9 different indigenous tribes including the Hamer, Mursi, Karo, and Dassanech. Witness unique traditions, body painting, and the famous bull jumping ceremony.',
+        location: 'Jinka, Turmi, Key Afer, Omo River',
+        image: '🛖',
+        status: 'approved',
+        featured: true,
+        hostId: 'host_1',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 3,
+        name: 'Danakil Depression Adventure - 4 Days',
+        category: 'adventure',
+        duration: '4 Days',
+        price: 850,
+        rating: 4.7,
+        reviews: 35,
+        guide: 'Expert Guide',
+        company: 'Traverse Ethiopia Tour',
+        description: 'Journey to the hottest place on Earth! Visit the Erta Ale volcano with its active lava lake, the colorful sulfur springs of Dallol, and the salt flats of the Danakil Depression. A truly otherworldly experience.',
+        location: 'Danakil Depression, Erta Ale, Dallol',
+        image: '🌋',
+        status: 'approved',
+        featured: false,
+        hostId: 'host_1',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 4,
+        name: 'Bale Mountains Trekking - 6 Days',
+        category: 'nature',
+        duration: '6 Days',
+        price: 1100,
+        rating: 4.5,
+        reviews: 19,
+        guide: 'Nature Guide',
+        company: 'Traverse Ethiopia Tour',
+        description: 'Discover the stunning Bale Mountains National Park. Trek through the Sanetti Plateau, home to the endangered Ethiopian wolf. Explore the Harenna Forest and witness spectacular waterfalls and endemic bird species.',
+        location: 'Bale Mountains, Sanetti Plateau, Harenna Forest',
+        image: '🏔️',
+        status: 'approved',
+        featured: false,
+        hostId: 'host_1',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 5,
+        name: 'Addis Ababa City Tour - 3 Days',
+        category: 'city',
+        duration: '3 Days',
+        price: 450,
+        rating: 4.3,
+        reviews: 56,
+        guide: 'Kidest',
+        company: 'Kidicho Ethiopia Tour',
+        description: 'Explore the vibrant capital city of Ethiopia. Visit the National Museum, the bustling Merkato market, Entoto Mountain for panoramic views, and experience the rich coffee culture of Addis Ababa.',
+        location: 'Addis Ababa',
+        image: '🏙️',
+        status: 'approved',
+        featured: false,
+        hostId: 'host_2',
+        createdAt: new Date().toISOString()
+    },
+    {
+        id: 6,
+        name: 'Coffee Tour & Tasting - 2 Days',
+        category: 'food',
+        duration: '2 Days',
+        price: 280,
+        rating: 4.9,
+        reviews: 31,
+        guide: 'Coffee Expert',
+        company: 'Traverse Ethiopia Tour',
+        description: 'Experience the birthplace of coffee! Visit coffee farms in Jimma, learn about the entire coffee production process, and participate in a traditional Ethiopian coffee ceremony. Includes tastings of the finest Arabica coffee.',
+        location: 'Jimma, Kaffa',
+        image: '☕',
+        status: 'approved',
+        featured: false,
+        hostId: 'host_1',
+        createdAt: new Date().toISOString()
+    }
+];
+
+// Hotels Database
+let hotels = JSON.parse(localStorage.getItem('eta_hotels')) || [
+    { id: 1, name: 'Sheraton Addis', city: 'Addis Ababa', rating: 4.8, price: 250, amenities: 'Pool, Spa, 5 Restaurants, Gym', image: '🏨' },
+    { id: 2, name: 'Kuriftu Resort', city: 'Bahir Dar', rating: 4.5, price: 180, amenities: 'Pool, Lake View, Spa', image: '🏖️' },
+    { id: 3, name: 'Haile Resort', city: 'Jimma', rating: 4.6, price: 120, amenities: 'Pool, Coffee Plantation Tour', image: '🌄' },
+    { id: 4, name: 'Marriott Executive Apartments', city: 'Addis Ababa', rating: 4.7, price: 280, amenities: 'Full Kitchen, Gym, Business Center', image: '🏨' }
+];
+
+// Guides Database
+let guides = JSON.parse(localStorage.getItem('eta_guides')) || [
+    { id: 1, name: 'Kurabachew Endeshaw', company: 'Traverse Ethiopia Tour', rating: 4.9, price: 65, languages: 'English, Amharic, Oromo', specialty: 'Historical sites, Northern Route, Omo Valley', verified: true },
+    { id: 2, name: 'Gelagil Milion', company: 'Traverse Ethiopia Tour', rating: 4.9, price: 70, languages: 'English, Amharic', specialty: 'Omo Valley tribes, Cultural tours', verified: true },
+    { id: 3, name: 'Kidest', company: 'Kidicho Ethiopia Tour', rating: 4.7, price: 55, languages: 'English, Amharic', specialty: 'City tours, Shopping', verified: true }
+];
+
+// Vehicles Database
+let vehicles = JSON.parse(localStorage.getItem('eta_vehicles')) || [
+    { id: 1, type: 'Toyota Land Cruiser V8', plate: 'AA-12345', capacity: '7 passengers', price: 120, features: '4WD, AC, Roof Rack', icon: '🚙' },
+    { id: 2, type: 'Toyota Coaster Bus', plate: 'AA-11111', capacity: '25 passengers', price: 150, features: 'AC, TV, Reclining Seats', icon: '🚌' },
+    { id: 3, type: 'Safari Jeep', plate: 'AA-33333', capacity: '6 passengers', price: 140, features: '4WD, AC, Sunroof', icon: '🚗' }
+];
+
+// Experiences Database
+let experiences = JSON.parse(localStorage.getItem('eta_experiences')) || [
+    { id: 1, name: 'Coffee Ceremony', price: 30, duration: '2 hours', icon: '☕', category: 'cultural' },
+    { id: 2, name: 'Injera Cooking Class', price: 40, duration: '3 hours', icon: '🍳', category: 'food' },
+    { id: 3, name: 'Bird Watching Tour', price: 45, duration: '4 hours', icon: '🦅', category: 'nature' },
+    { id: 4, name: 'Photography Tour', price: 60, duration: '5 hours', icon: '📸', category: 'adventure' }
+];
+
+// Bookings Database
+let bookings = JSON.parse(localStorage.getItem('eta_bookings')) || [];
+
+// Wishlist Database
+let wishlist = JSON.parse(localStorage.getItem('eta_wishlist')) || [];
+
+// Reviews Database
+let reviews = JSON.parse(localStorage.getItem('eta_reviews')) || [];
+
+// ============================================
+// HELPERS & UTILITIES
+// ============================================
+
+function saveAll() {
+    localStorage.setItem('eta_users', JSON.stringify(registeredUsers));
+    localStorage.setItem('eta_tours', JSON.stringify(tours));
+    localStorage.setItem('eta_hotels', JSON.stringify(hotels));
+    localStorage.setItem('eta_guides', JSON.stringify(guides));
+    localStorage.setItem('eta_vehicles', JSON.stringify(vehicles));
+    localStorage.setItem('eta_experiences', JSON.stringify(experiences));
+    localStorage.setItem('eta_bookings', JSON.stringify(bookings));
+    localStorage.setItem('eta_wishlist', JSON.stringify(wishlist));
+    localStorage.setItem('eta_reviews', JSON.stringify(reviews));
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function showModal(html) {
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+
+// Close modal on overlay click
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+function getToursByCategory(category) {
+    return tours.filter(t => t.category === category && t.status === 'approved');
+}
+
+function getFeaturedTours() {
+    return tours.filter(t => t.featured && t.status === 'approved');
+}
+
+function formatPrice(price) {
+    return '$' + price.toLocaleString();
+}
+
+function getStarRating(rating) {
+    let stars = '';
+    for (let i = 1; i <= 5; i++) {
+        stars += i <= rating ? '⭐' : '☆';
+    }
+    return stars;
+}
+
+function generateId() {
+    return Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+}
+
+// ============================================
+// AUTHENTICATION SYSTEM
+// ============================================
+
+let currentUser = null;
+let currentRole = 'guest';
+let isSignUp = false;
+let currentTourist = null;
+let currentLang = 'en';
+
+function renderLoginForm() {
+    const c = document.getElementById('loginContainer');
+    
+    if (currentRole === 'guest' && isSignUp) {
+        // Tourist Sign Up
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🧳</span>
+                <h2>Create Account</h2>
+                <p>Join Ethiopia's #1 Travel Platform</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab active" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div class="input-group"><label>👤 Full Name</label><input type="text" id="signupName" placeholder="Enter your full name"></div>
+            <div class="input-group"><label>📧 Email Address</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
+            <div class="input-group"><label>📞 Phone Number</label><input type="tel" id="signupPhone" placeholder="+251 9XX XXX XXX"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="password" id="signupPass" placeholder="Minimum 4 characters"></div>
+            <button class="login-btn" onclick="handleSignUp()">✨ Create Free Account</button>
+            <p class="login-error" id="loginError"></p>
+            <p class="switch-link" onclick="toggleSignUp()">Already have an account? <strong>Sign In</strong></p>
+        `;
+    } else if (currentRole === 'guest' && !isSignUp) {
+        // Tourist Sign In
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🧳</span>
+                <h2>Welcome Back!</h2>
+                <p>Sign in to your account</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab active" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div class="input-group"><label>📧 Email</label><input type="email" id="signinEmail" placeholder="your@email.com"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="password" id="signinPass" placeholder="Enter your password"></div>
+            <button class="login-btn" onclick="handleSignIn()">🔓 Sign In</button>
+            <p class="login-error" id="loginError"></p>
+            <p class="switch-link" onclick="toggleSignUp()">New to Ethiopia Travel? <strong>Create Account</strong></p>
+        `;
+    } else {
+        // Admin / Host Login
+        const colors = {
+            admin: 'linear-gradient(135deg, #6c5ce7, #a29bfe)',
+            host: 'linear-gradient(135deg, #00b894, #55efc4)',
+            guest: 'linear-gradient(135deg, #1B5E20, #2E7D32)'
+        };
+        const labels = {
+            admin: '🔑 Admin Dashboard',
+            host: '🏢 Host Dashboard',
+            guest: '👤 Guest Access'
+        };
+        const hints = {
+            admin: '🔑 Admin: 1111 / 1111',
+            host: '🏢 Host: 2222 / 2222',
+            guest: '👤 Guest: 3333 / 3333'
+        };
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🇪🇹</span>
+                <h2>Ethiopia Travel</h2>
+                <p>Complete Travel Ecosystem</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab ${currentRole==='admin'?'active':''}" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab ${currentRole==='host'?'active':''}" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab ${currentRole==='guest'?'active':''}" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div class="input-group"><label>👤 Username</label><input type="text" id="loginUser" placeholder="Enter username"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
+            <button class="login-btn" style="background:${colors[currentRole]};" onclick="doLogin()">${labels[currentRole]}</button>
+            <p class="login-error" id="loginError"></p>
+            <div class="login-hint">${hints[currentRole]}</div>
+        `;
+    }
+}
+
+function toggleSignUp() {
+    isSignUp = !isSignUp;
+    renderLoginForm();
+}
+
+function setRole(role) {
+    currentRole = role;
+    isSignUp = false;
+    renderLoginForm();
+}
+
+function handleSignUp() {
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const phone = document.getElementById('signupPhone').value.trim();
+    const password = document.getElementById('signupPass').value;
+    const err = document.getElementById('loginError');
+    
+    if (!name || !email || !phone || !password) {
+        err.textContent = '❌ All fields are required';
+        err.classList.add('show');
+        return;
+    }
+    
+    if (registeredUsers.find(u => u.email === email)) {
+        err.textContent = '❌ Email already registered';
+        err.classList.add('show');
+        return;
+    }
+    
+    registeredUsers.push({
+        id: 'user_' + generateId(),
+        name: name,
+        email: email,
+        phone: phone,
+        password: password,
+        role: 'guest',
+        createdAt: new Date().toISOString()
+    });
+    
+    saveAll();
+    showToast('✅ Account created! Please sign in.');
+    isSignUp = false;
+    renderLoginForm();
+}
+
+function handleSignIn() {
+    const email = document.getElementById('signinEmail').value.trim();
+    const password = document.getElementById('signinPass').value;
+    const err = document.getElementById('loginError');
+    
+    if (!email || !password) {
+        err.textContent = '❌ Enter email and password';
+        err.classList.add('show');
+        return;
+    }
+    
+    const user = registeredUsers.find(u => u.email === email && u.password === password);
+    if (!user) {
+        err.textContent = '❌ Invalid email or password';
+        err.classList.add('show');
+        return;
+    }
+    
+    currentTourist = user;
+    currentUser = { username: user.email, role: 'guest', userId: user.id, name: user.name };
+    localStorage.setItem('eta_user', JSON.stringify(currentUser));
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('languageScreen').classList.remove('hidden');
+    showToast('✅ Welcome, ' + user.name + '!');
+}
+
+function doLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    const err = document.getElementById('loginError');
+    
+    if (!username || !password) {
+        err.textContent = '❌ Enter username and password';
+        err.classList.add('show');
+        return;
+    }
+    
+    const user = USERS[currentRole];
+    if (username === user.user && password === user.pass) {
+        currentUser = { username: username, role: currentRole, name: user.name };
+        localStorage.setItem('eta_user', JSON.stringify(currentUser));
+        document.getElementById('loginScreen').classList.add('hidden');
+        
+        if (currentRole === 'guest') {
+            document.getElementById('languageScreen').classList.remove('hidden');
+        } else {
+            document.getElementById('mainApp').style.display = 'block';
+            setupApp();
+            showToast('✅ Welcome, ' + currentRole.toUpperCase() + '!');
+        }
+    } else {
+        err.textContent = '❌ Invalid credentials';
+        err.classList.add('show');
+    }
+}
+
+function selectLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('eta_lang', lang);
+    document.getElementById('languageScreen').classList.add('hidden');
+    document.getElementById('mainApp').style.display = 'block';
+    if (currentUser?.role === 'guest') document.getElementById('aiChat').style.display = 'block';
+    setupApp();
+    showToast('✅ Language: ' + lang.toUpperCase());
+}
+
+function showLanguageScreen() {
+    document.getElementById('languageScreen').classList.remove('hidden');
+}
+
+function doLogout() {
+    currentUser = null;
+    currentTourist = null;
+    localStorage.removeItem('eta_user');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('languageScreen').classList.add('hidden');
+    renderLoginForm();
+    showToast('👋 Logged out');
+}
+
+// ============================================
+// APP SETUP - MAIN NAVIGATION
+// ============================================
+
+function setupApp() {
+    const badge = document.getElementById('userBadge');
+    const nav = document.getElementById('navTabs');
+    nav.innerHTML = '';
+    document.getElementById('currentLangDisplay').textContent = currentLang.toUpperCase();
+    
+    if (!currentUser) return;
+    
+    if (currentUser.role === 'admin') {
+        badge.textContent = '🔑 Admin';
+        badge.className = 'badge-pill role admin';
+        nav.innerHTML = `
+            <button class="nav-tab active" onclick="navAdmin('dashboard')"><i class="fas fa-chart-pie"></i> Dashboard</button>
+            <button class="nav-tab" onclick="navAdmin('tours')"><i class="fas fa-tasks"></i> Manage Tours</button>
+            <button class="nav-tab" onclick="navAdmin('users')"><i class="fas fa-users"></i> Users</button>
+            <button class="nav-tab" onclick="navAdmin('bookings')"><i class="fas fa-calendar-check"></i> Bookings</button>
+            <button class="nav-tab" onclick="navAdmin('reviews')"><i class="fas fa-star"></i> Reviews</button>
+        `;
+        showAdminDashboard();
+    } else if (currentUser.role === 'host') {
+        badge.textContent = '🏢 ' + currentUser.name;
+        badge.className = 'badge-pill role host';
+        nav.innerHTML = `
+            <button class="nav-tab active" onclick="navHost('dashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+            <button class="nav-tab" onclick="navHost('listings')"><i class="fas fa-list"></i> My Listings</button>
+            <button class="nav-tab" onclick="navHost('add')"><i class="fas fa-plus"></i> Add Tour</button>
+            <button class="nav-tab" onclick="navHost('bookings')"><i class="fas fa-calendar-check"></i> Bookings</button>
+        `;
+        showHostDashboard();
+    } else {
+        // Guest
+        badge.textContent = '👤 ' + (currentTourist?.name || 'Guest');
+        badge.className = 'badge-pill role';
+        nav.innerHTML = `
+            <button class="nav-tab active" onclick="navG('home')"><i class="fas fa-home"></i> Home</button>
+            <button class="nav-tab" onclick="navG('tours')"><i class="fas fa-compass"></i> Explore</button>
+            <button class="nav-tab" onclick="navG('hotels')"><i class="fas fa-hotel"></i> Hotels</button>
+            <button class="nav-tab" onclick="navG('guides')"><i class="fas fa-user-tie"></i> Guides</button>
+            <button class="nav-tab" onclick="navG('wishlist')"><i class="fas fa-heart"></i> Wishlist</button>
+            <button class="nav-tab" onclick="navG('mybookings')"><i class="fas fa-calendar-alt"></i> My Bookings</button>
+            <button class="nav-tab" onclick="navG('map')"><i class="fas fa-map-marker-alt"></i> Map</button>
+        `;
+        showGuestHome();
+    }
+}
+
+// ============================================
+// ADMIN NAVIGATION
+// ============================================
+
+function navAdmin(page) {
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    if (event?.target) event.target.classList.add('active');
+    
+    const pages = {
+        dashboard: showAdminDashboard,
+        tours: showAdminTours,
+        users: showAdminUsers,
+        bookings: showAdminBookings,
+        reviews: showAdminReviews
+    };
+    if (pages[page]) pages[page]();
+}
+
+function navHost(page) {
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    if (event?.target) event.target.classList.add('active');
+    
+    const pages = {
+        dashboard: showHostDashboard,
+        listings: showHostListings,
+        add: showHostAddTour,
+        bookings: showHostBookings
+    };
+    if (pages[page]) pages[page]();
+}
+
+function navG(page) {
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    if (event?.target) event.target.classList.add('active');
+    
+    const pages = {
+        home: showGuestHome,
+        tours: showGuestTours,
+        hotels: showGuestHotels,
+        guides: showGuestGuides,
+        wishlist: showGuestWishlist,
+        mybookings: showGuestMyBookings,
+        map: showGuestMap
+    };
+    if (pages[page]) pages[page]();
+}
+
+// ============================================
+// GUEST PAGES
+// ============================================
+
+function showGuestHome() {
+    const c = document.getElementById('mainContent');
+    const featured = getFeaturedTours();
+    const categories = [
+        { icon: '🏛️', name: 'Historical', category: 'historical' },
+        { icon: '🛖', name: 'Cultural', category: 'cultural' },
+        { icon: '🌋', name: 'Adventure', category: 'adventure' },
+        { icon: '🏔️', name: 'Nature', category: 'nature' },
+        { icon: '🏙️', name: 'City Tours', category: 'city' },
+        { icon: '☕', name: 'Food & Coffee', category: 'food' }
+    ];
+    
+    c.innerHTML = `
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Search tours, destinations, guides..." onkeyup="searchTours()">
+            <select id="categoryFilter" onchange="searchTours()">
+                <option value="">All Categories</option>
+                <option value="historical">🏛️ Historical</option>
+                <option value="cultural">🛖 Cultural</option>
+                <option value="adventure">🌋 Adventure</option>
+                <option value="nature">🏔️ Nature</option>
+                <option value="city">🏙️ City Tours</option>
+                <option value="food">☕ Food & Coffee</option>
+            </select>
+            <button class="search-btn" onclick="searchTours()"><i class="fas fa-search"></i> Search</button>
+        </div>
+        
+        <div class="categories">
+            ${categories.map(cat => `
+                <div class="category-item" onclick="filterByCategory('${cat.category}')">
+                    <span class="cat-icon">${cat.icon}</span>
+                    <span class="cat-name">${cat.name}</span>
+                </div>
+            `).join('')}
+        </div>
+        
+        <h2 class="section-title">🌟 Featured Experiences</h2>
+        <div class="grid-3">
+            ${featured.map(tour => renderTourCard(tour)).join('')}
+        </div>
+        
+        <h2 class="section-title" style="margin-top:40px;">🔥 Popular Tours</h2>
+        <div class="grid-3">
+            ${tours.filter(t => t.status === 'approved' && !t.featured).slice(0, 6).map(tour => renderTourCard(tour)).join('')}
+        </div>
+    `;
+}
+
+function renderTourCard(tour) {
+    const isWishlisted = wishlist.some(w => w.tourId === tour.id);
+    return `
+        <div class="card">
+            <div class="card-img" style="background: linear-gradient(135deg, #1B5E20, #2E7D32);">
+                <span style="font-size:4rem;">${tour.image}</span>
+                <button class="wishlist-btn ${isWishlisted ? 'liked' : ''}" onclick="toggleWishlist(${tour.id})">
+                    <i class="fas fa-heart"></i>
+                </button>
+                ${tour.featured ? '<span style="position:absolute;top:12px;left:12px;background:#FFD700;color:#1a1a2e;padding:2px 12px;border-radius:12px;font-size:0.7rem;font-weight:700;">⭐ FEATURED</span>' : ''}
+            </div>
+            <div class="card-body">
+                <h3>${tour.name}</h3>
+                <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
+                <div class="rating">${getStarRating(tour.rating)} ${tour.rating} (${tour.reviews || 0} reviews)</div>
+                <div class="price">${formatPrice(tour.price)} <span>/ person</span></div>
+                <div class="tags">
+                    <span class="tag">${tour.category}</span>
+                    <span class="tag">${tour.duration}</span>
+                    <span class="tag">${tour.guide}</span>
+                </div>
+                <button class="btn btn-primary" onclick="viewTourDetail(${tour.id})">View Details</button>
+            </div>
+        </div>
+    `;
+}
+
+function searchTours() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    
+    let results = tours.filter(t => t.status === 'approved');
+    
+    if (query) {
+        results = results.filter(t => 
+            t.name.toLowerCase().includes(query) || 
+            t.location.toLowerCase().includes(query) ||
+            t.description.toLowerCase().includes(query) ||
+            t.guide.toLowerCase().includes(query)
+        );
+    }
+    
+    if (category) {
+        results = results.filter(t => t.category === category);
+    }
+    
+    const c = document.getElementById('mainContent');
+    const searchResultsHtml = `
+        <h2 class="section-title">🔍 Search Results (${results.length})</h2>
+        ${results.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours found. Try a different search!</p>' : ''}
+        <div class="grid-3">
+            ${results.map(tour => renderTourCard(tour)).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navG('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+    
+    // If we're on the home page, replace the content
+    if (document.querySelector('.search-bar')) {
+        const content = c.innerHTML;
+        c.innerHTML = searchResultsHtml;
+    } else {
+        c.innerHTML = searchResultsHtml;
+    }
+}
+
+function filterByCategory(category) {
+    document.getElementById('categoryFilter').value = category;
+    searchTours();
+}
+
+function toggleWishlist(tourId) {
+    const index = wishlist.findIndex(w => w.tourId === tourId);
+    if (index > -1) {
+        wishlist.splice(index, 1);
+        showToast('❤️ Removed from wishlist');
+    } else {
+        wishlist.push({ tourId: tourId, userId: currentUser?.userId || 'guest', addedAt: new Date().toISOString() });
+        showToast('❤️ Added to wishlist!');
+    }
+    saveAll();
+    // Refresh the current view
+    if (document.querySelector('.grid-3')) {
+        // Refresh the page content
+        const currentPage = document.querySelector('.nav-tab.active')?.textContent?.trim() || 'Home';
+        if (currentPage.includes('Home')) showGuestHome();
+        else if (currentPage.includes('Explore')) showGuestTours();
+        else if (currentPage.includes('Wishlist')) showGuestWishlist();
+    }
+}
+
+function viewTourDetail(tourId) {
+    const tour = tours.find(t => t.id === tourId);
+    if (!tour) {
+        showToast('❌ Tour not found');
+        return;
+    }
+    
+    const isWishlisted = wishlist.some(w => w.tourId === tour.id);
+    
+    showModal(`
+        <div class="modal-header">
+            <h2>${tour.image} ${tour.name}</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div style="margin-bottom:15px;">
+            <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
+            <div class="rating">${getStarRating(tour.rating)} ${tour.rating} (${tour.reviews || 0} reviews)</div>
+        </div>
+        <p><strong>Duration:</strong> ${tour.duration}</p>
+        <p><strong>Guide:</strong> ${tour.guide}</p>
+        <p><strong>Company:</strong> ${tour.company}</p>
+        <p style="margin:15px 0;line-height:1.8;">${tour.description}</p>
+        <div class="tags" style="margin-bottom:15px;">
+            <span class="tag">${tour.category}</span>
+            <span class="tag">${tour.duration}</span>
+            ${tour.featured ? '<span class="tag featured">⭐ Featured</span>' : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:15px 0;border-top:2px solid #f8f9fa;border-bottom:2px solid #f8f9fa;margin-bottom:15px;">
+            <span style="font-size:1.8rem;font-weight:700;color:#1B5E20;">${formatPrice(tour.price)}</span>
+            <span style="color:#6C757D;">/ person</span>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="openBooking(${tour.id})" style="padding:14px;font-size:1.05rem;">
+            <i class="fas fa-calendar-check"></i> Book Now
+        </button>
+        <button class="btn ${isWishlisted ? 'btn-danger' : 'btn-outline'} btn-block" onclick="toggleWishlist(${tour.id}); closeModal();" style="margin-top:10px;">
+            <i class="fas fa-heart"></i> ${isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+        </button>
+    `);
+}
+
+function openBooking(tourId) {
+    closeModal();
+    const tour = tours.find(t => t.id === tourId);
+    if (!tour) {
+        showToast('❌ Tour not found');
+        return;
+    }
+    
+    showModal(`
+        <div class="modal-header">
+            <h2>📝 Book: ${tour.name}</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div style="margin-bottom:15px;">
+            <p><strong>Price:</strong> ${formatPrice(tour.price)} / person</p>
+            <p><strong>Duration:</strong> ${tour.duration}</p>
+        </div>
+        <div class="input-group">
+            <label>👤 Your Name</label>
+            <input type="text" id="bookName" value="${currentTourist?.name || ''}" placeholder="Enter your full name">
+        </div>
+        <div class="input-group">
+            <label>📞 Phone Number</label>
+            <input type="tel" id="bookPhone" value="${currentTourist?.phone || ''}" placeholder="Enter phone number">
+        </div>
+        <div class="input-group">
+            <label>📧 Email</label>
+            <input type="email" id="bookEmail" value="${currentTourist?.email || ''}" placeholder="Enter email address">
+        </div>
+        <div class="input-group">
+            <label>📅 Travel Date</label>
+            <input type="date" id="bookDate">
+        </div>
+        <div class="input-group">
+            <label>👥 Number of People</label>
+            <input type="number" id="bookPeople" value="2" min="1" max="20">
+        </div>
+        <div class="input-group">
+            <label>💳 Payment Method</label>
+            <select id="bookPayment">
+                <option value="telebirr">📱 Telebirr (0911626671)</option>
+                <option value="card">💳 Credit Card</option>
+                <option value="bank">🏦 Bank Transfer</option>
+                <option value="cash">💵 Cash on Arrival</option>
+            </select>
+        </div>
+        <div style="padding:15px;background:#f8f9fa;border-radius:12px;margin-bottom:15px;">
+            <p><strong>Total: </strong><span style="font-size:1.4rem;font-weight:700;color:#1B5E20;">${formatPrice(tour.price * 2)}</span></p>
+            <p style="font-size:0.85rem;color:#6C757D;">${formatPrice(tour.price)} × 2 people</p>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="confirmBooking(${tour.id})" style="padding:14px;font-size:1.05rem;">
+            <i class="fas fa-check"></i> Confirm Booking
+        </button>
+        <button class="btn btn-outline btn-block" onclick="closeModal()" style="margin-top:10px;">Cancel</button>
+    `);
+    
+    // Update total when people changes
+    document.getElementById('bookPeople').addEventListener('change', function() {
+        const people = parseInt(this.value) || 1;
+        const total = tour.price * people;
+        const totalEl = document.querySelector('[style*="font-size:1.4rem"]');
+        if (totalEl) {
+            totalEl.textContent = formatPrice(total);
+            const descEl = totalEl.parentElement.querySelector('p');
+            if (descEl) {
+                descEl.textContent = formatPrice(tour.price) + ' × ' + people + ' people';
+            }
+        }
+    });
+}
+
+function confirmBooking(tourId) {
+    const name = document.getElementById('bookName').value.trim();
+    const phone = document.getElementById('bookPhone').value.trim();
+    const email = document.getElementById('bookEmail').value.trim();
+    const date = document.getElementById('bookDate').value;
+    const people = parseInt(document.getElementById('bookPeople').value) || 1;
+    const payment = document.getElementById('bookPayment').value;
+    
+    if (!name || !phone || !email || !date) {
+        showToast('❌ Please fill in all fields');
+        return;
+    }
+    
+    const tour = tours.find(t => t.id === tourId);
+    if (!tour) {
+        showToast('❌ Tour not found');
+        return;
+    }
+    
+    const booking = {
+        id: generateId(),
+        tourId: tour.id,
+        tourName: tour.name,
+        tourPrice: tour.price,
+        userName: name,
+        userPhone: phone,
+        userEmail: email,
+        date: date,
+        people: people,
+        totalPrice: tour.price * people,
+        paymentMethod: payment,
+        status: 'confirmed',
+        userId: currentUser?.userId || 'guest',
+        createdAt: new Date().toISOString()
+    };
+    
+    bookings.push(booking);
+    saveAll();
+    closeModal();
+    showToast(`✅ Booking confirmed! Total: ${formatPrice(booking.totalPrice)}`);
+    navG('mybookings');
+}
+
+function showGuestTours() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <div class="search-bar" style="margin-bottom:20px;">
+            <input type="text" id="tourSearchInput" placeholder="🔍 Search tours..." onkeyup="searchToursList()">
+            <select id="tourCategoryFilter" onchange="searchToursList()">
+                <option value="">All Categories</option>
+                <option value="historical">🏛️ Historical</option>
+                <option value="cultural">🛖 Cultural</option>
+                <option value="adventure">🌋 Adventure</option>
+                <option value="nature">🏔️ Nature</option>
+                <option value="city">🏙️ City Tours</option>
+                <option value="food">☕ Food & Coffee</option>
+            </select>
+            <button class="search-btn" onclick="searchToursList()"><i class="fas fa-search"></i> Search</button>
+        </div>
+        <h2 class="section-title">🏛️ All Tours</h2>
+        <div id="tourResults" class="grid-3">
+            ${tours.filter(t => t.status === 'approved').map(tour => renderTourCard(tour)).join('')}
+        </div>
+    `;
+}
+
+function searchToursList() {
+    const query = document.getElementById('tourSearchInput').value.toLowerCase();
+    const category = document.getElementById('tourCategoryFilter').value;
+    
+    let results = tours.filter(t => t.status === 'approved');
+    
+    if (query) {
+        results = results.filter(t => 
+            t.name.toLowerCase().includes(query) || 
+            t.location.toLowerCase().includes(query) ||
+            t.description.toLowerCase().includes(query)
+        );
+    }
+    
+    if (category) {
+        results = results.filter(t => t.category === category);
+    }
+    
+    document.getElementById('tourResults').innerHTML = results.length === 0 
+        ? '<p style="text-align:center;padding:40px;color:#6C757D;grid-column:1/-1;">No tours found. Try a different search!</p>'
+        : results.map(tour => renderTourCard(tour)).join('');
+}
+
+function showGuestHotels() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">🏨 Hotels & Accommodations</h2>
+        <p class="section-subtitle">Find the perfect place to stay in Ethiopia</p>
+        <div class="grid-3">
+            ${hotels.map(hotel => `
+                <div class="card">
+                    <div class="card-img" style="background: linear-gradient(135deg, #2c3e50, #3498db);">
+                        <span style="font-size:4rem;">${hotel.image}</span>
+                    </div>
+                    <div class="card-body">
+                        <h3>${hotel.name}</h3>
+                        <div class="location"><i class="fas fa-map-marker-alt"></i> ${hotel.city}</div>
+                        <div class="rating">${getStarRating(hotel.rating)} ${hotel.rating}</div>
+                        <div class="price">${formatPrice(hotel.price)} <span>/ night</span></div>
+                        <div style="font-size:0.85rem;color:#6C757D;margin:8px 0;">${hotel.amenities}</div>
+                        <button class="btn btn-primary" onclick="showToast('🏨 Hotel booking coming soon!')">Check Availability</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showGuestGuides() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">👨‍🏫 Professional Guides</h2>
+        <p class="section-subtitle">Hire expert local guides for your journey</p>
+        <div class="grid-3">
+            ${guides.map(guide => `
+                <div class="card">
+                    <div class="card-img" style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); font-size:3rem;">
+                        👨‍🏫 ${guide.verified ? '✅' : ''}
+                    </div>
+                    <div class="card-body">
+                        <h3>${guide.name}</h3>
+                        <div style="font-size:0.85rem;color:#6C757D;">${guide.company}</div>
+                        <div class="rating">${getStarRating(guide.rating)} ${guide.rating}</div>
+                        <div class="price">${formatPrice(guide.price)} <span>/ day</span></div>
+                        <div style="font-size:0.85rem;margin:8px 0;">
+                            <strong>Languages:</strong> ${guide.languages}
+                        </div>
+                        <div style="font-size:0.85rem;color:#6C757D;">${guide.specialty}</div>
+                        <button class="btn btn-primary" onclick="showToast('👨‍🏫 Guide booking coming soon!')">Hire Guide</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showGuestWishlist() {
+    const c = document.getElementById('mainContent');
+    const wishlistedTours = tours.filter(t => wishlist.some(w => w.tourId === t.id) && t.status === 'approved');
+    
+    c.innerHTML = `
+        <h2 class="section-title">❤️ Your Wishlist</h2>
+        <p class="section-subtitle">${wishlistedTours.length} tours saved</p>
+        ${wishlistedTours.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours in your wishlist yet. Start exploring!</p>' : ''}
+        <div class="grid-3">
+            ${wishlistedTours.map(tour => renderTourCard(tour)).join('')}
+        </div>
+    `;
+}
+
+function showGuestMyBookings() {
+    const c = document.getElementById('mainContent');
+    const userBookings = bookings.filter(b => b.userId === currentUser?.userId || b.userEmail === currentUser?.username);
+    
+    c.innerHTML = `
+        <h2 class="section-title">📅 My Bookings</h2>
+        <p class="section-subtitle">${userBookings.length} bookings found</p>
+        ${userBookings.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No bookings yet. Start your adventure!</p>' : ''}
+        <div class="grid-2">
+            ${userBookings.map(b => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${b.tourName || 'Tour Booking'}</h3>
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                            <span style="color:#6C757D;font-size:0.9rem;">
+                                <i class="fas fa-calendar-alt"></i> ${b.date || 'TBD'}
+                            </span>
+                            <span style="background:#E8F5E9;color:#1B5E20;padding:2px 12px;border-radius:12px;font-size:0.8rem;font-weight:600;">
+                                ${b.status || 'Confirmed'}
+                            </span>
+                        </div>
+                        <div style="margin:8px 0;">
+                            <span style="font-weight:700;font-size:1.1rem;color:#1B5E20;">${formatPrice(b.totalPrice || b.tourPrice || 0)}</span>
+                            <span style="color:#6C757D;font-size:0.85rem;"> for ${b.people || 1} people</span>
+                        </div>
+                        <div style="font-size:0.85rem;color:#6C757D;">
+                            <i class="fas fa-user"></i> ${b.userName || 'Guest'}
+                        </div>
+                        <div style="font-size:0.85rem;color:#6C757D;">
+                            <i class="fas fa-phone"></i> ${b.userPhone || 'N/A'}
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function showGuestMap() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">🗺️ Explore Ethiopia</h2>
+        <p class="section-subtitle">Discover the best destinations across Ethiopia</p>
+        <div style="background:white;border-radius:20px;padding:20px;border:1px solid #E9ECEF;">
+            <div id="mapContainer" style="height:500px;border-radius:12px;background:linear-gradient(135deg,#1B5E20,#2E7D32);display:flex;align-items:center;justify-content:center;color:white;font-size:1.2rem;">
+                🗺️ Interactive Map Loading...
+            </div>
+        </div>
+        <div class="grid-4" style="margin-top:20px;">
+            ${[
+                { name: 'Addis Ababa', icon: '🏙️' },
+                { name: 'Lalibela', icon: '⛪' },
+                { name: 'Gondar', icon: '🏰' },
+                { name: 'Axum', icon: '🗿' },
+                { name: 'Bahir Dar', icon: '🏖️' },
+                { name: 'Danakil', icon: '🌋' },
+                { name: 'Omo Valley', icon: '🛖' },
+                { name: 'Bale Mountains', icon: '🏔️' }
+            ].map(loc => `
+                <div class="card" style="text-align:center;cursor:pointer;" onclick="showToast('📍 ${loc.name}: Coming soon!')">
+                    <div style="font-size:2rem;">${loc.icon}</div>
+                    <div style="font-weight:600;">${loc.name}</div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    // Initialize map after a moment
+    setTimeout(initGuestMap, 300);
+}
+
+function initGuestMap() {
+    const container = document.getElementById('mapContainer');
+    if (!container) return;
+    
+    try {
+        const map = L.map('mapContainer').setView([9.0, 39.5], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        const locations = [
+            { name: 'Addis Ababa', lat: 9.0320, lng: 38.7469, icon: '🏙️' },
+            { name: 'Lalibela', lat: 12.0317, lng: 39.0411, icon: '⛪' },
+            { name: 'Gondar', lat: 12.6030, lng: 37.4521, icon: '🏰' },
+            { name: 'Axum', lat: 14.1232, lng: 38.7246, icon: '🗿' },
+            { name: 'Bahir Dar', lat: 11.5742, lng: 37.3614, icon: '🏖️' },
+            { name: 'Danakil Depression', lat: 14.2373, lng: 40.2932, icon: '🌋' },
+            { name: 'Jinka', lat: 5.7833, lng: 36.5667, icon: '🛖' },
+            { name: 'Bale Mountains', lat: 6.8333, lng: 39.7167, icon: '🏔️' }
+        ];
+        
+        locations.forEach(loc => {
+            const marker = L.marker([loc.lat, loc.lng]).bindPopup(`
+                <strong>${loc.icon} ${loc.name}</strong>
+                <br>Click to explore
+            `);
+            marker.addTo(map);
+        });
+        
+        // Update container
+        container.innerHTML = '';
+        const mapContainer = document.createElement('div');
+        mapContainer.id = 'mapContainer';
+        mapContainer.style.height = '500px';
+        mapContainer.style.borderRadius = '12px';
+        container.parentNode.insertBefore(mapContainer, container);
+        container.remove();
+        
+        // Re-initialize map on the new container
+        const newMap = L.map('mapContainer').setView([9.0, 39.5], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(newMap);
+        
+        locations.forEach(loc => {
+            L.marker([loc.lat, loc.lng]).bindPopup(`
+                <strong>${loc.icon} ${loc.name}</strong>
+            `).addTo(newMap);
+        });
+        
+        setTimeout(() => newMap.invalidateSize(), 500);
+    } catch (e) {
+        // Map library not loaded
+    }
+}
+
+// ============================================
+// ADMIN PAGES
+// ============================================
+
+function showAdminDashboard() {
+    const c = document.getElementById('mainContent');
+    const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    
+    c.innerHTML = `
+        <h2 class="section-title">📊 Admin Dashboard</h2>
+        <div class="grid-4">
+            <div class="stat-card purple">
+                <span class="stat-number">${tours.length}</span>
+                <span class="stat-label">Total Tours</span>
+            </div>
+            <div class="stat-card green">
+                <span class="stat-number">${bookings.length}</span>
+                <span class="stat-label">Total Bookings</span>
+            </div>
+            <div class="stat-card blue">
+                <span class="stat-number">${registeredUsers.length}</span>
+                <span class="stat-label">Registered Users</span>
+            </div>
+            <div class="stat-card orange">
+                <span class="stat-number">${formatPrice(totalRevenue)}</span>
+                <span class="stat-label">Total Revenue</span>
+            </div>
+        </div>
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>📝 Pending Approvals</h3>
+                ${tours.filter(t => t.status === 'pending').length === 0 ? '<p style="color:#6C757D;">No pending approvals</p>' : ''}
+                ${tours.filter(t => t.status === 'pending').map(t => `
+                    <div class="list-item">
+                        <span>${t.image} ${t.name}</span>
+                        <span>
+                            <button class="btn btn-success btn-sm" onclick="approveTour(${t.id})">✅ Approve</button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectTour(${t.id})">❌</button>
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="admin-card">
+                <h3>📊 Recent Bookings</h3>
+                ${bookings.slice(-5).reverse().map(b => `
+                    <div class="list-item">
+                        <span>${b.userName} - ${b.tourName}</span>
+                        <span style="font-weight:600;">${formatPrice(b.totalPrice || 0)}</span>
+                    </div>
+                `).join('')}
+                ${bookings.length === 0 ? '<p style="color:#6C757D;">No bookings yet</p>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function approveTour(tourId) {
+    const tour = tours.find(t => t.id === tourId);
+    if (tour) {
+        tour.status = 'approved';
+        saveAll();
+        showToast('✅ Tour approved!');
+        showAdminDashboard();
+    }
+}
+
+function rejectTour(tourId) {
+    const tour = tours.find(t => t.id === tourId);
+    if (tour) {
+        tour.status = 'rejected';
+        saveAll();
+        showToast('❌ Tour rejected');
+        showAdminDashboard();
+    }
+}
+
+function showAdminTours() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">📋 Manage Tours</h2>
+        <p class="section-subtitle">${tours.length} tours in the system</p>
+        <div class="grid-2">
+            ${tours.map(t => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${t.image} ${t.name}</h3>
+                            <span class="status-badge ${t.status}">${t.status}</span>
+                        </div>
+                        <div style="font-size:0.85rem;color:#6C757D;">${t.location}</div>
+                        <div style="font-weight:600;color:#1B5E20;">${formatPrice(t.price)}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">${t.guide} | ${t.duration}</div>
+                        ${t.status === 'pending' ? `
+                            <div style="margin-top:8px;">
+                                <button class="btn btn-success btn-sm" onclick="approveTour(${t.id})">✅ Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectTour(${t.id})">❌ Reject</button>
+                            </div>
+                        ` : ''}
+                        <button class="btn btn-danger btn-sm" onclick="deleteTour(${t.id})" style="margin-top:8px;">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function deleteTour(tourId) {
+    if (confirm('Are you sure you want to delete this tour?')) {
+        tours = tours.filter(t => t.id !== tourId);
+        saveAll();
+        showToast('🗑️ Tour deleted');
+        showAdminTours();
+    }
+}
+
+function showAdminUsers() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">👥 Registered Users</h2>
+        <p class="section-subtitle">${registeredUsers.length} users registered</p>
+        <div class="grid-2">
+            ${registeredUsers.map(u => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${u.name}</h3>
+                        <div style="color:#6C757D;font-size:0.9rem;">📧 ${u.email}</div>
+                        <div style="color:#6C757D;font-size:0.9rem;">📞 ${u.phone}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">Joined: ${new Date(u.createdAt).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${registeredUsers.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No users registered yet</p>' : ''}
+    `;
+}
+
+function showAdminBookings() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">📅 All Bookings</h2>
+        <p class="section-subtitle">${bookings.length} total bookings</p>
+        <div class="grid-2">
+            ${bookings.map(b => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${b.tourName || 'Tour Booking'}</h3>
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;">
+                            <span style="color:#6C757D;">👤 ${b.userName}</span>
+                            <span style="font-weight:600;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.9rem;">📅 ${b.date || 'TBD'} | ${b.people || 1} people</div>
+                        <div style="color:#6C757D;font-size:0.9rem;">💳 ${b.paymentMethod || 'N/A'}</div>
+                        <span class="status-badge ${b.status === 'confirmed' ? 'approved' : 'pending'}">${b.status || 'confirmed'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${bookings.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No bookings yet</p>' : ''}
+    `;
+}
+
+function showAdminReviews() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">⭐ Reviews</h2>
+        <p class="section-subtitle">All reviews in the system</p>
+        ${reviews.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No reviews yet</p>' : ''}
+        <div class="grid-2">
+            ${reviews.map(r => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${r.tourName}</h3>
+                        <div class="rating">${getStarRating(r.rating)} ${r.rating}</div>
+                        <p style="color:#495057;margin:8px 0;">${r.comment}</p>
+                        <div style="color:#6C757D;font-size:0.85rem;">- ${r.userName}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+// ============================================
+// HOST PAGES
+// ============================================
+
+function showHostDashboard() {
+    const c = document.getElementById('mainContent');
+    const hostTours = tours.filter(t => t.hostId === 'host_1');
+    const hostBookings = bookings.filter(b => {
+        const tour = tours.find(t => t.id === b.tourId);
+        return tour && tour.hostId === 'host_1';
+    });
+    const totalEarnings = hostBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    
+    c.innerHTML = `
+        <h2 class="section-title">🏢 Host Dashboard</h2>
+        <div class="host-stats">
+            <div class="host-stat">
+                <div class="num">${hostTours.length}</div>
+                <div class="label">My Tours</div>
+            </div>
+            <div class="host-stat">
+                <div class="num">${hostBookings.length}</div>
+                <div class="label">Bookings</div>
+            </div>
+            <div class="host-stat">
+                <div class="num">${formatPrice(totalEarnings)}</div>
+                <div class="label">Earnings</div>
+            </div>
+            <div class="host-stat">
+                <div class="num">${hostTours.filter(t => t.status === 'approved').length}</div>
+                <div class="label">Active Tours</div>
+            </div>
+        </div>
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>📋 My Tours</h3>
+                ${hostTours.slice(0, 5).map(t => `
+                    <div class="list-item">
+                        <span>${t.image} ${t.name}</span>
+                        <span class="status-badge ${t.status}">${t.status}</span>
+                    </div>
+                `).join('')}
+                ${hostTours.length === 0 ? '<p style="color:#6C757D;">No tours yet. Create your first tour!</p>' : ''}
+            </div>
+            <div class="admin-card">
+                <h3>📊 Recent Bookings</h3>
+                ${hostBookings.slice(-5).reverse().map(b => `
+                    <div class="list-item">
+                        <span>${b.userName} - ${b.tourName}</span>
+                        <span style="font-weight:600;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
+                    </div>
+                `).join('')}
+                ${hostBookings.length === 0 ? '<p style="color:#6C757D;">No bookings yet</p>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function showHostListings() {
+    const c = document.getElementById('mainContent');
+    const hostTours = tours.filter(t => t.hostId === 'host_1');
+    
+    c.innerHTML = `
+        <h2 class="section-title">📋 My Listings</h2>
+        <p class="section-subtitle">${hostTours.length} tours listed</p>
+        <button class="btn btn-primary" onclick="navHost('add')" style="margin-bottom:20px;">➕ Add New Tour</button>
+        <div class="grid-2">
+            ${hostTours.map(t => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${t.image} ${t.name}</h3>
+                            <span class="status-badge ${t.status}">${t.status}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.9rem;">${t.location}</div>
+                        <div style="font-weight:600;color:#1B5E20;">${formatPrice(t.price)}</div>
+                        <div style="color:#6C757D;font-size:0.85rem;">${t.duration} | ${t.guide}</div>
+                        <div style="margin-top:8px;">
+                            <button class="btn btn-danger btn-sm" onclick="deleteTour(${t.id})">🗑️ Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${hostTours.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours yet. Start adding your first tour!</p>' : ''}
+    `;
+}
+
+function showHostAddTour() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">➕ Add New Tour</h2>
+        <div class="card" style="max-width:700px;margin:0 auto;">
+            <div class="card-body">
+                <div class="input-group">
+                    <label>🏛️ Tour Name *</label>
+                    <input type="text" id="addTourName" placeholder="e.g., Northern Historic Route">
+                </div>
+                <div class="input-group">
+                    <label>📍 Location *</label>
+                    <input type="text" id="addTourLocation" placeholder="e.g., Lalibela, Gondar, Axum">
+                </div>
+                <div class="input-group">
+                    <label>📅 Duration *</label>
+                    <input type="text" id="addTourDuration" placeholder="e.g., 7 Days">
+                </div>
+                <div class="input-group">
+                    <label>💰 Price (USD) *</label>
+                    <input type="number" id="addTourPrice" placeholder="e.g., 1250">
+                </div>
+                <div class="input-group">
+                    <label>👨‍🏫 Guide Name *</label>
+                    <input type="text" id="addTourGuide" placeholder="e.g., Kurabachew Endeshaw">
+                </div>
+                <div class="input-group">
+                    <label>📂 Category *</label>
+                    <select id="addTourCategory">
+                        <option value="historical">🏛️ Historical</option>
+                        <option value="cultural">🛖 Cultural</option>
+                        <option value="adventure">🌋 Adventure</option>
+                        <option value="nature">🏔️ Nature</option>
+                        <option value="city">🏙️ City Tours</option>
+                        <option value="food">☕ Food & Coffee</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>📝 Description *</label>
+                    <textarea id="addTourDescription" placeholder="Describe your tour in detail..." rows="4"></textarea>
+                </div>
+                <div class="input-group">
+                    <label>🖼️ Emoji Icon</label>
+                    <input type="text" id="addTourIcon" value="🏛️" placeholder="e.g., 🏛️">
+                </div>
+                <div style="display:flex;gap:10px;margin-top:10px;">
+                    <button class="btn btn-primary btn-block" onclick="addNewTour()">✅ Submit for Approval</button>
+                    <button class="btn btn-outline btn-block" onclick="navHost('listings')">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function addNewTour() {
+    const name = document.getElementById('addTourName').value.trim();
+    const location = document.getElementById('addTourLocation').value.trim();
+    const duration = document.getElementById('addTourDuration').value.trim();
+    const price = parseInt(document.getElementById('addTourPrice').value);
+    const guide = document.getElementById('addTourGuide').value.trim();
+    const category = document.getElementById('addTourCategory').value;
+    const description = document.getElementById('addTourDescription').value.trim();
+    const icon = document.getElementById('addTourIcon').value.trim() || '🏛️';
+    
+    if (!name || !location || !duration || !price || !guide || !description) {
+        showToast('❌ Please fill in all required fields');
+        return;
+    }
+    
+    const newTour = {
+        id: tours.length + 1,
+        name: name,
+        location: location,
+        duration: duration,
+        price: price,
+        guide: guide,
+        category: category,
+        description: description,
+        image: icon,
+        company: 'Traverse Ethiopia Tour',
+        rating: 0,
+        reviews: 0,
+        status: 'pending',
+        featured: false,
+        hostId: 'host_1',
+        createdAt: new Date().toISOString()
+    };
+    
+    tours.push(newTour);
+    saveAll();
+    showToast('✅ Tour submitted for approval!');
+    navHost('listings');
+}
+
+function showHostBookings() {
+    const c = document.getElementById('mainContent');
+    const hostTours = tours.filter(t => t.hostId === 'host_1');
+    const hostTourIds = hostTours.map(t => t.id);
+    const hostBookings = bookings.filter(b => hostTourIds.includes(b.tourId));
+    
+    c.innerHTML = `
+        <h2 class="section-title">📅 My Bookings</h2>
+        <p class="section-subtitle">${hostBookings.length} bookings for your tours</p>
+        <div class="grid-2">
+            ${hostBookings.map(b => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${b.tourName}</h3>
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;">
+                            <span style="color:#6C757D;">👤 ${b.userName}</span>
+                            <span style="font-weight:600;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.9rem;">📅 ${b.date || 'TBD'} | ${b.people || 1} people</div>
+                        <div style="color:#6C757D;font-size:0.9rem;">📞 ${b.userPhone || 'N/A'}</div>
+                        <span class="status-badge ${b.status === 'confirmed' ? 'approved' : 'pending'}">${b.status || 'confirmed'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${hostBookings.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No bookings for your tours yet</p>' : ''}
+    `;
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Load language preference
+    const savedLang = localStorage.getItem('eta_lang');
+    if (savedLang) currentLang = savedLang;
+    
+    // Render login form
+    renderLoginForm();
+    
+    // Check if user is already logged in
+    const savedUser = localStorage.getItem('eta_user');
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+            
+            // Check if guest user exists in registered users
+            if (user.role === 'guest') {
+                const foundUser = registeredUsers.find(u => u.email === user.username);
+                if (foundUser) {
+                    currentTourist = foundUser;
+                    currentUser = { username: foundUser.email, role: 'guest', userId: foundUser.id, name: foundUser.name };
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('languageScreen').classList.remove('hidden');
+                    return;
+                }
+            }
+            
+            // Check if admin/host user
+            if (user.role === 'admin' || user.role === 'host') {
+                const validUser = USERS[user.role];
+                if (validUser && user.username === validUser.user) {
+                    currentUser = user;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').style.display = 'block';
+                    setupApp();
+                    showToast('✅ Welcome back, ' + user.role.toUpperCase() + '!');
+                    return;
+                }
+            }
+            
+            // If guest but not found in registered users, clear session
+            if (user.role === 'guest') {
+                localStorage.removeItem('eta_user');
+            }
+        } catch (e) {
+            localStorage.removeItem('eta_user');
+        }
+    }
+});
+
+// Keyboard shortcut: Enter to login
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')) {
+        if (currentRole === 'guest') {
+            if (isSignUp) {
+                handleSignUp();
+            } else {
+                handleSignIn();
+            }
+        } else {
+            doLogin();
+        }
+    }
+});
+
+// Auto-save data periodically
+setInterval(saveAll, 30000);
+
+console.log('🇪🇹 Ethiopia Travel Super App loaded successfully!');
+console.log('📧 For support: bookings@ethiopiatravelapp.com');
+console.log('📞 Call: +251 91 162 6671');
+</script>
+</body>
+</html>
