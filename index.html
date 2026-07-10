@@ -1,0 +1,2781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethiopia Travel - Complete Travel Ecosystem</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f5f5f5; color: #1a1a2e; }
+        
+        /* ===== LOGIN ===== */
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0D3B0F, #1B5E20, #2E7D32); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; overflow-y: auto; }
+        .login-screen.hidden { display: none; }
+        .login-container { background: white; border-radius: 24px; padding: 30px; width: 100%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: fadeIn 0.6s ease; max-height: 95vh; overflow-y: auto; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .login-logo { text-align: center; margin-bottom: 20px; }
+        .login-logo .logo-icon { font-size: 3rem; display: block; margin-bottom: 10px; }
+        .login-logo h2 { font-size: 1.6rem; font-weight: 700; color: #1B5E20; }
+        .login-logo p { color: #6C757D; font-size: 0.9rem; }
+        
+        .role-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 20px; }
+        .role-tab { padding: 10px 6px; border: 2px solid #DEE2E6; background: white; border-radius: 12px; cursor: pointer; font-size: 0.7rem; font-weight: 600; text-align: center; transition: all 0.3s; }
+        .role-tab:hover { border-color: #1B5E20; background: #E8F5E9; }
+        .role-tab.active { background: #1B5E20; color: white; border-color: #1B5E20; }
+        .role-tab .tab-icon { display: block; font-size: 1.3rem; margin-bottom: 2px; }
+        
+        .input-group { margin-bottom: 14px; }
+        .input-group label { display: block; margin-bottom: 4px; font-weight: 600; color: #495057; font-size: 0.85rem; }
+        .input-group input, .input-group select, .input-group textarea { width: 100%; padding: 12px 14px; border: 2px solid #DEE2E6; border-radius: 12px; font-size: 0.95rem; transition: all 0.3s; background: #f8f9fa; }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus { outline: none; border-color: #1B5E20; background: white; }
+        .input-group textarea { min-height: 80px; resize: vertical; font-family: inherit; }
+        
+        .login-btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; color: white; background: linear-gradient(135deg, #1B5E20, #2E7D32); transition: all 0.3s; }
+        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(27, 94, 32, 0.3); }
+        .login-error { color: #DC3545; text-align: center; margin-top: 10px; display: none; font-size: 0.85rem; padding: 10px; background: #FFF0F0; border-radius: 10px; }
+        .login-error.show { display: block; }
+        .switch-link { text-align: center; margin-top: 12px; color: #1B5E20; cursor: pointer; font-weight: 500; font-size: 0.9rem; }
+        .switch-link:hover { text-decoration: underline; }
+        .login-hint { text-align: center; margin-top: 12px; color: #6C757D; font-size: 0.8rem; padding: 10px; background: #f8f9fa; border-radius: 10px; }
+        
+        /* ===== LANGUAGE ===== */
+        .language-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; z-index: 9998; padding: 20px; }
+        .language-screen.hidden { display: none; }
+        .language-container { text-align: center; max-width: 500px; width: 100%; }
+        .language-container h2 { font-size: 1.8rem; margin-bottom: 10px; }
+        .language-container p { color: #6C757D; margin-bottom: 25px; }
+        .lang-options { display: grid; gap: 10px; }
+        .lang-option { padding: 16px; border: 3px solid #DEE2E6; border-radius: 20px; cursor: pointer; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 15px; background: white; transition: all 0.3s; }
+        .lang-option:hover { border-color: #1B5E20; background: #E8F5E9; transform: translateX(5px); }
+        .lang-option .lang-flag { font-size: 2rem; }
+        
+        /* ===== HEADER ===== */
+        .header { background: white; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E9ECEF; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 8px; }
+        .header-logo { font-size: 1.2rem; font-weight: 800; color: #1B5E20; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .header-logo span { font-size: 1.5rem; }
+        .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .badge-pill { padding: 4px 12px; border-radius: 16px; font-size: 0.7rem; font-weight: 600; background: #E3F2FD; color: #1565C0; }
+        .badge-pill.telebirr { background: #FFF8E1; color: #F57F17; }
+        .badge-pill.role { background: #E8F5E9; color: #1B5E20; }
+        .badge-pill.role.admin { background: #F3E5F5; color: #6A1B9A; }
+        .badge-pill.role.host { background: #E0F2F1; color: #00695C; }
+        .badge-pill.role.guide { background: #FFF3E0; color: #E65100; }
+        .btn-logout { background: #DC3545; color: white; border: none; padding: 6px 14px; border-radius: 16px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.3s; }
+        .btn-logout:hover { background: #C82333; }
+        .lang-switch { background: #f8f9fa; border: 2px solid #DEE2E6; padding: 5px 12px; border-radius: 16px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.3s; }
+        .lang-switch:hover { background: #E9ECEF; }
+        
+        /* ===== NAV ===== */
+        .nav-tabs { display: flex; overflow-x: auto; background: white; padding: 6px 12px; gap: 4px; border-bottom: 2px solid #E9ECEF; position: sticky; top: 60px; z-index: 99; }
+        .nav-tab { padding: 8px 14px; border: none; background: transparent; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 0.75rem; font-weight: 500; transition: all 0.3s; color: #495057; }
+        .nav-tab:hover { background: #f8f9fa; }
+        .nav-tab.active { background: #1B5E20; color: white; font-weight: 600; }
+        .nav-tab i { margin-right: 4px; }
+        
+        /* ===== MAIN ===== */
+        .main-content { padding: 16px; max-width: 1400px; margin: 0 auto; padding-bottom: 80px; }
+        .section-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+        .section-subtitle { font-size: 0.9rem; color: #6C757D; margin-bottom: 16px; }
+        
+        /* ===== SEARCH ===== */
+        .search-bar { background: white; border-radius: 40px; padding: 10px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); margin-bottom: 20px; flex-wrap: wrap; }
+        .search-bar input { flex: 1; border: none; padding: 10px 16px; font-size: 0.95rem; min-width: 120px; background: transparent; }
+        .search-bar input:focus { outline: none; }
+        .search-bar select { border: none; padding: 10px 14px; font-size: 0.9rem; background: transparent; color: #495057; min-width: 100px; }
+        .search-bar select:focus { outline: none; }
+        .search-btn { background: #1B5E20; color: white; border: none; padding: 10px 24px; border-radius: 30px; cursor: pointer; font-weight: 600; transition: all 0.3s; font-size: 0.9rem; }
+        .search-btn:hover { background: #2E7D32; transform: scale(1.02); }
+        
+        /* ===== CATEGORIES ===== */
+        .categories { display: flex; gap: 10px; overflow-x: auto; padding: 8px 0 16px; margin-bottom: 16px; }
+        .category-item { text-align: center; cursor: pointer; padding: 8px 16px; border-radius: 24px; border: 2px solid transparent; transition: all 0.3s; min-width: 70px; background: white; }
+        .category-item:hover { border-color: #1B5E20; background: #E8F5E9; }
+        .category-item.active { border-color: #1B5E20; background: #1B5E20; color: white; }
+        .category-item .cat-icon { font-size: 1.5rem; display: block; margin-bottom: 2px; }
+        .category-item .cat-name { font-size: 0.7rem; font-weight: 500; }
+        
+        /* ===== CARDS ===== */
+        .card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.06); border: 1px solid #E9ECEF; transition: all 0.3s; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 40px rgba(0,0,0,0.12); }
+        .card-img { height: 160px; background: linear-gradient(135deg, #1B5E20, #2E7D32); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: white; position: relative; }
+        .card-img .wishlist-btn { position: absolute; top: 10px; right: 10px; background: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1rem; transition: all 0.3s; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .card-img .wishlist-btn:hover { transform: scale(1.1); }
+        .card-img .wishlist-btn.liked { color: #DC3545; }
+        .card-body { padding: 14px; }
+        .card-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+        .card-body .location { font-size: 0.8rem; color: #6C757D; margin-bottom: 4px; }
+        .card-body .location i { margin-right: 4px; }
+        .card-body .rating { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: #f59e0b; margin-bottom: 4px; }
+        .card-body .price { font-size: 1rem; font-weight: 700; color: #1B5E20; }
+        .card-body .price span { font-weight: 400; color: #6C757D; font-size: 0.8rem; }
+        .card-body .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+        .card-body .tag { padding: 2px 10px; border-radius: 10px; font-size: 0.65rem; font-weight: 600; background: #f8f9fa; color: #495057; }
+        .card-body .tag.featured { background: #FFF8E1; color: #F57F17; }
+        .card-body .btn { width: 100%; padding: 8px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.3s; margin-top: 8px; font-size: 0.85rem; }
+        .btn-primary { background: #1B5E20; color: white; }
+        .btn-primary:hover { background: #2E7D32; }
+        .btn-accent { background: #FF6B35; color: white; }
+        .btn-accent:hover { background: #e55a2b; }
+        .btn-outline { background: transparent; color: #1B5E20; border: 2px solid #1B5E20; }
+        .btn-outline:hover { background: #1B5E20; color: white; }
+        .btn-danger { background: #DC3545; color: white; }
+        .btn-danger:hover { background: #C82333; }
+        .btn-success { background: #28A745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-warning { background: #FFC107; color: #1a1a2e; }
+        .btn-warning:hover { background: #e0a800; }
+        .btn-sm { padding: 4px 12px; font-size: 0.75rem; }
+        .btn-lg { padding: 12px 24px; font-size: 1rem; }
+        .btn-block { width: 100%; display: block; }
+        
+        /* ===== GRIDS ===== */
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+        
+        /* ===== STATS ===== */
+        .stat-card { padding: 16px; border-radius: 16px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+        .stat-card .stat-number { font-size: 1.8rem; font-weight: 800; display: block; }
+        .stat-card .stat-label { font-size: 0.8rem; font-weight: 500; opacity: 0.8; }
+        .stat-card.purple { background: linear-gradient(135deg, #E8E0F7, #D1C4E9); color: #4A148C; }
+        .stat-card.green { background: linear-gradient(135deg, #E0F2E9, #B2DFDB); color: #004D40; }
+        .stat-card.pink { background: linear-gradient(135deg, #FDE0E8, #F8BBD0); color: #880E4F; }
+        .stat-card.blue { background: linear-gradient(135deg, #E3F2FD, #BBDEFB); color: #0D47A1; }
+        .stat-card.orange { background: linear-gradient(135deg, #FFF3E0, #FFE0B2); color: #E65100; }
+        
+        /* ===== MODAL ===== */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 20px; padding: 24px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.3s ease; }
+        .modal .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .modal .modal-header h2 { font-size: 1.2rem; }
+        .modal .modal-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #6C757D; padding: 4px 8px; }
+        .modal .modal-close:hover { color: #1a1a2e; }
+        .modal .itinerary-day { background: #f8f9fa; border-radius: 12px; padding: 12px; margin-bottom: 10px; border-left: 4px solid #1B5E20; }
+        .modal .itinerary-day h4 { font-size: 0.95rem; margin-bottom: 4px; }
+        .modal .itinerary-day p { font-size: 0.85rem; color: #495057; }
+        .modal .itinerary-day .activity-img { max-width: 100%; border-radius: 8px; margin-top: 6px; max-height: 150px; object-fit: cover; }
+        
+        /* ===== UPLOAD ===== */
+        .file-upload { border: 2px dashed #DEE2E6; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.3s; }
+        .file-upload:hover { border-color: #1B5E20; background: #f8f9fa; }
+        .file-upload .upload-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+        .file-upload .upload-text { font-size: 0.85rem; color: #6C757D; }
+        .file-upload input { display: none; }
+        .upload-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .upload-preview img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #DEE2E6; }
+        
+        /* ===== TOAST ===== */
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1A1A2E; color: white; padding: 12px 24px; border-radius: 24px; z-index: 2000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.3); font-weight: 500; font-size: 0.9rem; max-width: 90%; text-align: center; }
+        .toast.show { display: block; animation: slideUp 0.4s ease; }
+        @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(30px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        
+        /* ===== FOOTER ===== */
+        .footer { background: #1A1A2E; color: white; padding: 30px 16px; margin-top: 30px; }
+        .footer-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        @media (min-width: 640px) { .footer-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .footer-grid { grid-template-columns: repeat(4, 1fr); } }
+        .footer h3 { font-size: 1rem; margin-bottom: 10px; }
+        .footer p { opacity: 0.8; font-size: 0.85rem; line-height: 1.6; }
+        .footer a { color: white; opacity: 0.8; text-decoration: none; display: block; margin-bottom: 6px; font-size: 0.85rem; }
+        .footer a:hover { opacity: 1; }
+        .footer-bottom { text-align: center; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: 16px; opacity: 0.6; font-size: 0.8rem; }
+        
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .login-container { padding: 20px; }
+            .role-tabs { grid-template-columns: repeat(2, 1fr); }
+            .search-bar { border-radius: 20px; padding: 12px; flex-direction: column; }
+            .search-bar input { width: 100%; }
+            .search-bar select { width: 100%; }
+            .search-btn { width: 100%; justify-content: center; }
+            .header { padding: 8px 12px; }
+            .header-logo { font-size: 1rem; }
+            .nav-tabs { top: 50px; padding: 4px 8px; }
+            .nav-tab { padding: 6px 10px; font-size: 0.7rem; }
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .card-img { height: 120px; font-size: 2.5rem; }
+            .section-title { font-size: 1.2rem; }
+        }
+        @media (max-width: 480px) {
+            .grid-4 { grid-template-columns: 1fr; }
+            .role-tabs { grid-template-columns: 1fr 1fr; }
+            .role-tab { font-size: 0.65rem; padding: 6px 4px; }
+            .modal { padding: 16px; }
+        }
+        
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #1B5E20; border-radius: 2px; }
+        
+        .status-badge { padding: 2px 10px; border-radius: 10px; font-size: 0.65rem; font-weight: 600; }
+        .status-badge.approved { background: #D4EDDA; color: #155724; }
+        .status-badge.pending { background: #FFF3CD; color: #856404; }
+        .status-badge.rejected { background: #F8D7DA; color: #721C24; }
+        .status-badge.verified { background: #D4EDDA; color: #155724; }
+        .status-badge.unverified { background: #FFF3CD; color: #856404; }
+        
+        .host-login-card { background: #f8f9fa; border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #E9ECEF; cursor: pointer; transition: all 0.3s; }
+        .host-login-card:hover { border-color: #1B5E20; background: #E8F5E9; }
+        .host-login-card .host-icon { font-size: 1.5rem; margin-right: 10px; }
+        .host-login-card .host-cred { font-size: 0.8rem; color: #6C757D; }
+        .host-login-card .host-cred strong { color: #1B5E20; }
+    </style>
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-container" id="loginContainer"></div>
+</div>
+
+<!-- ===== LANGUAGE SCREEN ===== -->
+<div class="language-screen hidden" id="languageScreen">
+    <div class="language-container">
+        <h2>🌍 Choose Your Language</h2>
+        <p>Select your preferred language</p>
+        <div class="lang-options">
+            <div class="lang-option" onclick="selectLanguage('en')"><span class="lang-flag">🇬🇧</span> English</div>
+            <div class="lang-option" onclick="selectLanguage('am')"><span class="lang-flag">🇪🇹</span> አማርኛ</div>
+            <div class="lang-option" onclick="selectLanguage('om')"><span class="lang-flag">🇪🇹</span> Oromoo</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAIN APP ===== -->
+<div id="mainApp" style="display:none;">
+    <div class="header">
+        <div class="header-logo" onclick="navigateTo('home')"><span>🇪🇹</span> Ethiopia Travel</div>
+        <div class="header-actions">
+            <span class="badge-pill telebirr"><i class="fas fa-mobile-alt"></i> Telebirr: 0911626671</span>
+            <button class="lang-switch" onclick="showLanguageScreen()">🌐 <span id="currentLangDisplay">EN</span></button>
+            <span class="badge-pill role" id="userBadge"></span>
+            <button class="btn-logout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </div>
+
+    <div class="nav-tabs" id="navTabs"></div>
+    <div id="mainContent" class="main-content"></div>
+
+    <div class="footer">
+        <div class="footer-grid">
+            <div>
+                <h3>🇪🇹 Ethiopia Travel</h3>
+                <p>Complete Travel Ecosystem by Traverse Tour & Travel PLC</p>
+                <p style="margin-top:8px;">📞 +251 91 162 6671</p>
+                <p>📧 bookings@ethiopiatravelapp.com</p>
+            </div>
+            <div>
+                <h3>Quick Links</h3>
+                <a href="#" onclick="navigateTo('home')">🏠 Home</a>
+                <a href="#" onclick="navigateTo('tours')">🏛 Tours</a>
+                <a href="#" onclick="navigateTo('hotels')">🏨 Hotels</a>
+                <a href="#" onclick="navigateTo('guides')">👨‍🏫 Guides</a>
+                <a href="#" onclick="navigateTo('vehicles')">🚗 Vehicles</a>
+            </div>
+            <div>
+                <h3>Support</h3>
+                <a href="#" onclick="showToast('📧 Email: bookings@ethiopiatravelapp.com')">Help Center</a>
+                <a href="#" onclick="showToast('🛡️ Safety is our priority!')">Safety Tips</a>
+                <a href="#" onclick="showToast('📞 Call: +251 91 162 6671')">Contact Us</a>
+            </div>
+            <div>
+                <h3>Follow Us</h3>
+                <a href="#"><i class="fab fa-facebook"></i> Facebook</a>
+                <a href="#"><i class="fab fa-instagram"></i> Instagram</a>
+                <a href="#"><i class="fab fa-youtube"></i> YouTube</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 Traverse Tour & Travel PLC. All rights reserved.</div>
+    </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== MODAL ===== -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+// ============================================
+// COMPLETE DATABASE
+// ============================================
+
+// System Users (Fixed)
+const SYSTEM_USERS = {
+    admin: { user: '1111', pass: '1111', role: 'admin', name: 'Administrator' }
+};
+
+// ===== 3 TOUR COMPANIES WITH ACCOUNTS =====
+const HOST_COMPANIES = [
+    { 
+        id: 'host_1', 
+        name: 'Traverse Ethiopia Tour', 
+        user: 'traverse', 
+        pass: 'traverse123', 
+        email: 'traverse@ethiopiatravel.com',
+        phone: '0911334455',
+        license: 'ET-TOUR-001',
+        tin: '1234567890',
+        status: 'verified',
+        icon: '🏢'
+    },
+    { 
+        id: 'host_2', 
+        name: 'Kidicho Ethiopia Tour', 
+        user: 'kidicho', 
+        pass: 'kidicho123', 
+        email: 'kidicho@ethiopiatravel.com',
+        phone: '0911556677',
+        license: 'ET-TOUR-002',
+        tin: '0987654321',
+        status: 'verified',
+        icon: '🏢'
+    },
+    { 
+        id: 'host_3', 
+        name: 'Ethio Travel & Tours', 
+        user: 'ethiotravel', 
+        pass: 'ethio123', 
+        email: 'info@ethiotravel.com',
+        phone: '0911778899',
+        license: 'ET-TOUR-003',
+        tin: '1122334455',
+        status: 'verified',
+        icon: '🏢'
+    }
+];
+
+// ===== 5 GUIDES WITH ACCOUNTS =====
+const GUIDE_USERS = [
+    {
+        id: 'guide_1',
+        name: 'Kurabachew Endeshaw',
+        user: 'kurabachew',
+        pass: 'guide123',
+        email: 'kurabachew@guides.com',
+        phone: '0911223344',
+        specialty: 'Historical Sites, Northern Route',
+        languages: 'English, Amharic, Oromo',
+        price: 65,
+        rating: 4.9,
+        verified: true,
+        idNumber: 'ET-GUIDE-001',
+        diploma: 'BA in History',
+        experience: '10 years',
+        icon: '👨‍🏫'
+    },
+    {
+        id: 'guide_2',
+        name: 'Gelagil Milion',
+        user: 'gelagil',
+        pass: 'guide123',
+        email: 'gelagil@guides.com',
+        phone: '0911334455',
+        specialty: 'Omo Valley Tribes, Cultural Tours',
+        languages: 'English, Amharic',
+        price: 70,
+        rating: 4.9,
+        verified: true,
+        idNumber: 'ET-GUIDE-002',
+        diploma: 'BA in Anthropology',
+        experience: '8 years',
+        icon: '👨‍🏫'
+    },
+    {
+        id: 'guide_3',
+        name: 'Kidest',
+        user: 'kidest',
+        pass: 'guide123',
+        email: 'kidest@guides.com',
+        phone: '0911556677',
+        specialty: 'City Tours, Shopping, Local Culture',
+        languages: 'English, Amharic',
+        price: 55,
+        rating: 4.7,
+        verified: true,
+        idNumber: 'ET-GUIDE-003',
+        diploma: 'BA in Tourism',
+        experience: '6 years',
+        icon: '👨‍🏫'
+    },
+    {
+        id: 'guide_4',
+        name: 'Tigist Worku',
+        user: 'tigist',
+        pass: 'guide123',
+        email: 'tigist@guides.com',
+        phone: '0911667788',
+        specialty: 'Bird Watching, Nature Tours',
+        languages: 'English, Amharic, Oromo',
+        price: 60,
+        rating: 4.8,
+        verified: true,
+        idNumber: 'ET-GUIDE-004',
+        diploma: 'BSc in Biology',
+        experience: '7 years',
+        icon: '👩‍🏫'
+    },
+    {
+        id: 'guide_5',
+        name: 'Dawit Solomon',
+        user: 'dawit',
+        pass: 'guide123',
+        email: 'dawit@guides.com',
+        phone: '0911889900',
+        specialty: 'Adventure Tours, Trekking',
+        languages: 'English, Amharic',
+        price: 75,
+        rating: 4.6,
+        verified: true,
+        idNumber: 'ET-GUIDE-005',
+        diploma: 'BSc in Geography',
+        experience: '5 years',
+        icon: '👨‍🏫'
+    }
+];
+
+// ===== 10 HOTELS WITH ACCOUNTS =====
+const HOTEL_COMPANIES = [
+    { id: 'hotel_1', name: 'Sheraton Addis', user: 'sheraton', pass: '1111', city: 'Addis Ababa', rating: 4.8, price: 250, amenities: 'Pool, Spa, 5 Restaurants, Gym', icon: '🏨' },
+    { id: 'hotel_2', name: 'Kuriftu Resort', user: 'kuriftu', pass: '1111', city: 'Bahir Dar', rating: 4.5, price: 180, amenities: 'Pool, Lake View, Spa', icon: '🏖️' },
+    { id: 'hotel_3', name: 'Haile Resort', user: 'haile', pass: '1111', city: 'Jimma', rating: 4.6, price: 120, amenities: 'Pool, Coffee Plantation', icon: '🌄' },
+    { id: 'hotel_4', name: 'Marriott Executive', user: 'marriott', pass: '1111', city: 'Addis Ababa', rating: 4.7, price: 280, amenities: 'Kitchen, Gym, Business Center', icon: '🏨' },
+    { id: 'hotel_5', name: 'Gondar Hills Resort', user: 'gondarhills', pass: '1111', city: 'Gondar', rating: 4.4, price: 150, amenities: 'Mountain View, Pool', icon: '🏔️' },
+    { id: 'hotel_6', name: 'Axum Hotel', user: 'axumhotel', pass: '1111', city: 'Axum', rating: 4.3, price: 100, amenities: 'Historical View, Restaurant', icon: '🏛️' },
+    { id: 'hotel_7', name: 'Lalibela Lodge', user: 'lalibela', pass: '1111', city: 'Lalibela', rating: 4.6, price: 160, amenities: 'Church View, Garden', icon: '⛪' },
+    { id: 'hotel_8', name: 'Danakil Camp', user: 'danakil', pass: '1111', city: 'Danakil', rating: 4.2, price: 90, amenities: 'Desert Experience', icon: '🏜️' },
+    { id: 'hotel_9', name: 'Jinka Resort', user: 'jinka', pass: '1111', city: 'Jinka', rating: 4.4, price: 110, amenities: 'Cultural Tours, Pool', icon: '🛖' },
+    { id: 'hotel_10', name: 'Bale Mountain Lodge', user: 'balemountain', pass: '1111', city: 'Bale', rating: 4.7, price: 140, amenities: 'Nature View, Hiking', icon: '🏔️' }
+];
+
+// ===== VEHICLES =====
+const VEHICLES = [
+    { id: 'veh_1', type: 'Toyota Land Cruiser V8', plate: 'AA-12345', capacity: '7 passengers', price: 120, features: '4WD, AC, Roof Rack', company: 'Traverse Ethiopia Tour', icon: '🚙' },
+    { id: 'veh_2', type: 'Toyota Coaster Bus', plate: 'AA-11111', capacity: '25 passengers', price: 150, features: 'AC, TV, Reclining Seats', company: 'Traverse Ethiopia Tour', icon: '🚌' },
+    { id: 'veh_3', type: 'Safari Jeep', plate: 'AA-33333', capacity: '6 passengers', price: 140, features: '4WD, AC, Sunroof', company: 'Kidicho Ethiopia Tour', icon: '🚗' },
+    { id: 'veh_4', type: 'Toyota Hiace Van', plate: 'AA-44444', capacity: '14 passengers', price: 100, features: 'AC, Comfortable Seats', company: 'Ethio Travel & Tours', icon: '🚐' },
+    { id: 'veh_5', type: 'Mitsubishi Pajero', plate: 'AA-55555', capacity: '5 passengers', price: 110, features: '4WD, Off-road Ready', company: 'Traverse Ethiopia Tour', icon: '🚙' },
+    { id: 'veh_6', type: 'Mercedes Sprinter', plate: 'AA-66666', capacity: '20 passengers', price: 130, features: 'Luxury, AC, Entertainment', company: 'Kidicho Ethiopia Tour', icon: '🚌' }
+];
+
+// ===== TOURS WITH 10-DAY ITINERARIES =====
+const TOURS = [
+    {
+        id: 1,
+        name: 'Northern Historic Route - 10 Days',
+        category: 'historical',
+        duration: '10 Days',
+        price: 1850,
+        rating: 4.9,
+        reviews: 56,
+        guide: 'Kurabachew Endeshaw',
+        company: 'Traverse Ethiopia Tour',
+        hostId: 'host_1',
+        description: 'Explore the ancient wonders of Ethiopia! Visit the rock-hewn churches of Lalibela, the castles of Gondar, the obelisks of Axum, and the monasteries of Lake Tana.',
+        location: 'Lalibela, Gondar, Axum, Bahir Dar',
+        image: '🏛️',
+        status: 'approved',
+        featured: true,
+        itinerary: [
+            { day: 'Day 1', title: 'Arrival in Addis Ababa', description: 'Welcome to Ethiopia! Transfer to hotel. City tour including National Museum, Merkato, and Entoto Mountain.', image: '🏙️' },
+            { day: 'Day 2', title: 'Fly to Bahir Dar', description: 'Morning flight to Bahir Dar. Visit Lake Tana monasteries and the Blue Nile Falls.', image: '🏖️' },
+            { day: 'Day 3', title: 'Drive to Gondar', description: 'Drive to Gondar. Visit the Royal Enclosure, Debre Berhan Selassie Church, and Fasilides Bath.', image: '🏰' },
+            { day: 'Day 4', title: 'Gondar to Axum', description: 'Drive to Axum. Visit the Stelae Field, Church of Our Lady Mary of Zion, and the Archeological Museum.', image: '🗿' },
+            { day: 'Day 5', title: 'Axum Exploration', description: 'Continue exploring Axum. Visit the Palace of the Queen of Sheba and the Tomb of King Kaleb.', image: '🗿' },
+            { day: 'Day 6', title: 'Axum to Lalibela', description: 'Fly to Lalibela. Afternoon visit to the famous rock-hewn churches.', image: '⛪' },
+            { day: 'Day 7', title: 'Lalibela Churches', description: 'Full day exploring the 11 rock-hewn churches of Lalibela, including Bete Giyorgis (St. George\'s Church).', image: '⛪' },
+            { day: 'Day 8', title: 'Lalibela Mountains', description: 'Hike to Asheton Maryam Monastery for panoramic views of Lalibela.', image: '🏔️' },
+            { day: 'Day 9', title: 'Lalibela to Addis', description: 'Fly back to Addis Ababa. Afternoon shopping and coffee ceremony.', image: '☕' },
+            { day: 'Day 10', title: 'Departure', description: 'Transfer to the airport for your departure flight. End of tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 2,
+        name: 'Omo Valley Cultural Expedition - 10 Days',
+        category: 'cultural',
+        duration: '10 Days',
+        price: 2250,
+        rating: 5.0,
+        reviews: 32,
+        guide: 'Gelagil Milion',
+        company: 'Traverse Ethiopia Tour',
+        hostId: 'host_1',
+        description: 'Experience the incredible cultural diversity of Ethiopia\'s Omo Valley. Visit 9 different indigenous tribes including the Hamer, Mursi, Karo, and Dassanech.',
+        location: 'Jinka, Turmi, Key Afer, Omo River',
+        image: '🛖',
+        status: 'approved',
+        featured: true,
+        itinerary: [
+            { day: 'Day 1', title: 'Arrival Addis - Fly to Jinka', description: 'Morning flight to Jinka. Visit the Jinka Museum and the Ari village.', image: '🛖' },
+            { day: 'Day 2', title: 'Jinka - Mago National Park', description: 'Visit Mago National Park. See the Mursi tribe and their famous lip plates.', image: '🛖' },
+            { day: 'Day 3', title: 'Jinka to Turmi', description: 'Drive to Turmi through the beautiful landscape. Visit the Hamer tribe.', image: '🏜️' },
+            { day: 'Day 4', title: 'Turmi - Hamer Village', description: 'Full day with the Hamer tribe. Visit their villages and learn their traditions.', image: '🛖' },
+            { day: 'Day 5', title: 'Turmi - Bull Jumping Ceremony', description: 'Attend a Bull Jumping ceremony (if available). Visit the Karo tribe.', image: '🐂' },
+            { day: 'Day 6', title: 'Turmi to Key Afer', description: 'Drive to Key Afer. Visit the Market and the Benna and Tsemay tribes.', image: '🏜️' },
+            { day: 'Day 7', title: 'Key Afer - Omo River', description: 'Boat trip on the Omo River. Visit the Dassanech tribe.', image: '🌊' },
+            { day: 'Day 8', title: 'Key Afer to Konso', description: 'Drive to Konso. Visit the UNESCO World Heritage site of Konso Village.', image: '🏛️' },
+            { day: 'Day 9', title: 'Konso to Jinka', description: 'Return to Jinka. Visit the Doge village and the local market.', image: '🏙️' },
+            { day: 'Day 10', title: 'Fly Back to Addis', description: 'Morning flight back to Addis Ababa. End of tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 3,
+        name: 'Danakil Depression Adventure - 5 Days',
+        category: 'adventure',
+        duration: '5 Days',
+        price: 850,
+        rating: 4.7,
+        reviews: 28,
+        guide: 'Dawit Solomon',
+        company: 'Ethio Travel & Tours',
+        hostId: 'host_3',
+        description: 'Journey to the hottest place on Earth! Visit the Erta Ale volcano with its active lava lake, the colorful sulfur springs of Dallol.',
+        location: 'Danakil Depression, Erta Ale, Dallol',
+        image: '🌋',
+        status: 'approved',
+        featured: false,
+        itinerary: [
+            { day: 'Day 1', title: 'Addis to Semera', description: 'Drive to Semera. Visit the Awash River and the local villages.', image: '🏜️' },
+            { day: 'Day 2', title: 'Semera to Erta Ale', description: 'Drive to Erta Ale. Trek to the volcano for sunset and lava viewing.', image: '🌋' },
+            { day: 'Day 3', title: 'Erta Ale to Dallol', description: 'Sunrise trek down. Drive to Dallol through the salt flats.', image: '🏜️' },
+            { day: 'Day 4', title: 'Dallol Excursion', description: 'Visit the colorful sulfur springs, salt mines, and the camel caravans.', image: '🌈' },
+            { day: 'Day 5', title: 'Return to Addis', description: 'Drive back to Addis Ababa. End of adventure tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 4,
+        name: 'Bale Mountains Trekking - 8 Days',
+        category: 'nature',
+        duration: '8 Days',
+        price: 1450,
+        rating: 4.6,
+        reviews: 19,
+        guide: 'Tigist Worku',
+        company: 'Kidicho Ethiopia Tour',
+        hostId: 'host_2',
+        description: 'Discover the stunning Bale Mountains National Park. Trek through the Sanetti Plateau, home to the endangered Ethiopian wolf.',
+        location: 'Bale Mountains, Sanetti Plateau',
+        image: '🏔️',
+        status: 'approved',
+        featured: false,
+        itinerary: [
+            { day: 'Day 1', title: 'Addis to Dinsho', description: 'Drive to Dinsho. Afternoon trek to the Dinsho Lodge.', image: '🏔️' },
+            { day: 'Day 2', title: 'Dinsho to Goba', description: 'Trek through the Harenna Forest. Visit the Bale National Park HQ.', image: '🌳' },
+            { day: 'Day 3', title: 'Goba - Sanetti Plateau', description: 'Trek to Sanetti Plateau. View Ethiopian wolves and giant lobelias.', image: '🐺' },
+            { day: 'Day 4', title: 'Sanetti Plateau Trek', description: 'Full day trekking on the plateau. Visit the Tullu Deemtu peak.', image: '🏔️' },
+            { day: 'Day 5', title: 'Sanetti to Sof Omar', description: 'Drive to Sof Omar. Visit the Sof Omar Caves.', image: '🏛️' },
+            { day: 'Day 6', title: 'Sof Omar Exploration', description: 'Explore the Sof Omar cave system. Visit the local villages.', image: '🏛️' },
+            { day: 'Day 7', title: 'Sof Omar to Goba', description: 'Return to Goba. Afternoon trek around Goba.', image: '🏔️' },
+            { day: 'Day 8', title: 'Goba to Addis', description: 'Drive back to Addis Ababa. End of tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 5,
+        name: 'Addis Ababa City & Coffee Tour - 3 Days',
+        category: 'city',
+        duration: '3 Days',
+        price: 350,
+        rating: 4.3,
+        reviews: 41,
+        guide: 'Kidest',
+        company: 'Kidicho Ethiopia Tour',
+        hostId: 'host_2',
+        description: 'Explore the vibrant capital city of Ethiopia. Visit the National Museum, the bustling Merkato market, and experience the rich coffee culture.',
+        location: 'Addis Ababa',
+        image: '🏙️',
+        status: 'approved',
+        featured: false,
+        itinerary: [
+            { day: 'Day 1', title: 'Arrival - City Tour', description: 'Welcome to Addis! Visit the National Museum, Trinity Cathedral, and Entoto Mountain.', image: '🏙️' },
+            { day: 'Day 2', title: 'Merkato & Cultural Sites', description: 'Visit the largest open-air market in Africa. Explore the Ethiopia Cultural Center.', image: '🏛️' },
+            { day: 'Day 3', title: 'Coffee Tour & Departure', description: 'Coffee ceremony experience. Visit a coffee processing factory. End of tour.', image: '☕' }
+        ]
+    },
+    {
+        id: 6,
+        name: 'Jimma Coffee Plantation Tour - 4 Days',
+        category: 'food',
+        duration: '4 Days',
+        price: 480,
+        rating: 4.8,
+        reviews: 23,
+        guide: 'Tigist Worku',
+        company: 'Ethio Travel & Tours',
+        hostId: 'host_3',
+        description: 'Experience the birthplace of coffee! Visit coffee farms in Jimma, learn about the entire coffee production process.',
+        location: 'Jimma, Kaffa',
+        image: '☕',
+        status: 'approved',
+        featured: false,
+        itinerary: [
+            { day: 'Day 1', title: 'Addis to Jimma', description: 'Drive to Jimma through the beautiful countryside. Visit the Jimma Museum.', image: '☕' },
+            { day: 'Day 2', title: 'Coffee Plantation Visit', description: 'Visit a coffee plantation. Learn about cultivation, harvesting, and processing.', image: '🌿' },
+            { day: 'Day 3', title: 'Kaffa Region Exploration', description: 'Visit the Kaffa region, the birthplace of Arabica coffee. Coffee ceremony experience.', image: '🌳' },
+            { day: 'Day 4', title: 'Return to Addis', description: 'Drive back to Addis Ababa. End of tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 7,
+        name: 'Gondar Castle & Simien Mountains - 7 Days',
+        category: 'historical',
+        duration: '7 Days',
+        price: 1250,
+        rating: 4.7,
+        reviews: 34,
+        guide: 'Kurabachew Endeshaw',
+        company: 'Traverse Ethiopia Tour',
+        hostId: 'host_1',
+        description: 'Explore the ancient castles of Gondar and trek the stunning Simien Mountains National Park.',
+        location: 'Gondar, Simien Mountains',
+        image: '🏰',
+        status: 'approved',
+        featured: false,
+        itinerary: [
+            { day: 'Day 1', title: 'Addis to Gondar', description: 'Fly to Gondar. Visit the Royal Enclosure and Debre Berhan Selassie.', image: '🏰' },
+            { day: 'Day 2', title: 'Gondar - Simien Mountains', description: 'Drive to Simien Mountains. Trek to Sankaber.', image: '🏔️' },
+            { day: 'Day 3', title: 'Simien Trek - Sankaber to Gich', description: 'Trek to Gich. View the Jinnin River and the stunning landscape.', image: '🏔️' },
+            { day: 'Day 4', title: 'Simien Trek - Gich to Chenek', description: 'Trek to Chenek. View the Gelada baboons and Ras Dashen.', image: '🐒' },
+            { day: 'Day 5', title: 'Simien Trek - Chenek Exploration', description: 'Explore the area. Visit the Imet Gogo viewpoint.', image: '🏔️' },
+            { day: 'Day 6', title: 'Return to Gondar', description: 'Drive back to Gondar. Afternoon city exploration.', image: '🏰' },
+            { day: 'Day 7', title: 'Gondar to Addis', description: 'Fly back to Addis Ababa. End of tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 8,
+        name: 'Lalibela & Danakil Combined - 10 Days',
+        category: 'adventure',
+        duration: '10 Days',
+        price: 2100,
+        rating: 4.9,
+        reviews: 27,
+        guide: 'Dawit Solomon',
+        company: 'Ethio Travel & Tours',
+        hostId: 'host_3',
+        description: 'The ultimate Ethiopian adventure! Explore the rock-hewn churches of Lalibela and the extreme landscapes of Danakil Depression.',
+        location: 'Lalibela, Danakil Depression',
+        image: '🌋',
+        status: 'approved',
+        featured: true,
+        itinerary: [
+            { day: 'Day 1', title: 'Addis to Lalibela', description: 'Fly to Lalibela. Afternoon church exploration.', image: '⛪' },
+            { day: 'Day 2', title: 'Lalibela Church Exploration', description: 'Full day exploring the 11 rock-hewn churches.', image: '⛪' },
+            { day: 'Day 3', title: 'Lalibela - Asheton Maryam', description: 'Trek to Asheton Maryam Monastery for panoramic views.', image: '🏔️' },
+            { day: 'Day 4', title: 'Lalibela to Semera', description: 'Fly to Semera. Drive to Danakil gateway.', image: '🏜️' },
+            { day: 'Day 5', title: 'Semera to Erta Ale', description: 'Drive to Erta Ale. Trek to the volcano for lava viewing.', image: '🌋' },
+            { day: 'Day 6', title: 'Erta Ale - Dallol', description: 'Sunrise trek down. Drive to Dallol through salt flats.', image: '🏜️' },
+            { day: 'Day 7', title: 'Dallol Excursion', description: 'Visit sulfur springs, salt mines, and camel caravans.', image: '🌈' },
+            { day: 'Day 8', title: 'Dallol to Semera', description: 'Drive back to Semera. Rest and prepare for return.', image: '🏜️' },
+            { day: 'Day 9', title: 'Semera to Addis', description: 'Fly back to Addis Ababa. Afternoon relaxation.', image: '🏙️' },
+            { day: 'Day 10', title: 'Departure', description: 'Transfer to airport. End of adventure tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 9,
+        name: 'Harar & Dire Dawa Cultural Tour - 6 Days',
+        category: 'cultural',
+        duration: '6 Days',
+        price: 750,
+        rating: 4.4,
+        reviews: 18,
+        guide: 'Kidest',
+        company: 'Kidicho Ethiopia Tour',
+        hostId: 'host_2',
+        description: 'Discover the ancient walled city of Harar, a UNESCO World Heritage site, and explore the city of Dire Dawa.',
+        location: 'Harar, Dire Dawa',
+        image: '🕌',
+        status: 'approved',
+        featured: false,
+        itinerary: [
+            { day: 'Day 1', title: 'Addis to Dire Dawa', description: 'Fly to Dire Dawa. Afternoon city tour.', image: '🏙️' },
+            { day: 'Day 2', title: 'Dire Dawa - Harar', description: 'Drive to Harar. Visit the walled city and its 5 gates.', image: '🕌' },
+            { day: 'Day 3', title: 'Harar Exploration', description: 'Explore the old city, visit the museums, and the famous hyena feeding.', image: '🏛️' },
+            { day: 'Day 4', title: 'Harar - Babile Elephant Sanctuary', description: 'Visit the Babile Elephant Sanctuary. Spot elephants and the desert landscape.', image: '🐘' },
+            { day: 'Day 5', title: 'Harar - Dire Dawa', description: 'Return to Dire Dawa. Visit the Kezira market and the train station.', image: '🏙️' },
+            { day: 'Day 6', title: 'Dire Dawa to Addis', description: 'Fly back to Addis Ababa. End of tour.', image: '✈️' }
+        ]
+    },
+    {
+        id: 10,
+        name: 'Ethiopia Grand Tour - 14 Days',
+        category: 'historical',
+        duration: '14 Days',
+        price: 2850,
+        rating: 5.0,
+        reviews: 45,
+        guide: 'Kurabachew Endeshaw',
+        company: 'Traverse Ethiopia Tour',
+        hostId: 'host_1',
+        description: 'The ultimate Ethiopian experience! Visit all major historical sites, cultural centers, and natural wonders.',
+        location: 'All Major Destinations',
+        image: '🇪🇹',
+        status: 'approved',
+        featured: true,
+        itinerary: [
+            { day: 'Day 1', title: 'Arrival Addis Ababa', description: 'Welcome to Ethiopia. City tour of Addis Ababa.', image: '🏙️' },
+            { day: 'Day 2', title: 'Addis to Bahir Dar', description: 'Fly to Bahir Dar. Visit Lake Tana monasteries.', image: '🏖️' },
+            { day: 'Day 3', title: 'Bahir Dar to Gondar', description: 'Visit Blue Nile Falls. Drive to Gondar.', image: '🌊' },
+            { day: 'Day 4', title: 'Gondar Exploration', description: 'Visit Royal Enclosure, Debre Berhan Selassie, and Fasilides Bath.', image: '🏰' },
+            { day: 'Day 5', title: 'Gondar to Axum', description: 'Drive to Axum. Visit the Stelae Field and archeological sites.', image: '🗿' },
+            { day: 'Day 6', title: 'Axum Exploration', description: 'Visit the Church of Our Lady Mary of Zion, Queen of Sheba Palace.', image: '🗿' },
+            { day: 'Day 7', title: 'Axum to Lalibela', description: 'Fly to Lalibela. Afternoon introduction to the churches.', image: '⛪' },
+            { day: 'Day 8', title: 'Lalibela Churches', description: 'Full day exploring the 11 rock-hewn churches.', image: '⛪' },
+            { day: 'Day 9', title: 'Lalibela Mountains', description: 'Trek to Asheton Maryam Monastery for panoramic views.', image: '🏔️' },
+            { day: 'Day 10', title: 'Lalibela to Addis', description: 'Fly back to Addis. Prepare for the next leg.', image: '✈️' },
+            { day: 'Day 11', title: 'Addis to Jinka', description: 'Fly to Jinka. Visit the Jinka Museum.', image: '🛖' },
+            { day: 'Day 12', title: 'Omo Valley Exploration', description: 'Visit Mursi, Hamer, and Karo tribes.', image: '🛖' },
+            { day: 'Day 13', title: 'Turmi and Key Afer', description: 'Visit the Bull Jumping ceremony and local markets.', image: '🏜️' },
+            { day: 'Day 14', title: 'Return to Addis', description: 'Fly back to Addis Ababa. Departure.', image: '✈️' }
+        ]
+    }
+];
+
+// ============================================
+// DATA STORE
+// ============================================
+
+let registeredUsers = JSON.parse(localStorage.getItem('eta_users')) || [];
+let registeredHosts = JSON.parse(localStorage.getItem('eta_hosts')) || [];
+let registeredGuides = JSON.parse(localStorage.getItem('eta_guides_accounts')) || [];
+let registeredHotels = JSON.parse(localStorage.getItem('eta_hotels_accounts')) || [];
+let bookings = JSON.parse(localStorage.getItem('eta_bookings')) || [];
+let wishlist = JSON.parse(localStorage.getItem('eta_wishlist')) || [];
+let reviews = JSON.parse(localStorage.getItem('eta_reviews')) || [];
+let paymentReceipts = JSON.parse(localStorage.getItem('eta_receipts')) || [];
+
+// ============================================
+// HELPERS
+// ============================================
+
+function saveAll() {
+    localStorage.setItem('eta_users', JSON.stringify(registeredUsers));
+    localStorage.setItem('eta_hosts', JSON.stringify(registeredHosts));
+    localStorage.setItem('eta_guides_accounts', JSON.stringify(registeredGuides));
+    localStorage.setItem('eta_hotels_accounts', JSON.stringify(registeredHotels));
+    localStorage.setItem('eta_bookings', JSON.stringify(bookings));
+    localStorage.setItem('eta_wishlist', JSON.stringify(wishlist));
+    localStorage.setItem('eta_reviews', JSON.stringify(reviews));
+    localStorage.setItem('eta_receipts', JSON.stringify(paymentReceipts));
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timeout);
+    t._timeout = setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function showModal(html) {
+    document.getElementById('modalContent').innerHTML = html;
+    document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+
+document.getElementById('modalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+function generateId() {
+    return Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+}
+
+function formatPrice(price) {
+    return '$' + price.toLocaleString();
+}
+
+function getStarRating(rating) {
+    let stars = '';
+    const full = Math.floor(rating);
+    const half = rating % 1 >= 0.5;
+    for (let i = 1; i <= 5; i++) {
+        if (i <= full) stars += '⭐';
+        else if (i === full + 1 && half) stars += '⭐';
+        else stars += '☆';
+    }
+    return stars;
+}
+
+function getCompanyName(hostId) {
+    const company = HOST_COMPANIES.find(h => h.id === hostId);
+    return company ? company.name : 'Unknown Company';
+}
+
+function getGuideName(guideId) {
+    const guide = GUIDE_USERS.find(g => g.id === guideId);
+    return guide ? guide.name : 'Unknown Guide';
+}
+
+// ============================================
+// AUTHENTICATION SYSTEM
+// ============================================
+
+let currentUser = null;
+let currentRole = 'guest';
+let isSignUp = false;
+let currentTourist = null;
+let currentLang = 'en';
+let pageHistory = ['home'];
+let currentPage = 'home';
+
+function navigateTo(page, data) {
+    if (page !== currentPage) {
+        pageHistory.push(page);
+        currentPage = page;
+    }
+    // Update nav tabs
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    const navButtons = document.querySelectorAll('#navTabs .nav-tab');
+    navButtons.forEach(btn => {
+        if (btn.textContent.toLowerCase().includes(page.toLowerCase()) || 
+            btn.dataset.page === page) {
+            btn.classList.add('active');
+        }
+    });
+    
+    const pages = {
+        home: showGuestHome,
+        tours: showGuestTours,
+        hotels: showGuestHotels,
+        guides: showGuestGuides,
+        vehicles: showGuestVehicles,
+        wishlist: showGuestWishlist,
+        mybookings: showGuestMyBookings,
+        map: showGuestMap,
+        hostDashboard: showHostDashboard,
+        hostListings: showHostListings,
+        hostAdd: showHostAddTour,
+        hostBookings: showHostBookings,
+        adminDashboard: showAdminDashboard,
+        adminTours: showAdminTours,
+        adminUsers: showAdminUsers,
+        adminBookings: showAdminBookings,
+        adminReviews: showAdminReviews,
+        adminHosts: showAdminHosts,
+        adminGuides: showAdminGuides,
+        guideDashboard: showGuideDashboard,
+        guideListings: showGuideListings,
+        guideAdd: showGuideAddService
+    };
+    if (pages[page]) pages[page]();
+    else showGuestHome();
+}
+
+function goBack() {
+    if (pageHistory.length > 1) {
+        pageHistory.pop();
+        const prev = pageHistory[pageHistory.length - 1];
+        currentPage = prev;
+        navigateTo(prev);
+    } else {
+        navigateTo('home');
+    }
+}
+
+// Override back button behavior
+window.addEventListener('popstate', function(e) {
+    goBack();
+});
+
+function renderLoginForm() {
+    const c = document.getElementById('loginContainer');
+    
+    if (currentRole === 'guest' && isSignUp) {
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🧳</span>
+                <h2>Create Account</h2>
+                <p>Join Ethiopia's #1 Travel Platform</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
+                <div class="role-tab active" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div class="input-group"><label>👤 Full Name</label><input type="text" id="signupName" placeholder="Enter your full name"></div>
+            <div class="input-group"><label>📧 Email</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
+            <div class="input-group"><label>📞 Phone</label><input type="tel" id="signupPhone" placeholder="+251 9XX XXX XXX"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="password" id="signupPass" placeholder="Min 4 characters"></div>
+            <button class="login-btn" onclick="handleSignUp()">✨ Create Free Account</button>
+            <p class="login-error" id="loginError"></p>
+            <p class="switch-link" onclick="toggleSignUp()">Already have an account? <strong>Sign In</strong></p>
+        `;
+    } else if (currentRole === 'guest' && !isSignUp) {
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🧳</span>
+                <h2>Welcome Back!</h2>
+                <p>Sign in to your account</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
+                <div class="role-tab active" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div class="input-group"><label>📧 Email</label><input type="email" id="signinEmail" placeholder="your@email.com"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="password" id="signinPass" placeholder="Enter your password"></div>
+            <button class="login-btn" onclick="handleSignIn()">🔓 Sign In</button>
+            <p class="login-error" id="loginError"></p>
+            <p class="switch-link" onclick="toggleSignUp()">New? <strong>Create Account</strong></p>
+        `;
+    } else if (currentRole === 'host') {
+        // Host login with company selection
+        const allHosts = [...HOST_COMPANIES, ...registeredHosts];
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🏢</span>
+                <h2>Host Login</h2>
+                <p>Select your company or register</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab active" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
+                <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:8px;">Select Your Company:</label>
+                ${allHosts.map(h => `
+                    <div class="host-login-card" onclick="fillHostLogin('${h.user}','${h.pass}')">
+                        <span class="host-icon">${h.icon || '🏢'}</span>
+                        <strong>${h.name}</strong>
+                        <div class="host-cred">👤 ${h.user} | 🔑 <strong>${h.pass}</strong></div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="border-top:2px solid #E9ECEF;padding-top:15px;margin-top:10px;">
+                <p style="text-align:center;font-size:0.85rem;color:#6C757D;margin-bottom:10px;">New company? Register now!</p>
+                <button class="login-btn" style="background:linear-gradient(135deg,#FF6B35,#FF8F65);" onclick="showHostRegistration()">🏢 Register Your Company</button>
+            </div>
+            <div class="input-group"><label>👤 Username</label><input type="text" id="loginUser" placeholder="Enter username"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
+            <button class="login-btn" onclick="doHostLogin()">🔓 Sign In</button>
+            <p class="login-error" id="loginError"></p>
+        `;
+    } else if (currentRole === 'guide') {
+        // Guide login
+        const allGuides = [...GUIDE_USERS, ...registeredGuides];
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">👨‍🏫</span>
+                <h2>Guide Login</h2>
+                <p>Access your guide dashboard</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab active" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
+                <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:8px;">Select Your Guide Profile:</label>
+                ${allGuides.map(g => `
+                    <div class="host-login-card" onclick="fillGuideLogin('${g.user}','${g.pass}')">
+                        <span class="host-icon">${g.icon || '👨‍🏫'}</span>
+                        <strong>${g.name}</strong>
+                        <div class="host-cred">👤 ${g.user} | 🔑 <strong>${g.pass}</strong></div>
+                        <div style="font-size:0.75rem;color:#6C757D;">${g.specialty}</div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="border-top:2px solid #E9ECEF;padding-top:15px;margin-top:10px;">
+                <p style="text-align:center;font-size:0.85rem;color:#6C757D;margin-bottom:10px;">New guide? Register now!</p>
+                <button class="login-btn" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE);" onclick="showGuideRegistration()">👨‍🏫 Register as Guide</button>
+            </div>
+            <div class="input-group"><label>👤 Username</label><input type="text" id="loginUser" placeholder="Enter username"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
+            <button class="login-btn" onclick="doGuideLogin()">🔓 Sign In</button>
+            <p class="login-error" id="loginError"></p>
+        `;
+    } else {
+        // Admin login
+        c.innerHTML = `
+            <div class="login-logo">
+                <span class="logo-icon">🔑</span>
+                <h2>Admin Login</h2>
+                <p>System Administration</p>
+            </div>
+            <div class="role-tabs">
+                <div class="role-tab active" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
+                <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
+                <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+            </div>
+            <div class="input-group"><label>👤 Username</label><input type="text" id="loginUser" placeholder="Enter username"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
+            <button class="login-btn" onclick="doAdminLogin()">🔓 Sign In</button>
+            <p class="login-error" id="loginError"></p>
+            <div class="login-hint">🔑 Admin: 1111 / 1111</div>
+        `;
+    }
+}
+
+function fillHostLogin(user, pass) {
+    document.getElementById('loginUser').value = user;
+    document.getElementById('loginPass').value = pass;
+}
+
+function fillGuideLogin(user, pass) {
+    document.getElementById('loginUser').value = user;
+    document.getElementById('loginPass').value = pass;
+}
+
+function showHostRegistration() {
+    showModal(`
+        <div class="modal-header">
+            <h2>🏢 Register Your Company</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="input-group"><label>🏢 Company Name *</label><input type="text" id="regHostName" placeholder="Enter company name"></div>
+        <div class="input-group"><label>👤 Manager Name *</label><input type="text" id="regHostManager" placeholder="Full name"></div>
+        <div class="input-group"><label>📧 Email *</label><input type="email" id="regHostEmail" placeholder="company@email.com"></div>
+        <div class="input-group"><label>📞 Phone *</label><input type="tel" id="regHostPhone" placeholder="+251 9XX XXX XXX"></div>
+        <div class="input-group"><label>📋 License Number *</label><input type="text" id="regHostLicense" placeholder="ET-TOUR-XXX"></div>
+        <div class="input-group"><label>📋 TIN Number *</label><input type="text" id="regHostTin" placeholder="1234567890"></div>
+        <div class="input-group"><label>👤 Username *</label><input type="text" id="regHostUser" placeholder="Choose a username"></div>
+        <div class="input-group"><label>🔒 Password *</label><input type="password" id="regHostPass" placeholder="Min 4 characters"></div>
+        <div class="file-upload" onclick="document.getElementById('regHostLicenseFile').click()">
+            <span class="upload-icon">📄</span>
+            <span class="upload-text">Upload License Document (PDF/Image)</span>
+            <input type="file" id="regHostLicenseFile" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+        <div style="margin-top:15px;display:flex;gap:10px;">
+            <button class="btn btn-primary btn-block" onclick="registerHost()">✅ Register Company</button>
+            <button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button>
+        </div>
+    `);
+}
+
+function registerHost() {
+    const name = document.getElementById('regHostName').value.trim();
+    const manager = document.getElementById('regHostManager').value.trim();
+    const email = document.getElementById('regHostEmail').value.trim();
+    const phone = document.getElementById('regHostPhone').value.trim();
+    const license = document.getElementById('regHostLicense').value.trim();
+    const tin = document.getElementById('regHostTin').value.trim();
+    const user = document.getElementById('regHostUser').value.trim();
+    const pass = document.getElementById('regHostPass').value;
+    
+    if (!name || !manager || !email || !phone || !license || !tin || !user || !pass) {
+        showToast('❌ Please fill in all required fields');
+        return;
+    }
+    
+    const newHost = {
+        id: 'host_' + generateId(),
+        name: name,
+        manager: manager,
+        email: email,
+        phone: phone,
+        license: license,
+        tin: tin,
+        user: user,
+        pass: pass,
+        status: 'pending',
+        icon: '🏢',
+        createdAt: new Date().toISOString()
+    };
+    
+    registeredHosts.push(newHost);
+    saveAll();
+    closeModal();
+    showToast('✅ Company registered! Waiting for admin verification.');
+    renderLoginForm();
+}
+
+function showGuideRegistration() {
+    showModal(`
+        <div class="modal-header">
+            <h2>👨‍🏫 Register as Guide</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="input-group"><label>👤 Full Name *</label><input type="text" id="regGuideName" placeholder="Your full name"></div>
+        <div class="input-group"><label>📧 Email *</label><input type="email" id="regGuideEmail" placeholder="your@email.com"></div>
+        <div class="input-group"><label>📞 Phone *</label><input type="tel" id="regGuidePhone" placeholder="+251 9XX XXX XXX"></div>
+        <div class="input-group"><label>🎯 Specialty *</label><input type="text" id="regGuideSpecialty" placeholder="e.g., Bird Watching, History"></div>
+        <div class="input-group"><label>🗣️ Languages *</label><input type="text" id="regGuideLanguages" placeholder="English, Amharic, Oromo"></div>
+        <div class="input-group"><label>🎓 Degree/Diploma *</label><input type="text" id="regGuideDiploma" placeholder="BA in Tourism, BSc in Biology"></div>
+        <div class="input-group"><label>📅 Experience (Years) *</label><input type="number" id="regGuideExperience" placeholder="5"></div>
+        <div class="input-group"><label>👤 Username *</label><input type="text" id="regGuideUser" placeholder="Choose a username"></div>
+        <div class="input-group"><label>🔒 Password *</label><input type="password" id="regGuidePass" placeholder="Min 4 characters"></div>
+        <div class="file-upload" onclick="document.getElementById('regGuideIdFile').click()">
+            <span class="upload-icon">🪪</span>
+            <span class="upload-text">Upload National ID (Image)</span>
+            <input type="file" id="regGuideIdFile" accept=".jpg,.jpeg,.png">
+        </div>
+        <div class="file-upload" onclick="document.getElementById('regGuideDiplomaFile').click()">
+            <span class="upload-icon">📜</span>
+            <span class="upload-text">Upload Degree/Diploma (PDF/Image)</span>
+            <input type="file" id="regGuideDiplomaFile" accept=".pdf,.jpg,.jpeg,.png">
+        </div>
+        <div style="margin-top:15px;display:flex;gap:10px;">
+            <button class="btn btn-primary btn-block" onclick="registerGuide()">✅ Register as Guide</button>
+            <button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button>
+        </div>
+    `);
+}
+
+function registerGuide() {
+    const name = document.getElementById('regGuideName').value.trim();
+    const email = document.getElementById('regGuideEmail').value.trim();
+    const phone = document.getElementById('regGuidePhone').value.trim();
+    const specialty = document.getElementById('regGuideSpecialty').value.trim();
+    const languages = document.getElementById('regGuideLanguages').value.trim();
+    const diploma = document.getElementById('regGuideDiploma').value.trim();
+    const experience = document.getElementById('regGuideExperience').value;
+    const user = document.getElementById('regGuideUser').value.trim();
+    const pass = document.getElementById('regGuidePass').value;
+    
+    if (!name || !email || !phone || !specialty || !languages || !diploma || !experience || !user || !pass) {
+        showToast('❌ Please fill in all required fields');
+        return;
+    }
+    
+    const newGuide = {
+        id: 'guide_' + generateId(),
+        name: name,
+        email: email,
+        phone: phone,
+        specialty: specialty,
+        languages: languages,
+        diploma: diploma,
+        experience: experience + ' years',
+        user: user,
+        pass: pass,
+        price: 50,
+        rating: 0,
+        status: 'pending',
+        icon: '👨‍🏫',
+        verified: false,
+        createdAt: new Date().toISOString()
+    };
+    
+    registeredGuides.push(newGuide);
+    saveAll();
+    closeModal();
+    showToast('✅ Guide registered! Waiting for admin verification.');
+    renderLoginForm();
+}
+
+function toggleSignUp() {
+    isSignUp = !isSignUp;
+    renderLoginForm();
+}
+
+function setRole(role) {
+    currentRole = role;
+    isSignUp = false;
+    renderLoginForm();
+}
+
+function handleSignUp() {
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const phone = document.getElementById('signupPhone').value.trim();
+    const password = document.getElementById('signupPass').value;
+    const err = document.getElementById('loginError');
+    
+    if (!name || !email || !phone || !password) {
+        err.textContent = '❌ All fields are required';
+        err.classList.add('show');
+        return;
+    }
+    if (registeredUsers.find(u => u.email === email)) {
+        err.textContent = '❌ Email already registered';
+        err.classList.add('show');
+        return;
+    }
+    
+    registeredUsers.push({
+        id: 'user_' + generateId(),
+        name: name,
+        email: email,
+        phone: phone,
+        password: password,
+        role: 'guest',
+        createdAt: new Date().toISOString()
+    });
+    saveAll();
+    showToast('✅ Account created! Please sign in.');
+    isSignUp = false;
+    renderLoginForm();
+}
+
+function handleSignIn() {
+    const email = document.getElementById('signinEmail').value.trim();
+    const password = document.getElementById('signinPass').value;
+    const err = document.getElementById('loginError');
+    
+    if (!email || !password) {
+        err.textContent = '❌ Enter email and password';
+        err.classList.add('show');
+        return;
+    }
+    
+    const user = registeredUsers.find(u => u.email === email && u.password === password);
+    if (!user) {
+        err.textContent = '❌ Invalid email or password';
+        err.classList.add('show');
+        return;
+    }
+    
+    currentTourist = user;
+    currentUser = { username: user.email, role: 'guest', userId: user.id, name: user.name };
+    localStorage.setItem('eta_user', JSON.stringify(currentUser));
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('languageScreen').classList.remove('hidden');
+    showToast('✅ Welcome, ' + user.name + '!');
+}
+
+function doAdminLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    const err = document.getElementById('loginError');
+    
+    if (username === '1111' && password === '1111') {
+        currentUser = { username: '1111', role: 'admin', name: 'Administrator' };
+        localStorage.setItem('eta_user', JSON.stringify(currentUser));
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').style.display = 'block';
+        setupApp();
+        showToast('✅ Welcome, Admin!');
+    } else {
+        err.textContent = '❌ Invalid credentials';
+        err.classList.add('show');
+    }
+}
+
+function doHostLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    const err = document.getElementById('loginError');
+    
+    const allHosts = [...HOST_COMPANIES, ...registeredHosts];
+    const host = allHosts.find(h => h.user === username && h.pass === password);
+    
+    if (host) {
+        if (host.status === 'pending') {
+            err.textContent = '❌ Your company is pending verification';
+            err.classList.add('show');
+            return;
+        }
+        currentUser = { username: username, role: 'host', userId: host.id, name: host.name };
+        localStorage.setItem('eta_user', JSON.stringify(currentUser));
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').style.display = 'block';
+        setupApp();
+        showToast('✅ Welcome, ' + host.name + '!');
+    } else {
+        err.textContent = '❌ Invalid credentials';
+        err.classList.add('show');
+    }
+}
+
+function doGuideLogin() {
+    const username = document.getElementById('loginUser').value.trim();
+    const password = document.getElementById('loginPass').value.trim();
+    const err = document.getElementById('loginError');
+    
+    const allGuides = [...GUIDE_USERS, ...registeredGuides];
+    const guide = allGuides.find(g => g.user === username && g.pass === password);
+    
+    if (guide) {
+        if (guide.status === 'pending') {
+            err.textContent = '❌ Your profile is pending verification';
+            err.classList.add('show');
+            return;
+        }
+        currentUser = { username: username, role: 'guide', userId: guide.id, name: guide.name };
+        localStorage.setItem('eta_user', JSON.stringify(currentUser));
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('mainApp').style.display = 'block';
+        setupApp();
+        showToast('✅ Welcome, Guide ' + guide.name + '!');
+    } else {
+        err.textContent = '❌ Invalid credentials';
+        err.classList.add('show');
+    }
+}
+
+function selectLanguage(lang) {
+    currentLang = lang;
+    localStorage.setItem('eta_lang', lang);
+    document.getElementById('languageScreen').classList.add('hidden');
+    document.getElementById('mainApp').style.display = 'block';
+    setupApp();
+    showToast('✅ Language: ' + lang.toUpperCase());
+}
+
+function showLanguageScreen() {
+    document.getElementById('languageScreen').classList.remove('hidden');
+}
+
+function doLogout() {
+    currentUser = null;
+    currentTourist = null;
+    pageHistory = ['home'];
+    currentPage = 'home';
+    localStorage.removeItem('eta_user');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('languageScreen').classList.add('hidden');
+    renderLoginForm();
+    showToast('👋 Logged out');
+}
+
+// ============================================
+// APP SETUP
+// ============================================
+
+function setupApp() {
+    const badge = document.getElementById('userBadge');
+    const nav = document.getElementById('navTabs');
+    nav.innerHTML = '';
+    document.getElementById('currentLangDisplay').textContent = currentLang.toUpperCase();
+    
+    if (!currentUser) return;
+    
+    if (currentUser.role === 'admin') {
+        badge.textContent = '🔑 Admin';
+        badge.className = 'badge-pill role admin';
+        nav.innerHTML = `
+            <button class="nav-tab active" data-page="adminDashboard" onclick="navigateTo('adminDashboard')"><i class="fas fa-chart-pie"></i> Dashboard</button>
+            <button class="nav-tab" data-page="adminTours" onclick="navigateTo('adminTours')"><i class="fas fa-tasks"></i> Tours</button>
+            <button class="nav-tab" data-page="adminHosts" onclick="navigateTo('adminHosts')"><i class="fas fa-building"></i> Hosts</button>
+            <button class="nav-tab" data-page="adminGuides" onclick="navigateTo('adminGuides')"><i class="fas fa-user-tie"></i> Guides</button>
+            <button class="nav-tab" data-page="adminUsers" onclick="navigateTo('adminUsers')"><i class="fas fa-users"></i> Users</button>
+            <button class="nav-tab" data-page="adminBookings" onclick="navigateTo('adminBookings')"><i class="fas fa-calendar-check"></i> Bookings</button>
+        `;
+        navigateTo('adminDashboard');
+    } else if (currentUser.role === 'host') {
+        badge.textContent = '🏢 ' + currentUser.name;
+        badge.className = 'badge-pill role host';
+        nav.innerHTML = `
+            <button class="nav-tab active" data-page="hostDashboard" onclick="navigateTo('hostDashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+            <button class="nav-tab" data-page="hostListings" onclick="navigateTo('hostListings')"><i class="fas fa-list"></i> Tours</button>
+            <button class="nav-tab" data-page="hostAdd" onclick="navigateTo('hostAdd')"><i class="fas fa-plus"></i> Add Tour</button>
+            <button class="nav-tab" data-page="hostBookings" onclick="navigateTo('hostBookings')"><i class="fas fa-calendar-check"></i> Bookings</button>
+        `;
+        navigateTo('hostDashboard');
+    } else if (currentUser.role === 'guide') {
+        badge.textContent = '👨‍🏫 ' + currentUser.name;
+        badge.className = 'badge-pill role guide';
+        nav.innerHTML = `
+            <button class="nav-tab active" data-page="guideDashboard" onclick="navigateTo('guideDashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
+            <button class="nav-tab" data-page="guideListings" onclick="navigateTo('guideListings')"><i class="fas fa-list"></i> My Services</button>
+            <button class="nav-tab" data-page="guideAdd" onclick="navigateTo('guideAdd')"><i class="fas fa-plus"></i> Add Service</button>
+        `;
+        navigateTo('guideDashboard');
+    } else {
+        badge.textContent = '👤 ' + (currentTourist?.name || 'Guest');
+        badge.className = 'badge-pill role';
+        nav.innerHTML = `
+            <button class="nav-tab active" data-page="home" onclick="navigateTo('home')"><i class="fas fa-home"></i> Home</button>
+            <button class="nav-tab" data-page="tours" onclick="navigateTo('tours')"><i class="fas fa-compass"></i> Tours</button>
+            <button class="nav-tab" data-page="hotels" onclick="navigateTo('hotels')"><i class="fas fa-hotel"></i> Hotels</button>
+            <button class="nav-tab" data-page="guides" onclick="navigateTo('guides')"><i class="fas fa-user-tie"></i> Guides</button>
+            <button class="nav-tab" data-page="vehicles" onclick="navigateTo('vehicles')"><i class="fas fa-car"></i> Vehicles</button>
+            <button class="nav-tab" data-page="wishlist" onclick="navigateTo('wishlist')"><i class="fas fa-heart"></i> Wishlist</button>
+            <button class="nav-tab" data-page="mybookings" onclick="navigateTo('mybookings')"><i class="fas fa-calendar-alt"></i> Bookings</button>
+            <button class="nav-tab" data-page="map" onclick="navigateTo('map')"><i class="fas fa-map-marker-alt"></i> Map</button>
+        `;
+        navigateTo('home');
+    }
+}
+
+// ============================================
+// GUEST PAGES
+// ============================================
+
+function showGuestHome() {
+    const c = document.getElementById('mainContent');
+    const featured = TOURS.filter(t => t.featured && t.status === 'approved');
+    
+    const categories = [
+        { icon: '🏛️', name: 'Historical', category: 'historical' },
+        { icon: '🛖', name: 'Cultural', category: 'cultural' },
+        { icon: '🌋', name: 'Adventure', category: 'adventure' },
+        { icon: '🏔️', name: 'Nature', category: 'nature' },
+        { icon: '🏙️', name: 'City Tours', category: 'city' },
+        { icon: '☕', name: 'Food & Coffee', category: 'food' }
+    ];
+    
+    c.innerHTML = `
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="🔍 Search tours, destinations, guides..." onkeyup="searchTours()">
+            <select id="categoryFilter" onchange="searchTours()">
+                <option value="">All Categories</option>
+                <option value="historical">🏛️ Historical</option>
+                <option value="cultural">🛖 Cultural</option>
+                <option value="adventure">🌋 Adventure</option>
+                <option value="nature">🏔️ Nature</option>
+                <option value="city">🏙️ City Tours</option>
+                <option value="food">☕ Food & Coffee</option>
+            </select>
+            <button class="search-btn" onclick="searchTours()"><i class="fas fa-search"></i> Search</button>
+        </div>
+        
+        <div class="categories">
+            ${categories.map(cat => `
+                <div class="category-item" onclick="filterByCategory('${cat.category}')">
+                    <span class="cat-icon">${cat.icon}</span>
+                    <span class="cat-name">${cat.name}</span>
+                </div>
+            `).join('')}
+        </div>
+        
+        <h2 class="section-title">🌟 Featured Experiences</h2>
+        <div class="grid-3">
+            ${featured.map(tour => renderTourCard(tour)).join('')}
+        </div>
+        
+        <h2 class="section-title" style="margin-top:30px;">🔥 Popular Tours</h2>
+        <div class="grid-3">
+            ${TOURS.filter(t => t.status === 'approved' && !t.featured).slice(0, 6).map(tour => renderTourCard(tour)).join('')}
+        </div>
+    `;
+}
+
+function renderTourCard(tour) {
+    const isWishlisted = wishlist.some(w => w.tourId === tour.id);
+    return `
+        <div class="card">
+            <div class="card-img" style="background: linear-gradient(135deg, #1B5E20, #2E7D32);">
+                <span style="font-size:3.5rem;">${tour.image}</span>
+                <button class="wishlist-btn ${isWishlisted ? 'liked' : ''}" onclick="toggleWishlist(${tour.id})">
+                    <i class="fas fa-heart"></i>
+                </button>
+                ${tour.featured ? '<span style="position:absolute;top:10px;left:10px;background:#FFD700;color:#1a1a2e;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">⭐ FEATURED</span>' : ''}
+            </div>
+            <div class="card-body">
+                <h3>${tour.name}</h3>
+                <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
+                <div class="rating">${getStarRating(tour.rating)} ${tour.rating} (${tour.reviews} reviews)</div>
+                <div class="price">${formatPrice(tour.price)} <span>/ person</span></div>
+                <div class="tags">
+                    <span class="tag">${tour.category}</span>
+                    <span class="tag">${tour.duration}</span>
+                    <span class="tag">${tour.guide}</span>
+                </div>
+                <button class="btn btn-primary" onclick="viewTourDetail(${tour.id})">View Details</button>
+            </div>
+        </div>
+    `;
+}
+
+function searchTours() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const category = document.getElementById('categoryFilter').value;
+    
+    let results = TOURS.filter(t => t.status === 'approved');
+    if (query) {
+        results = results.filter(t => 
+            t.name.toLowerCase().includes(query) || 
+            t.location.toLowerCase().includes(query) ||
+            t.description.toLowerCase().includes(query) ||
+            t.guide.toLowerCase().includes(query)
+        );
+    }
+    if (category) {
+        results = results.filter(t => t.category === category);
+    }
+    
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">🔍 Search Results (${results.length})</h2>
+        ${results.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours found. Try a different search!</p>' : ''}
+        <div class="grid-3">
+            ${results.map(tour => renderTourCard(tour)).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function filterByCategory(category) {
+    document.getElementById('categoryFilter').value = category;
+    searchTours();
+}
+
+function toggleWishlist(tourId) {
+    const index = wishlist.findIndex(w => w.tourId === tourId);
+    if (index > -1) {
+        wishlist.splice(index, 1);
+        showToast('❤️ Removed from wishlist');
+    } else {
+        wishlist.push({ tourId: tourId, userId: currentUser?.userId || 'guest', addedAt: new Date().toISOString() });
+        showToast('❤️ Added to wishlist!');
+    }
+    saveAll();
+    // Refresh current view
+    const currentView = currentPage;
+    if (currentView === 'home' || currentView === 'tours') {
+        navigateTo(currentView);
+    }
+}
+
+function viewTourDetail(tourId) {
+    const tour = TOURS.find(t => t.id === tourId);
+    if (!tour) {
+        showToast('❌ Tour not found');
+        return;
+    }
+    
+    const isWishlisted = wishlist.some(w => w.tourId === tour.id);
+    let itineraryHtml = '';
+    if (tour.itinerary && tour.itinerary.length > 0) {
+        itineraryHtml = tour.itinerary.map(day => `
+            <div class="itinerary-day">
+                <h4>${day.day}: ${day.title}</h4>
+                <p>${day.description}</p>
+                ${day.image ? `<div style="font-size:2rem;margin-top:4px;">${day.image}</div>` : ''}
+            </div>
+        `).join('');
+    }
+    
+    showModal(`
+        <div class="modal-header">
+            <h2>${tour.image} ${tour.name}</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div style="margin-bottom:12px;">
+            <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
+            <div class="rating">${getStarRating(tour.rating)} ${tour.rating} (${tour.reviews} reviews)</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:0.85rem;color:#6C757D;margin-top:4px;">
+                <span><strong>Duration:</strong> ${tour.duration}</span>
+                <span><strong>Guide:</strong> ${tour.guide}</span>
+                <span><strong>Company:</strong> ${tour.company}</span>
+            </div>
+        </div>
+        <p style="margin:12px 0;line-height:1.8;">${tour.description}</p>
+        <div class="tags" style="margin-bottom:12px;">
+            <span class="tag">${tour.category}</span>
+            <span class="tag">${tour.duration}</span>
+            ${tour.featured ? '<span class="tag featured">⭐ Featured</span>' : ''}
+        </div>
+        ${tour.itinerary ? `
+            <h3 style="margin:12px 0;font-size:1rem;">📋 Daily Itinerary</h3>
+            ${itineraryHtml}
+        ` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:2px solid #f8f9fa;border-bottom:2px solid #f8f9fa;margin-bottom:12px;">
+            <span style="font-size:1.6rem;font-weight:700;color:#1B5E20;">${formatPrice(tour.price)}</span>
+            <span style="color:#6C757D;">/ person</span>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="closeModal();openBooking(${tour.id})" style="padding:12px;font-size:1rem;">
+            <i class="fas fa-calendar-check"></i> Book Now
+        </button>
+        <button class="btn ${isWishlisted ? 'btn-danger' : 'btn-outline'} btn-block" onclick="toggleWishlist(${tour.id}); closeModal();" style="margin-top:8px;">
+            <i class="fas fa-heart"></i> ${isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+        </button>
+    `);
+}
+
+function openBooking(tourId) {
+    const tour = TOURS.find(t => t.id === tourId);
+    if (!tour) {
+        showToast('❌ Tour not found');
+        return;
+    }
+    
+    showModal(`
+        <div class="modal-header">
+            <h2>📝 Book: ${tour.name}</h2>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div style="margin-bottom:12px;">
+            <p><strong>Price:</strong> ${formatPrice(tour.price)} / person</p>
+            <p><strong>Duration:</strong> ${tour.duration}</p>
+        </div>
+        <div class="input-group">
+            <label>👤 Your Name</label>
+            <input type="text" id="bookName" value="${currentTourist?.name || ''}" placeholder="Enter your full name">
+        </div>
+        <div class="input-group">
+            <label>📞 Phone Number</label>
+            <input type="tel" id="bookPhone" value="${currentTourist?.phone || ''}" placeholder="Enter phone number">
+        </div>
+        <div class="input-group">
+            <label>📧 Email</label>
+            <input type="email" id="bookEmail" value="${currentTourist?.email || ''}" placeholder="Enter email address">
+        </div>
+        <div class="input-group">
+            <label>📅 Travel Date</label>
+            <input type="date" id="bookDate">
+        </div>
+        <div class="input-group">
+            <label>👥 Number of People</label>
+            <input type="number" id="bookPeople" value="2" min="1" max="20">
+        </div>
+        <div class="input-group">
+            <label>💳 Payment Method</label>
+            <select id="bookPayment">
+                <option value="telebirr">📱 Telebirr (0911626671)</option>
+                <option value="card">💳 Credit Card</option>
+                <option value="bank">🏦 Bank Transfer</option>
+                <option value="cash">💵 Cash on Arrival</option>
+            </select>
+        </div>
+        <div style="padding:12px;background:#f8f9fa;border-radius:10px;margin-bottom:12px;">
+            <p><strong>Total: </strong><span style="font-size:1.3rem;font-weight:700;color:#1B5E20;" id="bookTotalDisplay">${formatPrice(tour.price * 2)}</span></p>
+            <p style="font-size:0.8rem;color:#6C757D;">${formatPrice(tour.price)} × <span id="bookPeopleDisplay">2</span> people</p>
+        </div>
+        <div class="file-upload" onclick="document.getElementById('receiptUpload').click()">
+            <span class="upload-icon">📸</span>
+            <span class="upload-text">Upload Payment Screenshot (Required)</span>
+            <input type="file" id="receiptUpload" accept=".jpg,.jpeg,.png,.pdf" required>
+        </div>
+        <div class="upload-preview" id="receiptPreview"></div>
+        <div style="margin-top:12px;display:flex;gap:10px;">
+            <button class="btn btn-primary btn-block" onclick="confirmBookingWithReceipt(${tour.id})" style="padding:12px;font-size:1rem;">
+                <i class="fas fa-check"></i> Confirm Booking
+            </button>
+            <button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button>
+        </div>
+    `);
+    
+    // Update total when people changes
+    document.getElementById('bookPeople').addEventListener('change', function() {
+        const people = parseInt(this.value) || 1;
+        const total = tour.price * people;
+        document.getElementById('bookTotalDisplay').textContent = formatPrice(total);
+        document.getElementById('bookPeopleDisplay').textContent = people;
+    });
+    
+    // File upload preview
+    document.getElementById('receiptUpload').addEventListener('change', function(e) {
+        const preview = document.getElementById('receiptPreview');
+        preview.innerHTML = '';
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = document.createElement('img');
+                img.src = ev.target.result;
+                img.style.width = '100px';
+                img.style.height = '100px';
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '8px';
+                img.style.border = '1px solid #DEE2E6';
+                preview.appendChild(img);
+                showToast('✅ Receipt uploaded successfully!');
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+}
+
+function confirmBookingWithReceipt(tourId) {
+    const name = document.getElementById('bookName').value.trim();
+    const phone = document.getElementById('bookPhone').value.trim();
+    const email = document.getElementById('bookEmail').value.trim();
+    const date = document.getElementById('bookDate').value;
+    const people = parseInt(document.getElementById('bookPeople').value) || 1;
+    const payment = document.getElementById('bookPayment').value;
+    const receiptFile = document.getElementById('receiptUpload').files[0];
+    
+    if (!name || !phone || !email || !date) {
+        showToast('❌ Please fill in all fields');
+        return;
+    }
+    if (!receiptFile) {
+        showToast('❌ Please upload payment screenshot');
+        return;
+    }
+    
+    const tour = TOURS.find(t => t.id === tourId);
+    if (!tour) {
+        showToast('❌ Tour not found');
+        return;
+    }
+    
+    const receiptData = {
+        id: 'receipt_' + generateId(),
+        fileName: receiptFile.name,
+        fileType: receiptFile.type,
+        fileSize: receiptFile.size,
+        uploadedAt: new Date().toISOString()
+    };
+    paymentReceipts.push(receiptData);
+    
+    const booking = {
+        id: 'book_' + generateId(),
+        tourId: tour.id,
+        tourName: tour.name,
+        tourPrice: tour.price,
+        userName: name,
+        userPhone: phone,
+        userEmail: email,
+        date: date,
+        people: people,
+        totalPrice: tour.price * people,
+        paymentMethod: payment,
+        status: 'confirmed',
+        userId: currentUser?.userId || 'guest',
+        receiptId: receiptData.id,
+        createdAt: new Date().toISOString()
+    };
+    
+    bookings.push(booking);
+    saveAll();
+    closeModal();
+    showToast(`✅ Booking confirmed! Total: ${formatPrice(booking.totalPrice)}`);
+    navigateTo('mybookings');
+}
+
+function showGuestTours() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <div class="search-bar" style="margin-bottom:16px;">
+            <input type="text" id="tourSearchInput" placeholder="🔍 Search tours..." onkeyup="searchToursList()">
+            <select id="tourCategoryFilter" onchange="searchToursList()">
+                <option value="">All Categories</option>
+                <option value="historical">🏛️ Historical</option>
+                <option value="cultural">🛖 Cultural</option>
+                <option value="adventure">🌋 Adventure</option>
+                <option value="nature">🏔️ Nature</option>
+                <option value="city">🏙️ City Tours</option>
+                <option value="food">☕ Food & Coffee</option>
+            </select>
+            <button class="search-btn" onclick="searchToursList()"><i class="fas fa-search"></i> Search</button>
+        </div>
+        <h2 class="section-title">🏛️ All Tours</h2>
+        <div id="tourResults" class="grid-3">
+            ${TOURS.filter(t => t.status === 'approved').map(tour => renderTourCard(tour)).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function searchToursList() {
+    const query = document.getElementById('tourSearchInput').value.toLowerCase();
+    const category = document.getElementById('tourCategoryFilter').value;
+    
+    let results = TOURS.filter(t => t.status === 'approved');
+    if (query) {
+        results = results.filter(t => 
+            t.name.toLowerCase().includes(query) || 
+            t.location.toLowerCase().includes(query) ||
+            t.description.toLowerCase().includes(query)
+        );
+    }
+    if (category) {
+        results = results.filter(t => t.category === category);
+    }
+    
+    document.getElementById('tourResults').innerHTML = results.length === 0 
+        ? '<p style="text-align:center;padding:40px;color:#6C757D;grid-column:1/-1;">No tours found. Try a different search!</p>'
+        : results.map(tour => renderTourCard(tour)).join('');
+}
+
+function showGuestHotels() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">🏨 Hotels & Accommodations</h2>
+        <p class="section-subtitle">Find the perfect place to stay in Ethiopia</p>
+        <div class="grid-3">
+            ${HOTEL_COMPANIES.map(hotel => `
+                <div class="card">
+                    <div class="card-img" style="background: linear-gradient(135deg, #2c3e50, #3498db);">
+                        <span style="font-size:3.5rem;">${hotel.icon}</span>
+                    </div>
+                    <div class="card-body">
+                        <h3>${hotel.name}</h3>
+                        <div class="location"><i class="fas fa-map-marker-alt"></i> ${hotel.city}</div>
+                        <div class="rating">${getStarRating(hotel.rating)} ${hotel.rating}</div>
+                        <div class="price">${formatPrice(hotel.price)} <span>/ night</span></div>
+                        <div style="font-size:0.8rem;color:#6C757D;margin:6px 0;">${hotel.amenities}</div>
+                        <button class="btn btn-primary" onclick="showToast('🏨 Hotel booking coming soon!')">Check Availability</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function showGuestGuides() {
+    const c = document.getElementById('mainContent');
+    const allGuides = [...GUIDE_USERS, ...registeredGuides.filter(g => g.status === 'approved' || g.status === 'verified')];
+    
+    c.innerHTML = `
+        <h2 class="section-title">👨‍🏫 Professional Guides</h2>
+        <p class="section-subtitle">Hire expert local guides for your journey</p>
+        <div class="grid-3">
+            ${allGuides.map(guide => `
+                <div class="card">
+                    <div class="card-img" style="background: linear-gradient(135deg, #6c5ce7, #a29bfe); font-size:3rem;">
+                        ${guide.icon || '👨‍🏫'} ${guide.verified ? '✅' : ''}
+                    </div>
+                    <div class="card-body">
+                        <h3>${guide.name}</h3>
+                        <div style="font-size:0.8rem;color:#6C757D;">${guide.specialty || 'Professional Guide'}</div>
+                        ${guide.rating ? `<div class="rating">${getStarRating(guide.rating)} ${guide.rating}</div>` : ''}
+                        <div class="price">${formatPrice(guide.price || 50)} <span>/ hour</span></div>
+                        <div style="font-size:0.8rem;margin:6px 0;">
+                            <strong>Languages:</strong> ${guide.languages || 'English, Amharic'}
+                        </div>
+                        ${guide.diploma ? `<div style="font-size:0.8rem;color:#6C757D;">🎓 ${guide.diploma}</div>` : ''}
+                        ${guide.experience ? `<div style="font-size:0.8rem;color:#6C757D;">📅 ${guide.experience}</div>` : ''}
+                        <button class="btn btn-primary" onclick="showToast('👨‍🏫 Guide booking coming soon!')">Hire Guide</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function showGuestVehicles() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">🚗 Vehicles & Transport</h2>
+        <p class="section-subtitle">Rent vehicles for your Ethiopian adventure</p>
+        <div class="grid-3">
+            ${VEHICLES.map(vehicle => `
+                <div class="card">
+                    <div class="card-img" style="background: linear-gradient(135deg, #e74c3c, #f39c12);">
+                        <span style="font-size:3.5rem;">${vehicle.icon}</span>
+                    </div>
+                    <div class="card-body">
+                        <h3>${vehicle.type}</h3>
+                        <div style="font-size:0.8rem;color:#6C757D;">${vehicle.company}</div>
+                        <div style="font-size:0.85rem;">📋 ${vehicle.plate}</div>
+                        <div style="font-size:0.85rem;">👥 ${vehicle.capacity}</div>
+                        <div class="price">${formatPrice(vehicle.price)} <span>/ day</span></div>
+                        <div style="font-size:0.8rem;color:#6C757D;">✨ ${vehicle.features}</div>
+                        <button class="btn btn-primary" onclick="showToast('🚗 Vehicle rental coming soon!')">Rent Now</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function showGuestWishlist() {
+    const c = document.getElementById('mainContent');
+    const wishlistedTours = TOURS.filter(t => wishlist.some(w => w.tourId === t.id) && t.status === 'approved');
+    
+    c.innerHTML = `
+        <h2 class="section-title">❤️ Your Wishlist</h2>
+        <p class="section-subtitle">${wishlistedTours.length} tours saved</p>
+        ${wishlistedTours.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours in your wishlist yet. Start exploring!</p>' : ''}
+        <div class="grid-3">
+            ${wishlistedTours.map(tour => renderTourCard(tour)).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function showGuestMyBookings() {
+    const c = document.getElementById('mainContent');
+    const userBookings = bookings.filter(b => b.userId === currentUser?.userId || b.userEmail === currentUser?.username);
+    
+    c.innerHTML = `
+        <h2 class="section-title">📅 My Bookings</h2>
+        <p class="section-subtitle">${userBookings.length} bookings found</p>
+        ${userBookings.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No bookings yet. Start your adventure!</p>' : ''}
+        <div class="grid-2">
+            ${userBookings.map(b => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${b.tourName || 'Tour Booking'}</h3>
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+                            <span style="color:#6C757D;font-size:0.85rem;">
+                                <i class="fas fa-calendar-alt"></i> ${b.date || 'TBD'}
+                            </span>
+                            <span style="background:#E8F5E9;color:#1B5E20;padding:2px 10px;border-radius:10px;font-size:0.75rem;font-weight:600;">
+                                ${b.status || 'Confirmed'}
+                            </span>
+                        </div>
+                        <div style="margin:6px 0;">
+                            <span style="font-weight:700;font-size:1rem;color:#1B5E20;">${formatPrice(b.totalPrice || b.tourPrice || 0)}</span>
+                            <span style="color:#6C757D;font-size:0.8rem;"> for ${b.people || 1} people</span>
+                        </div>
+                        <div style="font-size:0.8rem;color:#6C757D;">
+                            <i class="fas fa-user"></i> ${b.userName || 'Guest'}
+                        </div>
+                        <div style="font-size:0.8rem;color:#6C757D;">
+                            <i class="fas fa-phone"></i> ${b.userPhone || 'N/A'}
+                        </div>
+                        ${b.receiptId ? `<div style="font-size:0.8rem;color:#28A745;"><i class="fas fa-check-circle"></i> Receipt uploaded</div>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+}
+
+function showGuestMap() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">🗺️ Explore Ethiopia</h2>
+        <p class="section-subtitle">Discover the best destinations across Ethiopia</p>
+        <div style="background:white;border-radius:16px;padding:16px;border:1px solid #E9ECEF;">
+            <div id="mapContainer" style="height:400px;border-radius:10px;background:linear-gradient(135deg,#1B5E20,#2E7D32);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;">
+                🗺️ Interactive Map Loading...
+            </div>
+        </div>
+        <div class="grid-4" style="margin-top:16px;">
+            ${[
+                { name: 'Addis Ababa', icon: '🏙️' },
+                { name: 'Lalibela', icon: '⛪' },
+                { name: 'Gondar', icon: '🏰' },
+                { name: 'Axum', icon: '🗿' },
+                { name: 'Bahir Dar', icon: '🏖️' },
+                { name: 'Danakil', icon: '🌋' },
+                { name: 'Omo Valley', icon: '🛖' },
+                { name: 'Bale Mountains', icon: '🏔️' }
+            ].map(loc => `
+                <div class="card" style="text-align:center;cursor:pointer;" onclick="showToast('📍 ${loc.name}: Discover amazing tours!')">
+                    <div style="font-size:2rem;">${loc.icon}</div>
+                    <div style="font-weight:600;font-size:0.9rem;">${loc.name}</div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
+    `;
+    setTimeout(initGuestMap, 300);
+}
+
+function initGuestMap() {
+    const container = document.getElementById('mapContainer');
+    if (!container) return;
+    try {
+        const map = L.map('mapContainer').setView([9.0, 39.5], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+        
+        const locations = [
+            { name: 'Addis Ababa', lat: 9.0320, lng: 38.7469, icon: '🏙️' },
+            { name: 'Lalibela', lat: 12.0317, lng: 39.0411, icon: '⛪' },
+            { name: 'Gondar', lat: 12.6030, lng: 37.4521, icon: '🏰' },
+            { name: 'Axum', lat: 14.1232, lng: 38.7246, icon: '🗿' },
+            { name: 'Bahir Dar', lat: 11.5742, lng: 37.3614, icon: '🏖️' },
+            { name: 'Danakil Depression', lat: 14.2373, lng: 40.2932, icon: '🌋' },
+            { name: 'Jinka', lat: 5.7833, lng: 36.5667, icon: '🛖' },
+            { name: 'Bale Mountains', lat: 6.8333, lng: 39.7167, icon: '🏔️' }
+        ];
+        
+        locations.forEach(loc => {
+            L.marker([loc.lat, loc.lng]).bindPopup(`
+                <strong>${loc.icon} ${loc.name}</strong>
+            `).addTo(map);
+        });
+        
+        setTimeout(() => map.invalidateSize(), 500);
+    } catch(e) {}
+}
+
+// ============================================
+// ADMIN PAGES
+// ============================================
+
+function showAdminDashboard() {
+    const c = document.getElementById('mainContent');
+    const totalRevenue = bookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    const pendingHosts = [...registeredHosts.filter(h => h.status === 'pending'), ...HOST_COMPANIES.filter(h => h.status === 'pending')];
+    const pendingGuides = [...registeredGuides.filter(g => g.status === 'pending'), ...GUIDE_USERS.filter(g => g.status === 'pending')];
+    const pendingTours = TOURS.filter(t => t.status === 'pending');
+    
+    c.innerHTML = `
+        <h2 class="section-title">📊 Admin Dashboard</h2>
+        <div class="grid-4">
+            <div class="stat-card purple"><span class="stat-number">${TOURS.length}</span><span class="stat-label">Total Tours</span></div>
+            <div class="stat-card green"><span class="stat-number">${bookings.length}</span><span class="stat-label">Bookings</span></div>
+            <div class="stat-card blue"><span class="stat-number">${registeredUsers.length}</span><span class="stat-label">Users</span></div>
+            <div class="stat-card orange"><span class="stat-number">${formatPrice(totalRevenue)}</span><span class="stat-label">Revenue</span></div>
+        </div>
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>📝 Pending Approvals</h3>
+                <div style="font-size:0.85rem;color:#6C757D;">Tours: ${pendingTours.length} | Hosts: ${pendingHosts.length} | Guides: ${pendingGuides.length}</div>
+                ${pendingTours.length > 0 ? pendingTours.slice(0, 3).map(t => `
+                    <div class="list-item">
+                        <span>${t.image} ${t.name}</span>
+                        <span>
+                            <button class="btn btn-success btn-sm" onclick="approveTour(${t.id})">✅</button>
+                            <button class="btn btn-danger btn-sm" onclick="rejectTour(${t.id})">❌</button>
+                        </span>
+                    </div>
+                `).join('') : '<p style="color:#6C757D;font-size:0.85rem;">No pending tours</p>'}
+            </div>
+            <div class="admin-card">
+                <h3>📊 Recent Bookings</h3>
+                ${bookings.slice(-5).reverse().map(b => `
+                    <div class="list-item">
+                        <span>${b.userName} - ${b.tourName}</span>
+                        <span style="font-weight:600;">${formatPrice(b.totalPrice || 0)}</span>
+                    </div>
+                `).join('')}
+                ${bookings.length === 0 ? '<p style="color:#6C757D;font-size:0.85rem;">No bookings yet</p>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function approveTour(tourId) {
+    const tour = TOURS.find(t => t.id === tourId);
+    if (tour) {
+        tour.status = 'approved';
+        saveAll();
+        showToast('✅ Tour approved!');
+        navigateTo('adminTours');
+    }
+}
+
+function rejectTour(tourId) {
+    const tour = TOURS.find(t => t.id === tourId);
+    if (tour) {
+        tour.status = 'rejected';
+        saveAll();
+        showToast('❌ Tour rejected');
+        navigateTo('adminTours');
+    }
+}
+
+function approveHost(hostId) {
+    const host = registeredHosts.find(h => h.id === hostId);
+    if (host) {
+        host.status = 'verified';
+        saveAll();
+        showToast('✅ Host approved!');
+        navigateTo('adminHosts');
+    }
+}
+
+function rejectHost(hostId) {
+    const host = registeredHosts.find(h => h.id === hostId);
+    if (host) {
+        host.status = 'rejected';
+        saveAll();
+        showToast('❌ Host rejected');
+        navigateTo('adminHosts');
+    }
+}
+
+function approveGuide(guideId) {
+    const guide = registeredGuides.find(g => g.id === guideId);
+    if (guide) {
+        guide.status = 'verified';
+        guide.verified = true;
+        saveAll();
+        showToast('✅ Guide approved!');
+        navigateTo('adminGuides');
+    }
+}
+
+function rejectGuide(guideId) {
+    const guide = registeredGuides.find(g => g.id === guideId);
+    if (guide) {
+        guide.status = 'rejected';
+        saveAll();
+        showToast('❌ Guide rejected');
+        navigateTo('adminGuides');
+    }
+}
+
+function showAdminTours() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">📋 Manage Tours</h2>
+        <p class="section-subtitle">${TOURS.length} tours in the system</p>
+        <div class="grid-2">
+            ${TOURS.map(t => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${t.image} ${t.name}</h3>
+                            <span class="status-badge ${t.status}">${t.status}</span>
+                        </div>
+                        <div style="font-size:0.8rem;color:#6C757D;">${t.location}</div>
+                        <div style="font-weight:600;color:#1B5E20;">${formatPrice(t.price)}</div>
+                        <div style="font-size:0.8rem;color:#6C757D;">${t.guide} | ${t.duration}</div>
+                        ${t.status === 'pending' ? `
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-success btn-sm" onclick="approveTour(${t.id})">✅ Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectTour(${t.id})">❌ Reject</button>
+                            </div>
+                        ` : ''}
+                        <button class="btn btn-danger btn-sm" onclick="deleteTourAdmin(${t.id})" style="margin-top:6px;">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('adminDashboard')" style="margin-top:20px;">← Back to Dashboard</button>
+    `;
+}
+
+function deleteTourAdmin(tourId) {
+    if (confirm('Are you sure you want to delete this tour?')) {
+        const index = TOURS.findIndex(t => t.id === tourId);
+        if (index > -1) {
+            TOURS.splice(index, 1);
+            saveAll();
+            showToast('🗑️ Tour deleted');
+            navigateTo('adminTours');
+        }
+    }
+}
+
+function showAdminHosts() {
+    const c = document.getElementById('mainContent');
+    const allHosts = [...HOST_COMPANIES, ...registeredHosts];
+    const pendingHosts = allHosts.filter(h => h.status === 'pending');
+    
+    c.innerHTML = `
+        <h2 class="section-title">🏢 Host Companies</h2>
+        <p class="section-subtitle">${allHosts.length} companies (${pendingHosts.length} pending)</p>
+        <div class="grid-2">
+            ${allHosts.map(h => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${h.icon || '🏢'} ${h.name}</h3>
+                            <span class="status-badge ${h.status || 'verified'}">${h.status || 'verified'}</span>
+                        </div>
+                        <div style="font-size:0.85rem;color:#6C757D;">👤 ${h.manager || 'N/A'}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">📧 ${h.email}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">📞 ${h.phone}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">📋 License: ${h.license || 'N/A'}</div>
+                        ${h.status === 'pending' ? `
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-success btn-sm" onclick="approveHost('${h.id}')">✅ Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectHost('${h.id}')">❌ Reject</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('adminDashboard')" style="margin-top:20px;">← Back to Dashboard</button>
+    `;
+}
+
+function showAdminGuides() {
+    const c = document.getElementById('mainContent');
+    const allGuides = [...GUIDE_USERS, ...registeredGuides];
+    const pendingGuides = allGuides.filter(g => g.status === 'pending');
+    
+    c.innerHTML = `
+        <h2 class="section-title">👨‍🏫 Guides</h2>
+        <p class="section-subtitle">${allGuides.length} guides (${pendingGuides.length} pending)</p>
+        <div class="grid-2">
+            ${allGuides.map(g => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${g.icon || '👨‍🏫'} ${g.name}</h3>
+                            <span class="status-badge ${g.status || 'verified'}">${g.status || 'verified'}</span>
+                        </div>
+                        <div style="font-size:0.85rem;color:#6C757D;">🎯 ${g.specialty}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">🗣️ ${g.languages}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">🎓 ${g.diploma || 'N/A'}</div>
+                        <div style="font-size:0.85rem;color:#6C757D;">📅 ${g.experience || 'N/A'}</div>
+                        ${g.status === 'pending' ? `
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-success btn-sm" onclick="approveGuide('${g.id}')">✅ Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectGuide('${g.id}')">❌ Reject</button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('adminDashboard')" style="margin-top:20px;">← Back to Dashboard</button>
+    `;
+}
+
+function showAdminUsers() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">👥 Registered Users</h2>
+        <p class="section-subtitle">${registeredUsers.length} users registered</p>
+        <div class="grid-2">
+            ${registeredUsers.map(u => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${u.name}</h3>
+                        <div style="color:#6C757D;font-size:0.85rem;">📧 ${u.email}</div>
+                        <div style="color:#6C757D;font-size:0.85rem;">📞 ${u.phone}</div>
+                        <div style="font-size:0.8rem;color:#6C757D;">Joined: ${new Date(u.createdAt).toLocaleDateString()}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${registeredUsers.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No users registered yet</p>' : ''}
+        <button class="btn btn-outline" onclick="navigateTo('adminDashboard')" style="margin-top:20px;">← Back to Dashboard</button>
+    `;
+}
+
+function showAdminBookings() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">📅 All Bookings</h2>
+        <p class="section-subtitle">${bookings.length} total bookings</p>
+        <div class="grid-2">
+            ${bookings.map(b => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${b.tourName || 'Tour Booking'}</h3>
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;">
+                            <span style="color:#6C757D;">👤 ${b.userName}</span>
+                            <span style="font-weight:600;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.85rem;">📅 ${b.date || 'TBD'} | ${b.people || 1} people</div>
+                        <div style="color:#6C757D;font-size:0.85rem;">💳 ${b.paymentMethod || 'N/A'}</div>
+                        ${b.receiptId ? '<div style="color:#28A745;font-size:0.8rem;">✅ Receipt uploaded</div>' : ''}
+                        <span class="status-badge ${b.status === 'confirmed' ? 'approved' : 'pending'}">${b.status || 'confirmed'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${bookings.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No bookings yet</p>' : ''}
+        <button class="btn btn-outline" onclick="navigateTo('adminDashboard')" style="margin-top:20px;">← Back to Dashboard</button>
+    `;
+}
+
+function showAdminReviews() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">⭐ Reviews</h2>
+        <p class="section-subtitle">All reviews in the system</p>
+        ${reviews.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No reviews yet</p>' : ''}
+        <div class="grid-2">
+            ${reviews.map(r => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${r.tourName}</h3>
+                        <div class="rating">${getStarRating(r.rating)} ${r.rating}</div>
+                        <p style="color:#495057;margin:6px 0;">${r.comment}</p>
+                        <div style="color:#6C757D;font-size:0.8rem;">- ${r.userName}</div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        <button class="btn btn-outline" onclick="navigateTo('adminDashboard')" style="margin-top:20px;">← Back to Dashboard</button>
+    `;
+}
+
+// ============================================
+// HOST PAGES
+// ============================================
+
+function showHostDashboard() {
+    const c = document.getElementById('mainContent');
+    const hostTours = TOURS.filter(t => t.hostId === currentUser?.userId);
+    const hostBookings = bookings.filter(b => {
+        const tour = TOURS.find(t => t.id === b.tourId);
+        return tour && tour.hostId === currentUser?.userId;
+    });
+    const totalEarnings = hostBookings.reduce((sum, b) => sum + (b.totalPrice || 0), 0);
+    
+    c.innerHTML = `
+        <h2 class="section-title">🏢 Host Dashboard</h2>
+        <div class="host-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;">
+            <div class="host-stat" style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
+                <div style="font-size:1.6rem;font-weight:800;color:#1B5E20;">${hostTours.length}</div>
+                <div style="font-size:0.8rem;color:#6C757D;">My Tours</div>
+            </div>
+            <div class="host-stat" style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
+                <div style="font-size:1.6rem;font-weight:800;color:#1B5E20;">${hostBookings.length}</div>
+                <div style="font-size:0.8rem;color:#6C757D;">Bookings</div>
+            </div>
+            <div class="host-stat" style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
+                <div style="font-size:1.6rem;font-weight:800;color:#1B5E20;">${formatPrice(totalEarnings)}</div>
+                <div style="font-size:0.8rem;color:#6C757D;">Earnings</div>
+            </div>
+            <div class="host-stat" style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
+                <div style="font-size:1.6rem;font-weight:800;color:#1B5E20;">${hostTours.filter(t => t.status === 'approved').length}</div>
+                <div style="font-size:0.8rem;color:#6C757D;">Active Tours</div>
+            </div>
+        </div>
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>📋 My Tours</h3>
+                ${hostTours.slice(0, 5).map(t => `
+                    <div class="list-item">
+                        <span>${t.image} ${t.name}</span>
+                        <span class="status-badge ${t.status}">${t.status}</span>
+                    </div>
+                `).join('')}
+                ${hostTours.length === 0 ? '<p style="color:#6C757D;font-size:0.85rem;">No tours yet. Create your first tour!</p>' : ''}
+            </div>
+            <div class="admin-card">
+                <h3>📊 Recent Bookings</h3>
+                ${hostBookings.slice(-5).reverse().map(b => `
+                    <div class="list-item">
+                        <span>${b.userName} - ${b.tourName}</span>
+                        <span style="font-weight:600;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
+                    </div>
+                `).join('')}
+                ${hostBookings.length === 0 ? '<p style="color:#6C757D;font-size:0.85rem;">No bookings yet</p>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function showHostListings() {
+    const c = document.getElementById('mainContent');
+    const hostTours = TOURS.filter(t => t.hostId === currentUser?.userId);
+    
+    c.innerHTML = `
+        <h2 class="section-title">📋 My Listings</h2>
+        <p class="section-subtitle">${hostTours.length} tours listed</p>
+        <button class="btn btn-primary" onclick="navigateTo('hostAdd')" style="margin-bottom:16px;">➕ Add New Tour</button>
+        <div class="grid-2">
+            ${hostTours.map(t => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${t.image} ${t.name}</h3>
+                            <span class="status-badge ${t.status}">${t.status}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.85rem;">${t.location}</div>
+                        <div style="font-weight:600;color:#1B5E20;">${formatPrice(t.price)}</div>
+                        <div style="color:#6C757D;font-size:0.8rem;">${t.duration} | ${t.guide}</div>
+                        ${t.itinerary ? `<div style="font-size:0.75rem;color:#6C757D;">📋 ${t.itinerary.length} days itinerary</div>` : ''}
+                        <button class="btn btn-danger btn-sm" onclick="deleteHostTour(${t.id})" style="margin-top:6px;">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${hostTours.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours yet. Start adding your first tour!</p>' : ''}
+    `;
+}
+
+function deleteHostTour(tourId) {
+    if (confirm('Are you sure you want to delete this tour?')) {
+        const index = TOURS.findIndex(t => t.id === tourId);
+        if (index > -1) {
+            TOURS.splice(index, 1);
+            saveAll();
+            showToast('🗑️ Tour deleted');
+            navigateTo('hostListings');
+        }
+    }
+}
+
+function showHostAddTour() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">➕ Add New Tour</h2>
+        <div class="card" style="max-width:700px;margin:0 auto;">
+            <div class="card-body">
+                <div class="input-group">
+                    <label>🏛️ Tour Name *</label>
+                    <input type="text" id="addTourName" placeholder="e.g., Northern Historic Route">
+                </div>
+                <div class="input-group">
+                    <label>📍 Location *</label>
+                    <input type="text" id="addTourLocation" placeholder="e.g., Lalibela, Gondar, Axum">
+                </div>
+                <div class="input-group">
+                    <label>📅 Duration *</label>
+                    <input type="text" id="addTourDuration" placeholder="e.g., 10 Days">
+                </div>
+                <div class="input-group">
+                    <label>💰 Price (USD) *</label>
+                    <input type="number" id="addTourPrice" placeholder="e.g., 1850">
+                </div>
+                <div class="input-group">
+                    <label>👨‍🏫 Guide Name *</label>
+                    <input type="text" id="addTourGuide" placeholder="e.g., Kurabachew Endeshaw">
+                </div>
+                <div class="input-group">
+                    <label>📂 Category *</label>
+                    <select id="addTourCategory">
+                        <option value="historical">🏛️ Historical</option>
+                        <option value="cultural">🛖 Cultural</option>
+                        <option value="adventure">🌋 Adventure</option>
+                        <option value="nature">🏔️ Nature</option>
+                        <option value="city">🏙️ City Tours</option>
+                        <option value="food">☕ Food & Coffee</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>📝 Description *</label>
+                    <textarea id="addTourDescription" placeholder="Describe your tour in detail..." rows="3"></textarea>
+                </div>
+                <div class="input-group">
+                    <label>🖼️ Emoji Icon</label>
+                    <input type="text" id="addTourIcon" value="🏛️" placeholder="e.g., 🏛️">
+                </div>
+                <h4 style="margin:12px 0 8px;">📋 Daily Itinerary (Day 1 - Day 10)</h4>
+                <p style="font-size:0.8rem;color:#6C757D;margin-bottom:10px;">Add each day's activity with title and description</p>
+                <div id="itineraryContainer">
+                    ${Array.from({length: 10}, (_, i) => `
+                        <div class="itinerary-day" style="background:#f8f9fa;border-radius:10px;padding:10px;margin-bottom:8px;border-left:3px solid #1B5E20;">
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                                <input type="text" placeholder="Day ${i+1} Title" id="itineraryTitle_${i}" style="flex:1;min-width:150px;padding:6px 10px;border:1px solid #DEE2E6;border-radius:8px;font-size:0.85rem;">
+                                <input type="text" placeholder="Description" id="itineraryDesc_${i}" style="flex:2;min-width:200px;padding:6px 10px;border:1px solid #DEE2E6;border-radius:8px;font-size:0.85rem;">
+                                <input type="text" placeholder="Emoji" id="itineraryEmoji_${i}" style="width:60px;padding:6px 10px;border:1px solid #DEE2E6;border-radius:8px;font-size:0.85rem;" value="📌">
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="btn btn-primary btn-block" onclick="addHostTour()" style="margin-top:12px;">✅ Submit for Approval</button>
+                <button class="btn btn-outline btn-block" onclick="navigateTo('hostListings')" style="margin-top:8px;">Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+function addHostTour() {
+    const name = document.getElementById('addTourName').value.trim();
+    const location = document.getElementById('addTourLocation').value.trim();
+    const duration = document.getElementById('addTourDuration').value.trim();
+    const price = parseInt(document.getElementById('addTourPrice').value);
+    const guide = document.getElementById('addTourGuide').value.trim();
+    const category = document.getElementById('addTourCategory').value;
+    const description = document.getElementById('addTourDescription').value.trim();
+    const icon = document.getElementById('addTourIcon').value.trim() || '🏛️';
+    
+    if (!name || !location || !duration || !price || !guide || !description) {
+        showToast('❌ Please fill in all required fields');
+        return;
+    }
+    
+    // Collect itinerary
+    const itinerary = [];
+    for (let i = 0; i < 10; i++) {
+        const title = document.getElementById(`itineraryTitle_${i}`).value.trim();
+        const desc = document.getElementById(`itineraryDesc_${i}`).value.trim();
+        const emoji = document.getElementById(`itineraryEmoji_${i}`).value.trim() || '📌';
+        if (title || desc) {
+            itinerary.push({
+                day: `Day ${i+1}`,
+                title: title || `Day ${i+1}`,
+                description: desc || 'Activity description',
+                image: emoji
+            });
+        }
+    }
+    
+    const newTour = {
+        id: TOURS.length + 1,
+        name: name,
+        location: location,
+        duration: duration,
+        price: price,
+        guide: guide,
+        category: category,
+        description: description,
+        image: icon,
+        company: currentUser?.name || 'Your Company',
+        rating: 0,
+        reviews: 0,
+        status: 'pending',
+        featured: false,
+        hostId: currentUser?.userId || 'host_1',
+        itinerary: itinerary,
+        createdAt: new Date().toISOString()
+    };
+    
+    TOURS.push(newTour);
+    saveAll();
+    showToast('✅ Tour submitted for approval!');
+    navigateTo('hostListings');
+}
+
+function showHostBookings() {
+    const c = document.getElementById('mainContent');
+    const hostTours = TOURS.filter(t => t.hostId === currentUser?.userId);
+    const hostTourIds = hostTours.map(t => t.id);
+    const hostBookings = bookings.filter(b => hostTourIds.includes(b.tourId));
+    
+    c.innerHTML = `
+        <h2 class="section-title">📅 My Bookings</h2>
+        <p class="section-subtitle">${hostBookings.length} bookings for your tours</p>
+        <div class="grid-2">
+            ${hostBookings.map(b => `
+                <div class="card">
+                    <div class="card-body">
+                        <h3>${b.tourName}</h3>
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;">
+                            <span style="color:#6C757D;">👤 ${b.userName}</span>
+                            <span style="font-weight:600;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.85rem;">📅 ${b.date || 'TBD'} | ${b.people || 1} people</div>
+                        <div style="color:#6C757D;font-size:0.85rem;">📞 ${b.userPhone || 'N/A'}</div>
+                        ${b.receiptId ? '<div style="color:#28A745;font-size:0.8rem;">✅ Receipt uploaded</div>' : ''}
+                        <span class="status-badge ${b.status === 'confirmed' ? 'approved' : 'pending'}">${b.status || 'confirmed'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${hostBookings.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No bookings for your tours yet</p>' : ''}
+    `;
+}
+
+// ============================================
+// GUIDE PAGES
+// ============================================
+
+function showGuideDashboard() {
+    const c = document.getElementById('mainContent');
+    const guideServices = TOURS.filter(t => t.guide === currentUser?.name);
+    
+    c.innerHTML = `
+        <h2 class="section-title">👨‍🏫 Guide Dashboard</h2>
+        <div class="host-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;">
+            <div class="host-stat" style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
+                <div style="font-size:1.6rem;font-weight:800;color:#1B5E20;">${guideServices.length}</div>
+                <div style="font-size:0.8rem;color:#6C757D;">My Services</div>
+            </div>
+            <div class="host-stat" style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
+                <div style="font-size:1.6rem;font-weight:800;color:#1B5E20;">${bookings.filter(b => b.tourName && guideServices.some(t => t.name === b.tourName)).length}</div>
+                <div style="font-size:0.8rem;color:#6C757D;">Bookings</div>
+            </div>
+        </div>
+        <div class="admin-card">
+            <h3>📋 My Services</h3>
+            ${guideServices.map(t => `
+                <div class="list-item">
+                    <span>${t.image} ${t.name}</span>
+                    <span class="status-badge ${t.status}">${t.status}</span>
+                </div>
+            `).join('')}
+            ${guideServices.length === 0 ? '<p style="color:#6C757D;font-size:0.85rem;">No services yet. Add your first service!</p>' : ''}
+        </div>
+    `;
+}
+
+function showGuideListings() {
+    const c = document.getElementById('mainContent');
+    const guideServices = TOURS.filter(t => t.guide === currentUser?.name);
+    
+    c.innerHTML = `
+        <h2 class="section-title">📋 My Services</h2>
+        <p class="section-subtitle">${guideServices.length} services listed</p>
+        <button class="btn btn-primary" onclick="navigateTo('guideAdd')" style="margin-bottom:16px;">➕ Add Service</button>
+        <div class="grid-2">
+            ${guideServices.map(t => `
+                <div class="card">
+                    <div class="card-body">
+                        <div style="display:flex;justify-content:space-between;align-items:start;">
+                            <h3>${t.image} ${t.name}</h3>
+                            <span class="status-badge ${t.status}">${t.status}</span>
+                        </div>
+                        <div style="color:#6C757D;font-size:0.85rem;">${t.location}</div>
+                        <div style="font-weight:600;color:#1B5E20;">${formatPrice(t.price)} / hour</div>
+                        <div style="color:#6C757D;font-size:0.8rem;">${t.duration}</div>
+                        <button class="btn btn-danger btn-sm" onclick="deleteGuideService(${t.id})" style="margin-top:6px;">🗑️ Delete</button>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+        ${guideServices.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No services yet. Add your first service!</p>' : ''}
+    `;
+}
+
+function deleteGuideService(tourId) {
+    if (confirm('Are you sure you want to delete this service?')) {
+        const index = TOURS.findIndex(t => t.id === tourId);
+        if (index > -1) {
+            TOURS.splice(index, 1);
+            saveAll();
+            showToast('🗑️ Service deleted');
+            navigateTo('guideListings');
+        }
+    }
+}
+
+function showGuideAddService() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `
+        <h2 class="section-title">➕ Add Guide Service</h2>
+        <div class="card" style="max-width:600px;margin:0 auto;">
+            <div class="card-body">
+                <div class="input-group">
+                    <label>🎯 Service Title *</label>
+                    <input type="text" id="guideServiceName" placeholder="e.g., Bird Watching Tour">
+                </div>
+                <div class="input-group">
+                    <label>📍 Location *</label>
+                    <input type="text" id="guideServiceLocation" placeholder="e.g., Addis Ababa">
+                </div>
+                <div class="input-group">
+                    <label>⏱️ Duration *</label>
+                    <input type="text" id="guideServiceDuration" placeholder="e.g., 4 hours">
+                </div>
+                <div class="input-group">
+                    <label>💰 Price (USD) *</label>
+                    <input type="number" id="guideServicePrice" placeholder="e.g., 60">
+                </div>
+                <div class="input-group">
+                    <label>📂 Category *</label>
+                    <select id="guideServiceCategory">
+                        <option value="nature">🌿 Nature</option>
+                        <option value="cultural">🛖 Cultural</option>
+                        <option value="adventure">🌋 Adventure</option>
+                        <option value="city">🏙️ City</option>
+                        <option value="food">☕ Food & Coffee</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>📝 Description *</label>
+                    <textarea id="guideServiceDesc" placeholder="Describe your service..." rows="3"></textarea>
+                </div>
+                <div class="input-group">
+                    <label>🖼️ Emoji Icon</label>
+                    <input type="text" id="guideServiceIcon" value="🦅" placeholder="e.g., 🦅">
+                </div>
+                <button class="btn btn-primary btn-block" onclick="addGuideService()" style="margin-top:12px;">✅ Submit Service</button>
+                <button class="btn btn-outline btn-block" onclick="navigateTo('guideListings')" style="margin-top:8px;">Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+function addGuideService() {
+    const name = document.getElementById('guideServiceName').value.trim();
+    const location = document.getElementById('guideServiceLocation').value.trim();
+    const duration = document.getElementById('guideServiceDuration').value.trim();
+    const price = parseInt(document.getElementById('guideServicePrice').value);
+    const category = document.getElementById('guideServiceCategory').value;
+    const description = document.getElementById('guideServiceDesc').value.trim();
+    const icon = document.getElementById('guideServiceIcon').value.trim() || '🦅';
+    
+    if (!name || !location || !duration || !price || !description) {
+        showToast('❌ Please fill in all required fields');
+        return;
+    }
+    
+    const newService = {
+        id: TOURS.length + 1,
+        name: name,
+        location: location,
+        duration: duration,
+        price: price,
+        guide: currentUser?.name || 'Professional Guide',
+        category: category,
+        description: description,
+        image: icon,
+        company: 'Guide Service',
+        rating: 0,
+        reviews: 0,
+        status: 'pending',
+        featured: false,
+        hostId: currentUser?.userId || 'guide_' + generateId(),
+        createdAt: new Date().toISOString()
+    };
+    
+    TOURS.push(newService);
+    saveAll();
+    showToast('✅ Service submitted for approval!');
+    navigateTo('guideListings');
+}
+
+// ============================================
+// INITIALIZATION
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    const savedLang = localStorage.getItem('eta_lang');
+    if (savedLang) currentLang = savedLang;
+    
+    renderLoginForm();
+    
+    const savedUser = localStorage.getItem('eta_user');
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+            
+            if (user.role === 'guest') {
+                const foundUser = registeredUsers.find(u => u.email === user.username);
+                if (foundUser) {
+                    currentTourist = foundUser;
+                    currentUser = { username: foundUser.email, role: 'guest', userId: foundUser.id, name: foundUser.name };
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('languageScreen').classList.remove('hidden');
+                    return;
+                }
+            }
+            
+            if (user.role === 'admin' && user.username === '1111') {
+                currentUser = user;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').style.display = 'block';
+                setupApp();
+                showToast('✅ Welcome back, Admin!');
+                return;
+            }
+            
+            if (user.role === 'host') {
+                const allHosts = [...HOST_COMPANIES, ...registeredHosts];
+                const host = allHosts.find(h => h.user === user.username);
+                if (host && host.status !== 'pending') {
+                    currentUser = user;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').style.display = 'block';
+                    setupApp();
+                    showToast('✅ Welcome back, ' + host.name + '!');
+                    return;
+                }
+            }
+            
+            if (user.role === 'guide') {
+                const allGuides = [...GUIDE_USERS, ...registeredGuides];
+                const guide = allGuides.find(g => g.user === user.username);
+                if (guide && guide.status !== 'pending') {
+                    currentUser = user;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').style.display = 'block';
+                    setupApp();
+                    showToast('✅ Welcome back, Guide ' + guide.name + '!');
+                    return;
+                }
+            }
+            
+            localStorage.removeItem('eta_user');
+        } catch(e) {
+            localStorage.removeItem('eta_user');
+        }
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !document.getElementById('loginScreen').classList.contains('hidden')) {
+        if (currentRole === 'guest') {
+            if (isSignUp) handleSignUp();
+            else handleSignIn();
+        } else if (currentRole === 'admin') {
+            doAdminLogin();
+        } else if (currentRole === 'host') {
+            doHostLogin();
+        } else if (currentRole === 'guide') {
+            doGuideLogin();
+        }
+    }
+});
+
+setInterval(saveAll, 30000);
+
+console.log('🇪🇹 Ethiopia Travel Super App loaded successfully!');
+console.log('📧 For support: bookings@ethiopiatravelapp.com');
+console.log('📞 Call: +251 91 162 6671');
+</script>
+</body>
+</html>
