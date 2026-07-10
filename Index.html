@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethiopia Travel Super App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #f8f9fa; color: #1a1a2e; }
+        .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0D3B0F, #1B5E20, #2E7D32); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+        .login-screen.hidden { display: none; }
+        .login-container { background: white; border-radius: 24px; padding: 40px; width: 100%; max-width: 480px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); animation: fadeInUp 0.6s ease; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .login-logo { text-align: center; margin-bottom: 30px; }
+        .login-logo h2 { font-size: 1.8rem; font-weight: 700; color: #1B5E20; }
+        .login-logo p { color: #6C757D; }
+        .role-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 25px; }
+        .role-tab { padding: 12px 8px; border: 2px solid #DEE2E6; background: white; border-radius: 16px; cursor: pointer; font-size: 0.8rem; font-weight: 600; text-align: center; transition: all 0.3s; }
+        .role-tab.active { background: #1B5E20; color: white; border-color: #1B5E20; }
+        .role-tab .tab-icon { display: block; font-size: 1.2rem; }
+        .input-group { margin-bottom: 18px; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: 600; color: #495057; }
+        .input-group input { width: 100%; padding: 14px 16px; border: 2px solid #DEE2E6; border-radius: 16px; font-size: 1rem; transition: all 0.3s; }
+        .input-group input:focus { outline: none; border-color: #1B5E20; }
+        .login-btn { width: 100%; padding: 16px; border: none; border-radius: 16px; font-size: 1.05rem; font-weight: 700; cursor: pointer; color: white; background: linear-gradient(135deg, #1B5E20, #2E7D32); transition: all 0.3s; }
+        .login-btn:hover { transform: translateY(-2px); }
+        .login-error { color: #DC3545; text-align: center; margin-top: 15px; display: none; }
+        .login-error.show { display: block; }
+        .switch-link { text-align: center; margin-top: 15px; color: #1B5E20; cursor: pointer; }
+        .header { background: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E9ECEF; position: sticky; top: 0; z-index: 100; }
+        .header-logo { font-size: 1.4rem; font-weight: 700; color: #1B5E20; }
+        .btn-logout { background: #DC3545; color: white; border: none; padding: 8px 18px; border-radius: 20px; cursor: pointer; }
+        .nav-tabs { display: flex; overflow-x: auto; background: white; padding: 8px 20px; gap: 6px; border-bottom: 2px solid #E9ECEF; position: sticky; top: 70px; z-index: 99; }
+        .nav-tab { padding: 10px 18px; border: none; background: #F8F9FA; border-radius: 25px; cursor: pointer; white-space: nowrap; font-size: 0.85rem; font-weight: 500; transition: all 0.3s; }
+        .nav-tab.active { background: #1B5E20; color: white; }
+        .main-content { padding: 24px; max-width: 1400px; margin: 0 auto; }
+        .section-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; }
+        .card { background: white; border-radius: 24px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #E9ECEF; transition: all 0.3s; }
+        .card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); transform: translateY(-2px); }
+        .grid-2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (min-width: 640px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .grid-2 { grid-template-columns: repeat(2, 1fr); } .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-4 { grid-template-columns: repeat(4, 1fr); } }
+        .feature-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (min-width: 640px) { .feature-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1024px) { .feature-grid { grid-template-columns: repeat(4, 1fr); } }
+        .feature-card { background: white; border-radius: 24px; padding: 24px 16px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .feature-card:hover { border-color: #FF6B35; transform: translateY(-4px); box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .feature-card .feature-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+        .stat-card { padding: 20px; border-radius: 24px; text-align: center; }
+        .stat-card .stat-number { font-size: 2rem; font-weight: 800; display: block; }
+        .stat-card.purple { background: linear-gradient(135deg, #E8E0F7, #D1C4E9); color: #4A148C; }
+        .stat-card.green { background: linear-gradient(135deg, #E0F2E9, #B2DFDB); color: #004D40; }
+        .stat-card.pink { background: linear-gradient(135deg, #FDE0E8, #F8BBD0); color: #880E4F; }
+        .stat-card.blue { background: linear-gradient(135deg, #E3F2FD, #BBDEFB); color: #0D47A1; }
+        .btn { display: inline-block; padding: 12px 24px; border: none; border-radius: 25px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.3s; }
+        .btn-block { display: block; width: 100%; }
+        .btn-accent { background: #FF6B35; color: white; }
+        .btn-primary { background: #1B5E20; color: white; }
+        .btn-success { background: #28A745; color: white; }
+        .btn-danger { background: #DC3545; color: white; }
+        .btn-outline { background: white; color: #1B5E20; border: 2px solid #1B5E20; }
+        .map-wrapper { border-radius: 24px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.2); border: 3px solid #1B5E20; margin-bottom: 20px; }
+        #ethiopia-map { width: 100%; height: 400px; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1A1A2E; color: white; padding: 14px 28px; border-radius: 30px; z-index: 2000; display: none; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+        .toast.show { display: block; }
+        .footer { background: #1A1A2E; color: white; text-align: center; padding: 30px 20px; margin-top: 40px; }
+        .ai-chat-fab { position: fixed; bottom: 30px; right: 30px; z-index: 98; }
+        .ai-chat-btn { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #6C5CE7, #A29BFE); color: white; border: none; font-size: 1.8rem; cursor: pointer; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    </style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+    <div class="login-container" id="loginContainer"></div>
+</div>
+
+<div class="language-screen hidden" id="languageScreen">
+    <div class="language-container">
+        <h2>🌍 Choose Your Language</h2>
+        <p>Select your preferred language</p>
+        <div class="lang-options">
+            <div class="lang-option" onclick="selectLanguage('en')"><span class="lang-flag">🇬🇧</span> English</div>
+            <div class="lang-option" onclick="selectLanguage('es')"><span class="lang-flag">🇪🇸</span> Español</div>
+            <div class="lang-option" onclick="selectLanguage('it')"><span class="lang-flag">🇮🇹</span> Italiano</div>
+            <div class="lang-option" onclick="selectLanguage('zh')"><span class="lang-flag">🇨🇳</span> 中文</div>
+        </div>
+    </div>
+</div>
+
+<div id="mainApp" style="display:none;">
+    <div class="header">
+        <div class="header-logo">🇪🇹 Ethiopia Travel</div>
+        <div>
+            <span class="badge-pill telebirr">📱 Telebirr: 0911626671</span>
+            <span class="badge-pill role" id="userBadge"></span>
+            <button class="btn-logout" onclick="doLogout()">🚪 Logout</button>
+        </div>
+    </div>
+    <div class="nav-tabs" id="navTabs"></div>
+    <div id="mainContent" class="main-content"></div>
+    <div class="footer">
+        <h3>🇪🇹 Ethiopia Travel Super App</h3>
+        <p>Complete Travel Ecosystem | Traverse Tour & Travel PLC</p>
+        <p>📞 +251 91 162 6671 | 📧 bookings@ethiopiatravelapp.com</p>
+    </div>
+</div>
+
+<div class="ai-chat-fab" id="aiChat" style="display:none;">
+    <button class="ai-chat-btn" onclick="toggleAIChat()">🤖</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const USERS = { admin: { user: '1111', pass: '1111', role: 'admin' }, operator: { user: '2222', pass: '2222', role: 'operator' }, guest: { user: '3333', pass: '3333', role: 'guest' } };
+let touristAccounts = JSON.parse(localStorage.getItem('eta_tourists')) || [];
+let currentLang = 'en';
+let currentUser = null;
+let currentRole = 'guest';
+let isSignUp = false;
+let currentTourist = null;
+let ethiopiaMap = null;
+
+let companies = JSON.parse(localStorage.getItem('eta_companies')) || [
+    { id: 1, name: 'Traverse Ethiopia Tour', email: 'traverseethiopia@gmail.com', manager: 'Gelagil Milion', phone: '0911334455', status: 'active', verified: true }
+];
+
+let guides = JSON.parse(localStorage.getItem('eta_guides')) || [
+    { id: 1, name: 'Kurabachew Endeshaw', companyId: 1, company: 'Traverse Ethiopia Tour', phone: '0911223344', rating: 4.9, price: 65, languages: 'English, Amharic', specialty: 'Historical sites', verified: true }
+];
+
+let vehicles = JSON.parse(localStorage.getItem('eta_vehicles')) || [
+    { id: 1, type: 'Toyota Land Cruiser V8', plate: 'AA-12345', capacity: '7 passengers', price: 120, icon: '🚙' }
+];
+
+let tours = JSON.parse(localStorage.getItem('eta_tours')) || [
+    { id: 1, name: 'Northern Historic Route 7 Days', duration: '7 Days', price: 1250, rating: 4.8, guide: 'Kurabachew Endeshaw', description: 'Lalibela, Gondar, Axum - UNESCO sites', icon: '🏛️', status: 'approved', featured: true }
+];
+
+let hotels = JSON.parse(localStorage.getItem('eta_hotels')) || [
+    { id: 1, name: 'Sheraton Addis', city: 'Addis Ababa', rating: 4.8, price: 250, amenities: 'Pool, Spa, 5 Restaurants', icon: '🏨' }
+];
+
+let bookings = JSON.parse(localStorage.getItem('eta_bookings')) || [];
+
+function saveAll() {
+    const keys = ['eta_tourists','eta_companies','eta_guides','eta_vehicles','eta_tours','eta_hotels','eta_bookings'];
+    const data = [touristAccounts, companies, guides, vehicles, tours, hotels, bookings];
+    keys.forEach((k, i) => localStorage.setItem(k, JSON.stringify(data[i])));
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function renderLoginForm() {
+    const c = document.getElementById('loginContainer');
+    if (currentRole === 'tourist') {
+        if (isSignUp) {
+            c.innerHTML = `<div class="login-logo"><h2>🧳 Create Account</h2><p>Join Ethiopia's #1 Travel Platform</p></div>
+                <div class="role-tabs">
+                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                    <div class="role-tab" onclick="setRole('operator')"><span class="tab-icon">🏢</span>Company</div>
+                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+                    <div class="role-tab active" onclick="setRole('tourist')"><span class="tab-icon">🧳</span>Tourist</div>
+                </div>
+                <div class="input-group"><label>👤 Full Name</label><input type="text" id="signupName"></div>
+                <div class="input-group"><label>📧 Email</label><input type="email" id="signupEmail"></div>
+                <div class="input-group"><label>📞 Phone</label><input type="tel" id="signupPhone"></div>
+                <div class="input-group"><label>🔒 Password</label><input type="password" id="signupPass"></div>
+                <button class="login-btn" onclick="handleSignUp()">✨ Create Free Account</button>
+                <p class="login-error" id="loginError"></p>
+                <p class="switch-link" onclick="toggleSignUp()">Already have an account? Sign In</p>`;
+        } else {
+            c.innerHTML = `<div class="login-logo"><h2>🧳 Welcome Back!</h2><p>Sign in to your tourist account</p></div>
+                <div class="role-tabs">
+                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                    <div class="role-tab" onclick="setRole('operator')"><span class="tab-icon">🏢</span>Company</div>
+                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+                    <div class="role-tab active" onclick="setRole('tourist')"><span class="tab-icon">🧳</span>Tourist</div>
+                </div>
+                <div class="input-group"><label>📧 Email</label><input type="email" id="signinEmail"></div>
+                <div class="input-group"><label>🔒 Password</label><input type="password" id="signinPass"></div>
+                <button class="login-btn" onclick="handleSignIn()">🔓 Sign In</button>
+                <p class="login-error" id="loginError"></p>
+                <p class="switch-link" onclick="toggleSignUp()">New? Create Account</p>`;
+        }
+    } else {
+        const colors = { admin: 'linear-gradient(135deg, #6c5ce7, #a29bfe)', operator: 'linear-gradient(135deg, #00b894, #55efc4)', guest: 'linear-gradient(135deg, #E31C5F, #FF385C)' };
+        const labels = { admin: '🔑 Admin Dashboard', operator: '🏢 Company Dashboard', guest: '👤 Guest Access' };
+        const hints = { admin: '🔑 Admin: 1111 / 1111', operator: '🏢 Company: 2222 / 2222', guest: '👤 Guest: 3333 / 3333' };
+        c.innerHTML = `<div class="login-logo"><h2>🇪🇹 Ethiopia Travel</h2><p>Complete Travel Ecosystem</p></div>
+            <div class="role-tabs">
+                <div class="role-tab ${currentRole==='admin'?'active':''}" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
+                <div class="role-tab ${currentRole==='operator'?'active':''}" onclick="setRole('operator')"><span class="tab-icon">🏢</span>Company</div>
+                <div class="role-tab ${currentRole==='guest'?'active':''}" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
+                <div class="role-tab" onclick="setRole('tourist')"><span class="tab-icon">🧳</span>Tourist</div>
+            </div>
+            <div class="input-group"><label>👤 Username</label><input type="text" id="loginUser"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass"></div>
+            <button class="login-btn" style="background:${colors[currentRole]};" onclick="doLogin()">${labels[currentRole]}</button>
+            <p class="login-error" id="loginError"></p>
+            <div class="login-hint">${hints[currentRole]}</div>`;
+    }
+}
+
+function toggleSignUp() { isSignUp = !isSignUp; renderLoginForm(); }
+function setRole(r) { currentRole = r; isSignUp = false; renderLoginForm(); }
+
+function handleSignUp() {
+    const n = document.getElementById('signupName').value.trim();
+    const e = document.getElementById('signupEmail').value.trim();
+    const p = document.getElementById('signupPhone').value.trim();
+    const pw = document.getElementById('signupPass').value;
+    const err = document.getElementById('loginError');
+    if (!n || !e || !p || !pw) { err.textContent = '❌ All fields required'; err.classList.add('show'); return; }
+    if (touristAccounts.find(a => a.email === e)) { err.textContent = '❌ Email already registered'; err.classList.add('show'); return; }
+    touristAccounts.push({ id: 't_' + Date.now(), name: n, email: e, phone: p, password: pw });
+    saveAll(); showToast('✅ Account created! Please sign in.'); isSignUp = false; renderLoginForm();
+}
+
+function handleSignIn() {
+    const e = document.getElementById('signinEmail').value.trim();
+    const pw = document.getElementById('signinPass').value;
+    const err = document.getElementById('loginError');
+    if (!e || !pw) { err.textContent = '❌ Enter email and password'; err.classList.add('show'); return; }
+    const acc = touristAccounts.find(a => a.email === e && a.password === pw);
+    if (!acc) { err.textContent = '❌ Invalid email or password'; err.classList.add('show'); return; }
+    currentTourist = acc; currentUser = { username: acc.email, role: 'tourist', touristId: acc.id };
+    localStorage.setItem('eta_user', JSON.stringify(currentUser));
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('languageScreen').classList.remove('hidden');
+}
+
+function doLogin() {
+    const u = document.getElementById('loginUser').value.trim();
+    const p = document.getElementById('loginPass').value.trim();
+    const err = document.getElementById('loginError');
+    if (!u || !p) { err.textContent = '❌ Enter username and password'; err.classList.add('show'); return; }
+    const v = USERS[currentRole];
+    if (u === v.user && p === v.pass) {
+        currentUser = { username: u, role: currentRole };
+        localStorage.setItem('eta_user', JSON.stringify(currentUser));
+        document.getElementById('loginScreen').classList.add('hidden');
+        if (currentRole === 'guest' || currentRole === 'tourist') {
+            document.getElementById('languageScreen').classList.remove('hidden');
+        } else {
+            document.getElementById('mainApp').style.display = 'block';
+            setupApp();
+            showToast('✅ Welcome, ' + currentRole.toUpperCase() + '!');
+        }
+    } else { err.textContent = '❌ Invalid credentials'; err.classList.add('show'); }
+}
+
+function selectLanguage(lang) {
+    currentLang = lang; localStorage.setItem('eta_lang', lang);
+    document.getElementById('languageScreen').classList.add('hidden');
+    document.getElementById('mainApp').style.display = 'block';
+    if (currentUser?.role === 'guest' || currentUser?.role === 'tourist') document.getElementById('aiChat').style.display = 'block';
+    setupApp(); showToast('✅ Language: ' + lang.toUpperCase());
+}
+
+function showLanguageScreen() { document.getElementById('languageScreen').classList.remove('hidden'); }
+
+function doLogout() {
+    currentUser = null; currentTourist = null; localStorage.removeItem('eta_user');
+    document.getElementById('loginScreen').classList.remove('hidden');
+    document.getElementById('mainApp').style.display = 'none';
+    document.getElementById('languageScreen').classList.add('hidden');
+    document.getElementById('aiChat').style.display = 'none';
+    if (ethiopiaMap) { ethiopiaMap.remove(); ethiopiaMap = null; }
+    renderLoginForm();
+}
+
+function setupApp() {
+    const badge = document.getElementById('userBadge');
+    const nav = document.getElementById('navTabs');
+    nav.innerHTML = '';
+    if (currentUser.role === 'admin') {
+        badge.textContent = '🔑 Administrator';
+        nav.innerHTML = `<button class="nav-tab active" onclick="navAdmin('dashboard')">📊 Dashboard</button><button class="nav-tab" onclick="navAdmin('bookings')">📅 Bookings</button>`;
+        showAdminDashboard();
+    } else if (currentUser.role === 'operator') {
+        badge.textContent = '🏢 Traverse Ethiopia Tour';
+        nav.innerHTML = `<button class="nav-tab active" onclick="navOp('listings')">📋 My Listings</button><button class="nav-tab" onclick="navOp('addtour')">➕ Add Tour</button>`;
+        showOpListings();
+    } else {
+        badge.textContent = currentUser.role === 'tourist' ? '🧳 ' + (currentTourist?.name || 'Tourist') : '👤 Guest';
+        nav.innerHTML = `<button class="nav-tab active" onclick="navG('home')">🏠 Home</button><button class="nav-tab" onclick="navG('tours')">🏛 Tours</button><button class="nav-tab" onclick="navG('hotels')">🏨 Hotels</button><button class="nav-tab" onclick="navG('map')">🗺️ Map</button>`;
+        showGuestHome();
+    }
+}
+
+function navAdmin(p) {
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    if (p === 'dashboard') showAdminDashboard();
+    else if (p === 'bookings') showAdminBookings();
+}
+
+function navOp(p) {
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    if (p === 'listings') showOpListings();
+    else if (p === 'addtour') showOpAddTour();
+}
+
+function navG(p) {
+    document.querySelectorAll('#navTabs .nav-tab').forEach(t => t.classList.remove('active'));
+    if (event?.target) event.target.classList.add('active');
+    if (p === 'home') showGuestHome();
+    else if (p === 'tours') showGuestTours();
+    else if (p === 'hotels') showGuestHotels();
+    else if (p === 'map') showMapView();
+}
+
+function showGuestHome() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `<h2 class="section-title">Discover Ethiopia</h2>
+        <div class="feature-grid">
+            <div class="feature-card" onclick="navG('tours')"><span class="feature-icon">🏛</span><span class="feature-name">Tour Booking</span></div>
+            <div class="feature-card" onclick="navG('hotels')"><span class="feature-icon">🏨</span><span class="feature-name">Hotels</span></div>
+            <div class="feature-card" onclick="navG('map')"><span class="feature-icon">🗺️</span><span class="feature-name">Travel Map</span></div>
+            <div class="feature-card" onclick="showToast('🤖 AI Assistant: Ask about weather, safety, tips!')"><span class="feature-icon">🤖</span><span class="feature-name">AI Assistant</span></div>
+        </div>
+        <h3 style="font-family:'Playfair Display',serif; font-size:1.4rem; margin-bottom:15px;">🌟 Featured Tours</h3>
+        <div class="grid-2">${tours.filter(t => t.featured && t.status === 'approved').map(t => `
+            <div class="card"><div style="font-size:3rem; text-align:center;">${t.icon}</div><h3>${t.name}</h3><p>👨‍🏫 ${t.guide} | 📅 ${t.duration}</p><p>⭐ ${t.rating} | 💰 <strong style="font-size:1.2rem; color:#1B5E20;">$${t.price}</strong></p><p>${t.description}</p><button class="btn btn-accent btn-block" onclick="openBooking('tour',${t.id},'${t.name}',${t.price})">💰 Book Now</button></div>`).join('')}</div>`;
+}
+
+function showGuestTours() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `<h2 class="section-title">Tour Packages</h2><div class="grid-2">${tours.filter(t => t.status === 'approved').map(t => `
+        <div class="card"><div style="font-size:3rem; text-align:center;">${t.icon}</div><h3>${t.name}</h3><p>👨‍🏫 ${t.guide} | 📅 ${t.duration} | ⭐ ${t.rating}</p><p>💰 <strong>$${t.price}</strong></p><p>${t.description}</p><button class="btn btn-accent btn-block" onclick="openBooking('tour',${t.id},'${t.name}',${t.price})">💰 Book Now</button></div>`).join('')}</div>`;
+}
+
+function showGuestHotels() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `<h2 class="section-title">Hotels & Accommodation</h2><div class="grid-3">${hotels.map(h => `
+        <div class="card"><div style="font-size:3rem; text-align:center;">${h.icon}</div><h3>${h.name}</h3><p>📍 ${h.city} | ⭐ ${h.rating}</p><p>💰 From <strong>$${h.price}/night</strong></p><p>✨ ${h.amenities}</p><button class="btn btn-accent btn-block" onclick="openBooking('hotel',${h.id},'${h.name}',${h.price})">🏨 Book Room</button></div>`).join('')}</div>`;
+}
+
+function showMapView() {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `<h2 class="section-title">Ethiopia Travel Map</h2><div class="map-wrapper"><div id="ethiopia-map"></div></div>`;
+    setTimeout(initMap, 200);
+}
+
+function initMap() {
+    if (ethiopiaMap) ethiopiaMap.remove();
+    ethiopiaMap = L.map('ethiopia-map').setView([9.0, 39.5], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(ethiopiaMap);
+    const locations = [
+        { name: "Addis Ababa", lat: 9.0320, lng: 38.7469, icon: "🏙️", desc: "Capital City" },
+        { name: "Lalibela", lat: 12.0317, lng: 39.0411, icon: "⛪", desc: "Rock-Hewn Churches" },
+        { name: "Gondar", lat: 12.6030, lng: 37.4521, icon: "🏰", desc: "Royal Enclosure" },
+        { name: "Axum", lat: 14.1232, lng: 38.7246, icon: "🗿", desc: "Ancient Obelisks" }
+    ];
+    locations.forEach(l => {
+        L.marker([l.lat, l.lng]).bindPopup(`<strong>${l.icon} ${l.name}</strong><p>${l.desc}</p>`).addTo(ethiopiaMap);
+    });
+    setTimeout(() => ethiopiaMap.invalidateSize(), 300);
+}
+
+function openBooking(type, id, name, price) {
+    const c = document.getElementById('mainContent');
+    c.innerHTML = `<h2 class="section-title">📝 Book Now</h2><div class="card"><h3>${name}</h3><p>💰 <strong>$${price}</strong></p>
+        <div class="input-group"><label>👤 Your Name</label><input type="text" id="bkName" value="${currentTourist?.name||''}"></div>
+        <div class="input-group"><label>📞 Phone</label><input type="tel" id="bkPhone" value="${currentTourist?.phone||''}"></div>
+        <div class="input-group"><label>📅 Date</label><input type="date" id="bkDate"></div>
+        <div class="input-group"><label>👥 Quantity</label><input type="number" id="bkQty" value="2" min="1"></div>
+        <input type="hidden" id="bkType" value="${type}"><input type="hidden" id="bkId" value="${id}"><input type="hidden" id="bkPrice" value="${price}">
+        <button class="btn btn-accent btn-lg btn-block" onclick="confirmBooking()">✅ Confirm & Pay</button>
+        <button class="btn btn-outline btn-block" onclick="navG('home')">← Back</button></div>`;
+}
+
+function confirmBooking() {
+    const n=document.getElementById('bkName').value.trim(), p=document.getElementById('bkPhone').value.trim(), d=document.getElementById('bkDate').value;
+    if(!n||!p||!d){showToast('❌ Fill all fields');return;}
+    bookings.push({id:Date.now(),userId:currentUser?.touristId||'guest',userName:n,userPhone:p,itemType:document.getElementById('bkType').value,itemId:parseInt(document.getElementById('bkId').value),itemName:document.getElementById('bkType').value,date:d,totalPrice:100,paymentStatus:'pending'});
+    saveAll(); navG('home'); showToast('✅ Booked! Pay via Telebirr: 0911626671');
+}
+
+function toggleAIChat() { showToast('🤖 AI: Ask me about weather, safety, visas, or travel tips!'); }
+
+function showAdminDashboard() {
+    const c=document.getElementById('mainContent');
+    c.innerHTML=`<h2 class="section-title">Admin Dashboard</h2>
+        <div class="grid-4"><div class="stat-card purple"><span class="stat-number">${companies.length}</span><span class="stat-label">Businesses</span></div>
+        <div class="stat-card green"><span class="stat-number">${tours.length}</span><span class="stat-label">Tours</span></div>
+        <div class="stat-card pink"><span class="stat-number">${bookings.length}</span><span class="stat-label">Bookings</span></div>
+        <div class="stat-card blue"><span class="stat-number">${touristAccounts.length}</span><span class="stat-label">Tourists</span></div></div>`;
+}
+
+function showAdminBookings() {
+    const c=document.getElementById('mainContent');
+    c.innerHTML='<h2 class="section-title">All Bookings</h2>';
+    bookings.forEach(b => { c.innerHTML += `<div class="card"><h3>${b.itemName}</h3><p>👤 ${b.userName} | 💰 $${b.totalPrice||100}</p></div>`; });
+}
+
+function showOpListings() {
+    const c=document.getElementById('mainContent');
+    c.innerHTML=`<h2 class="section-title">My Listings</h2><div class="card"><p>You have ${tours.length} tours listed</p></div>`;
+    tours.forEach(t => { c.innerHTML+=`<div class="card"><h3>${t.name} <span class="badge-pill">${t.status}</span></h3><p>💰 $${t.price}</p></div>`; });
+}
+
+function showOpAddTour() {
+    document.getElementById('mainContent').innerHTML=`<h2 class="section-title">Add New Tour</h2><div class="card">
+        <div class="input-group"><label>Tour Name</label><input type="text" id="tfName"></div>
+        <div class="input-group"><label>Duration</label><input type="text" id="tfDur"></div>
+        <div class="input-group"><label>Price (USD)</label><input type="number" id="tfPrice"></div>
+        <div class="input-group"><label>Guide</label><input type="text" id="tfGuide"></div>
+        <div class="input-group"><label>Description</label><textarea id="tfDesc"></textarea></div>
+        <button class="btn btn-primary btn-lg btn-block" onclick="addTour()">✅ Submit</button></div>`;
+}
+
+function addTour() {
+    const n=document.getElementById('tfName').value, d=document.getElementById('tfDur').value, p=parseInt(document.getElementById('tfPrice').value)||0, g=document.getElementById('tfGuide').value, de=document.getElementById('tfDesc').value;
+    if(!n||!d||!p||!g){showToast('❌ Fill all fields');return;}
+    tours.push({id:Date.now(),name:n,duration:d,price:p,guide:g,description:de,icon:'🏛️',status:'pending',rating:4.5});
+    saveAll(); showOpListings(); showToast('✅ Submitted!');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderLoginForm();
+    const s = localStorage.getItem('eta_user');
+    if(s) {
+        try {
+            const u = JSON.parse(s);
+            if(u.role === 'tourist') {
+                currentTourist = touristAccounts.find(a => a.id === u.touristId);
+                if(currentTourist) { currentUser = u; currentRole = 'tourist';
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('languageScreen').classList.remove('hidden'); }
+            } else if(u.role === 'guest') {
+                const v = USERS[u.role];
+                if(v && u.username === v.user) { currentUser = u; currentRole = u.role;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('languageScreen').classList.remove('hidden'); }
+            } else {
+                const v = USERS[u.role];
+                if(v && u.username === v.user) { currentUser = u; currentRole = u.role;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').style.display = 'block'; setupApp(); }
+            }
+        } catch(e) { localStorage.removeItem('eta_user'); }
+    }
+});
+</script>
+</body>
+</html>
