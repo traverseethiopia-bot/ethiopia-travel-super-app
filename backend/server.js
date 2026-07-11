@@ -6,32 +6,58 @@ const fileUpload = require('express-fileupload');
 const cloudinary = require('cloudinary').v2;
 const path = require('path');
 
+// ============================================
+// LOAD ENVIRONMENT VARIABLES
+// ============================================
 dotenv.config();
 
+// ============================================
+// CLOUDINARY CONFIG
+// ============================================
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+// ============================================
+// EXPRESS APP
+// ============================================
 const app = express();
+const PORT = process.env.PORT || 5000;
 
+// ============================================
+// MIDDLEWARE
+// ============================================
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(fileUpload({ useTempFiles: true, tempFileDir: '/tmp/' }));
-app.use(express.static(path.join(__dirname, '..')));
+app.use(fileUpload({ 
+    useTempFiles: true, 
+    tempFileDir: '/tmp/',
+    limits: { fileSize: 10 * 1024 * 1024 }
+}));
+
+// ============================================
+// SERVE FRONTEND
+// ============================================
+app.use(express.static(path.join(__dirname)));
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ============================================
 // MONGODB CONNECTION
 // ============================================
-mongoose.connect(process.env.MONGODB_URI)
-.then(() => console.log('✅ MongoDB Connected'))
-.catch(err => console.error('❌ MongoDB Error:', err));
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Kurabachew:185582Kura@cluster0.hh2ap3v.mongodb.net/?appName=Cluster0';
+
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+.then(() => console.log('✅ MongoDB Connected Successfully'))
+.catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // ============================================
 // MODELS
@@ -93,7 +119,7 @@ const TourSchema = new mongoose.Schema({
     images: [String],
     guide: String,
     company: String,
-    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     itinerary: [ItinerarySchema],
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
@@ -150,31 +176,34 @@ const Vehicle = mongoose.model('Vehicle', VehicleSchema);
 // SEED ADMIN
 // ============================================
 async function seedAdmin() {
-    const adminExists = await User.findOne({ entityType: 'admin' });
-    if (!adminExists) {
-        const admin = new User({
-            name: 'Administrator',
-            email: 'admin@ethiopiatravel.com',
-            password: '1111',
-            entityType: 'admin',
-            status: 'verified',
-            verified: true
-        });
-        await admin.save();
-        console.log('✅ Admin created: admin@ethiopiatravel.com / 1111');
+    try {
+        const adminExists = await User.findOne({ entityType: 'admin' });
+        if (!adminExists) {
+            const admin = new User({
+                name: 'Administrator',
+                email: 'admin@ethiopiatravel.com',
+                password: '1111',
+                entityType: 'admin',
+                status: 'verified',
+                verified: true
+            });
+            await admin.save();
+            console.log('✅ Admin created: admin@ethiopiatravel.com / 1111');
+        }
+    } catch (error) {
+        console.log('Admin seed error:', error.message);
     }
 }
 
 // ============================================
-// API ROUTES
+// TEST ROUTE
 // ============================================
-
 app.get('/api/test', (req, res) => {
     res.json({ message: '✅ Ethiopia Travel API is running!' });
 });
 
 // ============================================
-// AUTH ROUTES - 5 ENTITIES
+// AUTH ROUTES
 // ============================================
 
 // Register
@@ -202,21 +231,18 @@ app.post('/api/auth/register', async (req, res) => {
             status: 'pending'
         };
         
-        // Tour Company fields
         if (entityType === 'tour_company') {
             userData.companyName = companyName;
             userData.license = license;
             userData.tin = tin;
         }
         
-        // Hotel fields
         if (entityType === 'hotel') {
             userData.hotelName = hotelName;
             userData.hotelCity = hotelCity;
             userData.hotelAmenities = hotelAmenities;
         }
         
-        // Guide fields
         if (entityType === 'guide') {
             userData.specialty = specialty;
             userData.languages = languages;
@@ -225,7 +251,6 @@ app.post('/api/auth/register', async (req, res) => {
             userData.pricePerHour = pricePerHour || 0;
         }
         
-        // Vehicle fields
         if (entityType === 'vehicle') {
             userData.vehicleType = vehicleType;
             userData.vehiclePlate = vehiclePlate;
@@ -238,7 +263,13 @@ app.post('/api/auth/register', async (req, res) => {
 
         res.status(201).json({
             message: 'Registration successful! Waiting for admin verification.',
-            user: { id: user._id, name, email, entityType: user.entityType, status: user.status }
+            user: { 
+                id: user._id, 
+                name, 
+                email, 
+                entityType: user.entityType, 
+                status: user.status 
+            }
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -250,12 +281,15 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
+        
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+        
         if (user.password !== password) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+        
         res.json({
             message: 'Login successful',
             user: {
@@ -278,7 +312,10 @@ app.post('/api/auth/login', async (req, res) => {
 // Get pending users (admin)
 app.get('/api/auth/pending', async (req, res) => {
     try {
-        const users = await User.find({ status: 'pending', entityType: { $ne: 'admin' } }).select('-password');
+        const users = await User.find({ 
+            status: 'pending', 
+            entityType: { $ne: 'admin' } 
+        }).select('-password');
         res.json(users);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -300,7 +337,10 @@ app.put('/api/auth/verify/:id', async (req, res) => {
     }
 });
 
-// Get all users (admin)
+// ============================================
+// USER ROUTES
+// ============================================
+
 app.get('/api/users', async (req, res) => {
     try {
         const users = await User.find().select('-password');
@@ -310,7 +350,6 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-// Get user by id
 app.get('/api/users/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select('-password');
@@ -327,12 +366,13 @@ app.get('/api/users/:id', async (req, res) => {
 
 app.get('/api/tours', async (req, res) => {
     try {
-        const { category, featured, status } = req.query;
+        const { category, featured, status, hostId } = req.query;
         const filter = {};
         if (category) filter.category = category;
         if (featured) filter.featured = featured === 'true';
         if (status) filter.status = status;
         else filter.status = 'approved';
+        if (hostId) filter.hostId = hostId;
         const tours = await Tour.find(filter).sort({ createdAt: -1 });
         res.json(tours);
     } catch (error) {
@@ -363,7 +403,11 @@ app.post('/api/tours', async (req, res) => {
 app.put('/api/tours/:id/status', async (req, res) => {
     try {
         const { status } = req.body;
-        const tour = await Tour.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        const tour = await Tour.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
         res.json(tour);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -381,7 +425,7 @@ app.delete('/api/tours/:id', async (req, res) => {
 
 app.get('/api/tours/host/:hostId', async (req, res) => {
     try {
-        const tours = await Tour.find({ hotelId: req.params.hostId });
+        const tours = await Tour.find({ hostId: req.params.hostId });
         res.json(tours);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -415,7 +459,7 @@ app.get('/api/bookings/user/:userId', async (req, res) => {
 
 app.get('/api/bookings/host/:hostId', async (req, res) => {
     try {
-        const tours = await Tour.find({ hotelId: req.params.hostId });
+        const tours = await Tour.find({ hostId: req.params.hostId });
         const tourIds = tours.map(t => t._id);
         const bookings = await Booking.find({ tourId: { $in: tourIds } })
             .populate('tourId')
@@ -441,7 +485,11 @@ app.get('/api/bookings', async (req, res) => {
 app.put('/api/bookings/:id', async (req, res) => {
     try {
         const { status } = req.body;
-        const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true });
+        const booking = await Booking.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
         res.json(booking);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -485,6 +533,20 @@ app.post('/api/hotels', async (req, res) => {
     }
 });
 
+app.put('/api/hotels/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        const hotel = await Hotel.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
+        res.json(hotel);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ============================================
 // VEHICLE ROUTES
 // ============================================
@@ -503,6 +565,20 @@ app.post('/api/vehicles', async (req, res) => {
         const vehicle = new Vehicle(req.body);
         await vehicle.save();
         res.status(201).json(vehicle);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/vehicles/:id/status', async (req, res) => {
+    try {
+        const { status } = req.body;
+        const vehicle = await Vehicle.findByIdAndUpdate(
+            req.params.id,
+            { status },
+            { new: true }
+        );
+        res.json(vehicle);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -536,14 +612,13 @@ app.post('/api/upload', async (req, res) => {
 // START SERVER
 // ============================================
 
-const PORT = process.env.PORT || 5000;
-
 async function startServer() {
     try {
         await seedAdmin();
         app.listen(PORT, () => {
             console.log(`🚀 Server running on port ${PORT}`);
             console.log(`📍 http://localhost:${PORT}`);
+            console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
         });
     } catch (error) {
         console.error('❌ Server start error:', error);
