@@ -24,14 +24,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(fileUpload({
     useTempFiles: true,
-    tempFileDir: '/tmp/'
+    tempFileDir: '/tmp/',
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 }));
 
-// ===== SERVE FRONTEND =====
-// Serve static files from root directory (where index.html is)
+// Serve Frontend
 app.use(express.static(path.join(__dirname, '..')));
-
-// Serve index.html for root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
@@ -54,24 +52,41 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     phone: String,
-    role: { type: String, enum: ['guest', 'host', 'guide', 'admin'], default: 'guest' },
     profileImage: String,
+    role: { type: String, enum: ['guest', 'host', 'guide', 'admin'], default: 'guest' },
+    
+    // Host specific
     companyName: String,
     license: String,
     tin: String,
     licenseDocument: String,
+    
+    // Guide specific
     specialty: String,
     languages: String,
     diploma: String,
     diplomaDocument: String,
     idDocument: String,
+    faceImage: String,
     experience: String,
+    pricePerHour: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 },
+    
+    // Status
     status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
     verified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
 
 // Tour Model
+const ItinerarySchema = new mongoose.Schema({
+    day: { type: String, required: true },
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    image: { type: String, default: '' },
+    imageUrl: { type: String, default: '' }
+});
+
 const TourSchema = new mongoose.Schema({
     name: { type: String, required: true },
     description: { type: String, required: true },
@@ -83,12 +98,7 @@ const TourSchema = new mongoose.Schema({
     guide: { type: String, required: true },
     company: String,
     hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    itinerary: [{
-        day: String,
-        title: String,
-        description: String,
-        image: String
-    }],
+    itinerary: [ItinerarySchema],
     rating: { type: Number, default: 0 },
     reviews: { type: Number, default: 0 },
     featured: { type: Boolean, default: false },
@@ -106,9 +116,37 @@ const BookingSchema = new mongoose.Schema({
     date: { type: String, required: true },
     people: { type: Number, required: true, default: 1 },
     totalPrice: { type: Number, required: true },
-    paymentMethod: String,
-    receiptImage: String,
+    paymentMethod: { type: String, enum: ['telebirr', 'card', 'bank', 'cash'], default: 'telebirr' },
+    receiptImage: { type: String, default: '' },
     status: { type: String, enum: ['pending', 'confirmed', 'cancelled'], default: 'pending' },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Hotel Model
+const HotelSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    city: { type: String, required: true },
+    rating: { type: Number, default: 0 },
+    price: { type: Number, required: true },
+    amenities: String,
+    images: [String],
+    icon: { type: String, default: '🏨' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Vehicle Model
+const VehicleSchema = new mongoose.Schema({
+    type: { type: String, required: true },
+    plate: { type: String, required: true },
+    capacity: { type: String, required: true },
+    price: { type: Number, required: true },
+    features: String,
+    icon: { type: String, default: '🚙' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    company: String,
+    hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -133,14 +171,15 @@ const ReviewSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 const Tour = mongoose.model('Tour', TourSchema);
 const Booking = mongoose.model('Booking', BookingSchema);
+const Hotel = mongoose.model('Hotel', HotelSchema);
+const Vehicle = mongoose.model('Vehicle', VehicleSchema);
 const Wishlist = mongoose.model('Wishlist', WishlistSchema);
 const Review = mongoose.model('Review', ReviewSchema);
 
 // ============================================
-// ROUTES
+// TEST ROUTE
 // ============================================
 
-// Test Route
 app.get('/api/test', (req, res) => {
     res.json({ message: '✅ Ethiopia Travel API is running!' });
 });
@@ -149,21 +188,47 @@ app.get('/api/test', (req, res) => {
 // AUTH ROUTES
 // ============================================
 
+// Register
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { name, email, password, phone, role } = req.body;
+        const { name, email, password, phone, role, companyName, license, tin, specialty, languages, diploma, experience, pricePerHour } = req.body;
+        
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ error: 'Email already registered' });
         }
-        const user = new User({ name, email, password, phone, role });
+
+        const userData = { name, email, password, phone, role: role || 'guest' };
+        
+        if (role === 'host') {
+            userData.companyName = companyName;
+            userData.license = license;
+            userData.tin = tin;
+            userData.status = 'pending';
+        }
+        
+        if (role === 'guide') {
+            userData.specialty = specialty;
+            userData.languages = languages;
+            userData.diploma = diploma;
+            userData.experience = experience;
+            userData.pricePerHour = pricePerHour || 0;
+            userData.status = 'pending';
+        }
+
+        const user = new User(userData);
         await user.save();
-        res.status(201).json({ message: 'User registered successfully', user: { id: user._id, name, email } });
+
+        res.status(201).json({
+            message: 'User registered successfully',
+            user: { id: user._id, name, email, role: user.role, status: user.status }
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+// Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -174,16 +239,64 @@ app.post('/api/auth/login', async (req, res) => {
         if (user.password !== password) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        res.json({ 
-            message: 'Login successful', 
-            user: { 
-                id: user._id, 
-                name: user.name, 
-                email: user.email, 
+        res.json({
+            message: 'Login successful',
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
                 role: user.role,
-                status: user.status
-            } 
+                status: user.status,
+                companyName: user.companyName,
+                specialty: user.specialty
+            }
         });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get pending users (admin)
+app.get('/api/auth/pending', async (req, res) => {
+    try {
+        const users = await User.find({ status: 'pending' }).select('-password');
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Verify user (admin)
+app.put('/api/auth/verify/:id', async (req, res) => {
+    try {
+        const { status } = req.body;
+        const user = await User.findByIdAndUpdate(
+            req.params.id,
+            { status, verified: status === 'verified' },
+            { new: true }
+        ).select('-password');
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all users (admin)
+app.get('/api/users', async (req, res) => {
+    try {
+        const users = await User.find().select('-password');
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get user by id
+app.get('/api/users/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        res.json(user);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -193,14 +306,16 @@ app.post('/api/auth/login', async (req, res) => {
 // TOUR ROUTES
 // ============================================
 
+// Get all tours
 app.get('/api/tours', async (req, res) => {
     try {
-        const { category, featured, status } = req.query;
+        const { category, featured, status, hostId } = req.query;
         const filter = {};
         if (category) filter.category = category;
         if (featured) filter.featured = featured === 'true';
         if (status) filter.status = status;
         else filter.status = 'approved';
+        if (hostId) filter.hostId = hostId;
         const tours = await Tour.find(filter).sort({ createdAt: -1 });
         res.json(tours);
     } catch (error) {
@@ -208,18 +323,18 @@ app.get('/api/tours', async (req, res) => {
     }
 });
 
+// Get single tour
 app.get('/api/tours/:id', async (req, res) => {
     try {
         const tour = await Tour.findById(req.params.id);
-        if (!tour) {
-            return res.status(404).json({ error: 'Tour not found' });
-        }
+        if (!tour) return res.status(404).json({ error: 'Tour not found' });
         res.json(tour);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+// Create tour
 app.post('/api/tours', async (req, res) => {
     try {
         const tour = new Tour(req.body);
@@ -230,6 +345,7 @@ app.post('/api/tours', async (req, res) => {
     }
 });
 
+// Update tour
 app.put('/api/tours/:id', async (req, res) => {
     try {
         const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -239,10 +355,21 @@ app.put('/api/tours/:id', async (req, res) => {
     }
 });
 
+// Delete tour
 app.delete('/api/tours/:id', async (req, res) => {
     try {
         await Tour.findByIdAndDelete(req.params.id);
         res.json({ message: 'Tour deleted' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get tours by host
+app.get('/api/tours/host/:hostId', async (req, res) => {
+    try {
+        const tours = await Tour.find({ hostId: req.params.hostId });
+        res.json(tours);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -286,6 +413,18 @@ app.get('/api/bookings/host/:hostId', async (req, res) => {
     }
 });
 
+app.get('/api/bookings', async (req, res) => {
+    try {
+        const bookings = await Booking.find()
+            .populate('tourId')
+            .populate('userId')
+            .sort({ createdAt: -1 });
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.put('/api/bookings/:id', async (req, res) => {
     try {
         const booking = await Booking.findByIdAndUpdate(
@@ -299,27 +438,62 @@ app.put('/api/bookings/:id', async (req, res) => {
     }
 });
 
+app.put('/api/bookings/:id/receipt', async (req, res) => {
+    try {
+        const { receiptImage } = req.body;
+        const booking = await Booking.findByIdAndUpdate(
+            req.params.id,
+            { receiptImage, status: 'confirmed' },
+            { new: true }
+        );
+        res.json(booking);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // ============================================
-// IMAGE UPLOAD ROUTE
+// HOTEL ROUTES
 // ============================================
 
-app.post('/api/upload', async (req, res) => {
+app.get('/api/hotels', async (req, res) => {
     try {
-        if (!req.files || !req.files.image) {
-            return res.status(400).json({ error: 'No image uploaded' });
-        }
-        const file = req.files.image;
-        const result = await cloudinary.uploader.upload(file.tempFilePath, {
-            folder: 'ethiopia_travel',
-            resource_type: 'auto'
-        });
-        res.json({
-            success: true,
-            url: result.secure_url,
-            public_id: result.public_id
-        });
+        const hotels = await Hotel.find({ status: 'active' });
+        res.json(hotels);
     } catch (error) {
-        console.error('Upload error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/hotels', async (req, res) => {
+    try {
+        const hotel = new Hotel(req.body);
+        await hotel.save();
+        res.status(201).json(hotel);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================
+// VEHICLE ROUTES
+// ============================================
+
+app.get('/api/vehicles', async (req, res) => {
+    try {
+        const vehicles = await Vehicle.find({ status: 'active' });
+        res.json(vehicles);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/vehicles', async (req, res) => {
+    try {
+        const vehicle = new Vehicle(req.body);
+        await vehicle.save();
+        res.status(201).json(vehicle);
+    } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
@@ -355,9 +529,9 @@ app.get('/api/wishlist/:userId', async (req, res) => {
 
 app.delete('/api/wishlist/:userId/:tourId', async (req, res) => {
     try {
-        await Wishlist.findOneAndDelete({ 
-            userId: req.params.userId, 
-            tourId: req.params.tourId 
+        await Wishlist.findOneAndDelete({
+            userId: req.params.userId,
+            tourId: req.params.tourId
         });
         res.json({ message: 'Removed from wishlist' });
     } catch (error) {
@@ -376,7 +550,7 @@ app.post('/api/reviews', async (req, res) => {
         await review.save();
         const reviews = await Review.find({ tourId });
         const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-        await Tour.findByIdAndUpdate(tourId, { 
+        await Tour.findByIdAndUpdate(tourId, {
             rating: avgRating,
             reviews: reviews.length
         });
@@ -397,40 +571,31 @@ app.get('/api/reviews/tour/:tourId', async (req, res) => {
 });
 
 // ============================================
-// USER ROUTES
+// IMAGE UPLOAD ROUTE
 // ============================================
 
-app.get('/api/users', async (req, res) => {
+app.post('/api/upload', async (req, res) => {
     try {
-        const users = await User.find().select('-password');
-        res.json(users);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/users/:id', async (req, res) => {
-    try {
-        const user = await User.findById(req.params.id).select('-password');
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+        if (!req.files || !req.files.image) {
+            return res.status(400).json({ error: 'No image uploaded' });
         }
-        res.json(user);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
-app.put('/api/users/:id/status', async (req, res) => {
-    try {
-        const { status } = req.body;
-        const user = await User.findByIdAndUpdate(
-            req.params.id,
-            { status, verified: status === 'verified' },
-            { new: true }
-        );
-        res.json(user);
+        const file = req.files.image;
+        const folder = req.body.folder || 'ethiopia_travel';
+
+        const result = await cloudinary.uploader.upload(file.tempFilePath, {
+            folder: folder,
+            resource_type: 'auto',
+            allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        });
+
+        res.json({
+            success: true,
+            url: result.secure_url,
+            public_id: result.public_id
+        });
     } catch (error) {
+        console.error('Upload error:', error);
         res.status(500).json({ error: error.message });
     }
 });
