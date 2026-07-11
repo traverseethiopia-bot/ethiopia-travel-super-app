@@ -1,7 +1,6 @@
 {
   "name": "ethiopia-travel-backend",
   "version": "1.0.0",
-  "description": "Ethiopia Travel App Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
