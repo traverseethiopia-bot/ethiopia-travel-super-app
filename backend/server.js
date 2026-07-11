@@ -28,7 +28,7 @@ app.use(fileUpload({
 }));
 
 // ===== SERVE FRONTEND =====
-// Serve static files from root directory
+// Serve static files from root directory (where index.html is)
 app.use(express.static(path.join(__dirname, '..')));
 
 // Serve index.html for root route
