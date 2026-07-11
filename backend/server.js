@@ -39,12 +39,14 @@ app.use(fileUpload({
 }));
 
 // ============================================
-// SERVE FRONTEND
+// SERVE FRONTEND - FIXED PATH
 // ============================================
-app.use(express.static(path.join(__dirname)));
+// Serve static files from the ROOT directory (where index.html is)
+app.use(express.static(path.join(__dirname, '..')));
 
+// Serve index.html for root route
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // ============================================
