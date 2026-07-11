@@ -46,6 +46,14 @@
         .switch-link:hover { text-decoration: underline; }
         .login-hint { text-align: center; margin-top: 12px; color: #6C757D; font-size: 0.8rem; padding: 10px; background: #f8f9fa; border-radius: 10px; }
         
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px; border: 2px solid #DEE2E6; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: #f8f9fa; }
+        .checkbox-item:hover { border-color: #1B5E20; background: #E8F5E9; }
+        .checkbox-item.selected { border-color: #1B5E20; background: #E8F5E9; }
+        .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: #1B5E20; }
+        .checkbox-item .check-icon { font-size: 1.2rem; }
+        .checkbox-item .check-label { font-size: 0.8rem; font-weight: 500; }
+        
         .header { background: white; padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #E9ECEF; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.05); flex-wrap: wrap; gap: 8px; }
         .header-logo { font-size: 1.2rem; font-weight: 800; color: #1B5E20; display: flex; align-items: center; gap: 6px; cursor: pointer; }
         .header-logo span { font-size: 1.5rem; }
@@ -185,12 +193,14 @@
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
             .card-img { height: 120px; font-size: 2.5rem; }
             .section-title { font-size: 1.2rem; }
+            .checkbox-group { grid-template-columns: 1fr; }
         }
         @media (max-width: 480px) {
             .grid-4 { grid-template-columns: 1fr; }
             .role-tabs { grid-template-columns: 1fr 1fr; }
             .role-tab { font-size: 0.65rem; padding: 6px 4px; }
             .modal { padding: 16px; }
+            .checkbox-group { grid-template-columns: 1fr; }
         }
         
         ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -202,13 +212,6 @@
         .status-badge.pending { background: #FFF3CD; color: #856404; }
         .status-badge.rejected { background: #F8D7DA; color: #721C24; }
         .status-badge.verified { background: #D4EDDA; color: #155724; }
-        
-        .host-login-card { background: #f8f9fa; border-radius: 12px; padding: 12px; margin-bottom: 10px; border: 1px solid #E9ECEF; cursor: pointer; transition: all 0.3s; }
-        .host-login-card:hover { border-color: #1B5E20; background: #E8F5E9; }
-        .host-login-card .host-icon { font-size: 1.5rem; margin-right: 10px; }
-        .host-login-card .host-cred { font-size: 0.8rem; color: #6C757D; }
-        .host-login-card .host-cred strong { color: #1B5E20; }
-        .host-login-card .host-password { background: #f0f0f0; padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; }
     </style>
 </head>
 <body>
@@ -292,10 +295,9 @@ let currentPage = 'home';
 let allTours = [];
 let allHotels = [];
 let allVehicles = [];
-let allGuides = [];
+let allUsers = [];
 let allBookings = [];
 let wishlistItems = [];
-let allUsers = [];
 let pendingUsers = [];
 
 // ============================================
@@ -411,7 +413,7 @@ function goBack() {
 }
 
 // ============================================
-// AUTHENTICATION
+// AUTHENTICATION - UPDATED WITH CHECKLIST
 // ============================================
 function renderLoginForm() {
     const c = document.getElementById('loginContainer');
@@ -484,30 +486,21 @@ function renderLoginForm() {
                 <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
             </div>
             <div style="margin-bottom:15px;">
-                <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:8px;">Select Your Company:</label>
-                <div class="host-login-card" onclick="fillLogin('traverse@ethiopiatravel.com','traverse123')">
-                    <span class="host-icon">🏢</span>
-                    <strong>Traverse Ethiopia Tour</strong>
-                    <div class="host-cred">👤 traverse@ethiopiatravel.com | 🔑 <span class="host-password">traverse123</span></div>
+                <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:8px;">Login with your registered email:</label>
+                <div class="input-group">
+                    <label>📧 Email</label>
+                    <input type="email" id="loginUser" placeholder="Enter your registered email">
                 </div>
-                <div class="host-login-card" onclick="fillLogin('kidicho@ethiopiatravel.com','kidicho123')">
-                    <span class="host-icon">🏢</span>
-                    <strong>Kidicho Ethiopia Tour</strong>
-                    <div class="host-cred">👤 kidicho@ethiopiatravel.com | 🔑 <span class="host-password">kidicho123</span></div>
+                <div class="input-group">
+                    <label>🔒 Password</label>
+                    <input type="password" id="loginPass" placeholder="Enter your password">
                 </div>
-                <div class="host-login-card" onclick="fillLogin('ethiotravel@ethiopiatravel.com','ethio123')">
-                    <span class="host-icon">🏢</span>
-                    <strong>Ethio Travel & Tours</strong>
-                    <div class="host-cred">👤 ethiotravel@ethiopiatravel.com | 🔑 <span class="host-password">ethio123</span></div>
-                </div>
+                <button class="login-btn" onclick="doHostLogin()">🔓 Sign In</button>
             </div>
             <div style="border-top:2px solid #E9ECEF;padding-top:15px;margin-top:10px;">
                 <p style="text-align:center;font-size:0.85rem;color:#6C757D;margin-bottom:10px;">New company? Register now!</p>
                 <button class="login-btn" style="background:linear-gradient(135deg,#FF6B35,#FF8F65);" onclick="showHostRegistration()">🏢 Register Your Company</button>
             </div>
-            <div class="input-group"><label>👤 Email</label><input type="email" id="loginUser" placeholder="Enter your email"></div>
-            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
-            <button class="login-btn" onclick="doHostLogin()">🔓 Sign In</button>
             <p class="login-error" id="loginError"></p>
         `;
     } else if (currentRole === 'guide') {
@@ -528,40 +521,21 @@ function renderLoginForm() {
                 <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
             </div>
             <div style="margin-bottom:15px;">
-                <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:8px;">Select Your Guide:</label>
-                <div class="host-login-card" onclick="fillLogin('kurabachew@guides.com','guide123')">
-                    <span class="host-icon">👨‍🏫</span>
-                    <strong>Kurabachew Endeshaw</strong>
-                    <div class="host-cred">👤 kurabachew@guides.com | 🔑 <span class="host-password">guide123</span></div>
+                <label style="font-weight:600;font-size:0.85rem;display:block;margin-bottom:8px;">Login with your registered email:</label>
+                <div class="input-group">
+                    <label>📧 Email</label>
+                    <input type="email" id="loginUser" placeholder="Enter your registered email">
                 </div>
-                <div class="host-login-card" onclick="fillLogin('gelagil@guides.com','guide123')">
-                    <span class="host-icon">👨‍🏫</span>
-                    <strong>Gelagil Milion</strong>
-                    <div class="host-cred">👤 gelagil@guides.com | 🔑 <span class="host-password">guide123</span></div>
+                <div class="input-group">
+                    <label>🔒 Password</label>
+                    <input type="password" id="loginPass" placeholder="Enter your password">
                 </div>
-                <div class="host-login-card" onclick="fillLogin('kidest@guides.com','guide123')">
-                    <span class="host-icon">👩‍🏫</span>
-                    <strong>Kidest</strong>
-                    <div class="host-cred">👤 kidest@guides.com | 🔑 <span class="host-password">guide123</span></div>
-                </div>
-                <div class="host-login-card" onclick="fillLogin('tigist@guides.com','guide123')">
-                    <span class="host-icon">👩‍🏫</span>
-                    <strong>Tigist Worku</strong>
-                    <div class="host-cred">👤 tigist@guides.com | 🔑 <span class="host-password">guide123</span></div>
-                </div>
-                <div class="host-login-card" onclick="fillLogin('dawit@guides.com','guide123')">
-                    <span class="host-icon">👨‍🏫</span>
-                    <strong>Dawit Solomon</strong>
-                    <div class="host-cred">👤 dawit@guides.com | 🔑 <span class="host-password">guide123</span></div>
-                </div>
+                <button class="login-btn" onclick="doGuideLogin()">🔓 Sign In</button>
             </div>
             <div style="border-top:2px solid #E9ECEF;padding-top:15px;margin-top:10px;">
                 <p style="text-align:center;font-size:0.85rem;color:#6C757D;margin-bottom:10px;">New guide? Register now!</p>
                 <button class="login-btn" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE);" onclick="showGuideRegistration()">👨‍🏫 Register as Guide</button>
             </div>
-            <div class="input-group"><label>👤 Email</label><input type="email" id="loginUser" placeholder="Enter your email"></div>
-            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
-            <button class="login-btn" onclick="doGuideLogin()">🔓 Sign In</button>
             <p class="login-error" id="loginError"></p>
         `;
     } else {
@@ -582,7 +556,7 @@ function renderLoginForm() {
                 <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
             </div>
             <div class="input-group"><label>👤 Email</label><input type="email" id="loginUser" placeholder="admin@ethiopiatravel.com"></div>
-            <div class="input-group"><label>🔒 Password</label><input type="text" id="loginPass" placeholder="Enter password"></div>
+            <div class="input-group"><label>🔒 Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
             <button class="login-btn" onclick="doAdminLogin()">🔓 Sign In</button>
             <p class="login-error" id="loginError"></p>
             <div class="login-hint">🔑 Admin: admin@ethiopiatravel.com / 1111</div>
@@ -590,14 +564,10 @@ function renderLoginForm() {
     }
 }
 
-function fillLogin(email, pass) {
-    document.getElementById('loginUser').value = email;
-    document.getElementById('loginPass').value = pass;
-}
-
 function toggleSignUp() { isSignUp = !isSignUp; renderLoginForm(); }
 function setRole(role) { currentRole = role; isSignUp = false; renderLoginForm(); }
 
+// ===== GUEST AUTH =====
 async function handleSignUp() {
     const name = document.getElementById('signupName').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
@@ -648,6 +618,7 @@ async function handleSignIn() {
     }
 }
 
+// ===== ADMIN AUTH =====
 async function doAdminLogin() {
     const email = document.getElementById('loginUser').value.trim();
     const password = document.getElementById('loginPass').value.trim();
@@ -670,6 +641,7 @@ async function doAdminLogin() {
     }
 }
 
+// ===== HOST AUTH =====
 async function doHostLogin() {
     const email = document.getElementById('loginUser').value.trim();
     const password = document.getElementById('loginPass').value.trim();
@@ -688,13 +660,14 @@ async function doHostLogin() {
         document.getElementById('loginScreen').classList.add('hidden');
         document.getElementById('mainApp').style.display = 'block';
         setupApp();
-        showToast('✅ Welcome, ' + currentUser.name + '!');
+        showToast('✅ Welcome, ' + currentUser.companyName + '!');
     } catch (error) {
         err.textContent = '❌ ' + error.message;
         err.classList.add('show');
     }
 }
 
+// ===== GUIDE AUTH =====
 async function doGuideLogin() {
     const email = document.getElementById('loginUser').value.trim();
     const password = document.getElementById('loginPass').value.trim();
@@ -720,29 +693,61 @@ async function doGuideLogin() {
     }
 }
 
+// ============================================
+// HOST REGISTRATION WITH CHECKLIST
+// ============================================
 function showHostRegistration() {
     showModal(`
         <div class="modal-header">
             <h2>🏢 Register Your Company</h2>
             <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
-        <div class="input-group"><label>🏢 Company Name *</label><input type="text" id="regHostName" placeholder="Enter company name"></div>
-        <div class="input-group"><label>👤 Manager Name *</label><input type="text" id="regHostManager" placeholder="Full name"></div>
-        <div class="input-group"><label>📧 Email *</label><input type="email" id="regHostEmail" placeholder="company@email.com"></div>
-        <div class="input-group"><label>📞 Phone *</label><input type="tel" id="regHostPhone" placeholder="+251 9XX XXX XXX"></div>
-        <div class="input-group"><label>📋 License Number *</label><input type="text" id="regHostLicense" placeholder="ET-TOUR-XXX"></div>
-        <div class="input-group"><label>📋 TIN Number *</label><input type="text" id="regHostTin" placeholder="1234567890"></div>
-        <div class="input-group"><label>🔒 Password *</label><input type="password" id="regHostPass" placeholder="Min 4 characters"></div>
-        <div class="file-upload" onclick="document.getElementById('regHostLicenseFile').click()">
-            <span class="upload-icon">📄</span>
-            <span class="upload-text">Upload License Document (PDF/Image)</span>
-            <input type="file" id="regHostLicenseFile" accept=".pdf,.jpg,.jpeg,.png">
+        <p style="font-size:0.85rem;color:#6C757D;margin-bottom:15px;">Select what services you offer:</p>
+        
+        <div class="checkbox-group">
+            <div class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="serviceTour" value="tour">
+                <span class="check-icon">🏛️</span>
+                <span class="check-label">Tour Company</span>
+            </div>
+            <div class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="serviceHotel" value="hotel">
+                <span class="check-icon">🏨</span>
+                <span class="check-label">Hotel</span>
+            </div>
+            <div class="checkbox-item" onclick="toggleCheckbox(this)">
+                <input type="checkbox" id="serviceVehicle" value="vehicle">
+                <span class="check-icon">🚗</span>
+                <span class="check-label">Vehicle Rental</span>
+            </div>
         </div>
+        
+        <div id="hostFormFields">
+            <div class="input-group"><label>🏢 Company Name *</label><input type="text" id="regHostName" placeholder="Enter company name"></div>
+            <div class="input-group"><label>👤 Manager Name *</label><input type="text" id="regHostManager" placeholder="Full name"></div>
+            <div class="input-group"><label>📧 Email *</label><input type="email" id="regHostEmail" placeholder="company@email.com"></div>
+            <div class="input-group"><label>📞 Phone *</label><input type="tel" id="regHostPhone" placeholder="+251 9XX XXX XXX"></div>
+            <div class="input-group"><label>📋 License Number *</label><input type="text" id="regHostLicense" placeholder="ET-TOUR-XXX"></div>
+            <div class="input-group"><label>📋 TIN Number *</label><input type="text" id="regHostTin" placeholder="1234567890"></div>
+            <div class="input-group"><label>🔒 Password *</label><input type="password" id="regHostPass" placeholder="Min 4 characters"></div>
+            <div class="file-upload" onclick="document.getElementById('regHostLicenseFile').click()">
+                <span class="upload-icon">📄</span>
+                <span class="upload-text">Upload License Document (PDF/Image)</span>
+                <input type="file" id="regHostLicenseFile" accept=".pdf,.jpg,.jpeg,.png">
+            </div>
+        </div>
+        
         <div style="margin-top:15px;display:flex;gap:10px;">
             <button class="btn btn-primary btn-block" onclick="registerHost()">✅ Register Company</button>
             <button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button>
         </div>
     `);
+}
+
+function toggleCheckbox(el) {
+    const checkbox = el.querySelector('input[type="checkbox"]');
+    checkbox.checked = !checkbox.checked;
+    el.classList.toggle('selected', checkbox.checked);
 }
 
 async function registerHost() {
@@ -754,8 +759,19 @@ async function registerHost() {
     const tin = document.getElementById('regHostTin').value.trim();
     const password = document.getElementById('regHostPass').value;
     
+    // Get selected services
+    const services = [];
+    if (document.getElementById('serviceTour').checked) services.push('tour');
+    if (document.getElementById('serviceHotel').checked) services.push('hotel');
+    if (document.getElementById('serviceVehicle').checked) services.push('vehicle');
+    
     if (!name || !email || !phone || !companyName || !license || !tin || !password) {
         showToast('❌ Please fill in all required fields');
+        return;
+    }
+    
+    if (services.length === 0) {
+        showToast('❌ Please select at least one service');
         return;
     }
     
@@ -763,15 +779,20 @@ async function registerHost() {
         await apiCall('/auth/register', 'POST', {
             name, email, password, phone,
             role: 'host',
-            companyName, license, tin
+            companyName, license, tin,
+            services: services.join(',')
         });
         closeModal();
         showToast('✅ Company registered! Waiting for admin verification.');
+        renderLoginForm();
     } catch (error) {
         showToast('❌ ' + error.message);
     }
 }
 
+// ============================================
+// GUIDE REGISTRATION
+// ============================================
 function showGuideRegistration() {
     showModal(`
         <div class="modal-header">
@@ -830,6 +851,7 @@ async function registerGuide() {
         });
         closeModal();
         showToast('✅ Guide registered! Waiting for admin verification.');
+        renderLoginForm();
     } catch (error) {
         showToast('❌ ' + error.message);
     }
@@ -857,7 +879,6 @@ async function setupApp() {
     
     if (!currentUser) return;
     
-    // Load data
     try {
         const [toursRes, hotelsRes, vehiclesRes, usersRes, pendingRes] = await Promise.all([
             apiCall('/tours'),
@@ -866,13 +887,13 @@ async function setupApp() {
             apiCall('/users'),
             apiCall('/auth/pending')
         ]);
-        allTours = toursRes;
-        allHotels = hotelsRes;
-        allVehicles = vehiclesRes;
-        allUsers = usersRes;
-        pendingUsers = pendingRes;
+        allTours = toursRes || [];
+        allHotels = hotelsRes || [];
+        allVehicles = vehiclesRes || [];
+        allUsers = usersRes || [];
+        pendingUsers = pendingRes || [];
     } catch (e) {
-        // Use empty data if API fails
+        console.log('Data load error:', e);
     }
     
     if (currentUser.role === 'admin') {
@@ -887,7 +908,7 @@ async function setupApp() {
         `;
         navigateTo('adminDashboard');
     } else if (currentUser.role === 'host') {
-        badge.textContent = '🏢 ' + currentUser.companyName || currentUser.name;
+        badge.textContent = '🏢 ' + (currentUser.companyName || currentUser.name);
         badge.className = 'badge-pill role host';
         nav.innerHTML = `
             <button class="nav-tab active" data-page="hostDashboard" onclick="navigateTo('hostDashboard')"><i class="fas fa-chart-line"></i> Dashboard</button>
@@ -923,7 +944,7 @@ async function setupApp() {
 }
 
 // ============================================
-// GUEST PAGES
+// GUEST PAGES (SAME AS BEFORE - KEPT FOR SPACE)
 // ============================================
 function showHome() {
     const c = document.getElementById('mainContent');
@@ -973,7 +994,7 @@ function showHome() {
         
         <h2 class="section-title">🌟 Featured Experiences</h2>
         <div class="grid-3">
-            ${featured.map(tour => renderTourCard(tour)).join('')}
+            ${featured.length > 0 ? featured.map(tour => renderTourCard(tour)).join('') : '<p style="grid-column:1/-1;text-align:center;color:#6C757D;">No featured tours yet. Check back soon!</p>'}
         </div>
         
         <h2 class="section-title" style="margin-top:30px;">🔥 Popular Tours</h2>
@@ -993,12 +1014,11 @@ function renderTourCard(tour) {
                     <i class="fas fa-heart"></i>
                 </button>
                 ${tour.featured ? '<span style="position:absolute;top:10px;left:10px;background:#FFD700;color:#1a1a2e;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">⭐ FEATURED</span>' : ''}
-                ${tour.status === 'pending' ? '<span style="position:absolute;top:10px;left:10px;background:#FFF3CD;color:#856404;padding:2px 10px;border-radius:10px;font-size:0.65rem;font-weight:700;">⏳ PENDING</span>' : ''}
             </div>
             <div class="card-body">
                 <h3>${tour.name}</h3>
                 <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
-                <div class="rating">${getStarRating(tour.rating)} ${tour.rating || 0} (${tour.reviews || 0} reviews)</div>
+                <div class="rating">${getStarRating(tour.rating || 0)} ${tour.rating || 0} (${tour.reviews || 0} reviews)</div>
                 <div class="price">${formatPrice(tour.price)} <span>/ person</span></div>
                 <div class="tags">
                     <span class="tag">${tour.category}</span>
@@ -1014,7 +1034,6 @@ function renderTourCard(tour) {
 async function viewTourDetail(tourId) {
     try {
         const tour = await apiCall('/tours/' + tourId);
-        
         const isWishlisted = wishlistItems.some(w => w === tour._id);
         let itineraryHtml = '';
         if (tour.itinerary && tour.itinerary.length > 0) {
@@ -1034,7 +1053,7 @@ async function viewTourDetail(tourId) {
             </div>
             <div style="margin-bottom:12px;">
                 <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
-                <div class="rating">${getStarRating(tour.rating)} ${tour.rating || 0} (${tour.reviews || 0} reviews)</div>
+                <div class="rating">${getStarRating(tour.rating || 0)} ${tour.rating || 0} (${tour.reviews || 0} reviews)</div>
                 <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:0.85rem;color:#6C757D;margin-top:4px;">
                     <span><strong>Duration:</strong> ${tour.duration}</span>
                     <span><strong>Guide:</strong> ${tour.guide}</span>
@@ -1047,7 +1066,6 @@ async function viewTourDetail(tourId) {
                 <span class="tag">${tour.category}</span>
                 <span class="tag">${tour.duration}</span>
                 ${tour.featured ? '<span class="tag featured">⭐ Featured</span>' : ''}
-                ${tour.status === 'pending' ? '<span class="tag" style="background:#FFF3CD;color:#856404;">⏳ Pending Approval</span>' : ''}
             </div>
             ${tour.itinerary && tour.itinerary.length > 0 ? `
                 <h3 style="margin:12px 0;font-size:1rem;">📋 Daily Itinerary</h3>
@@ -1063,7 +1081,7 @@ async function viewTourDetail(tourId) {
                 </button>
             ` : `
                 <div style="padding:12px;background:#FFF3CD;border-radius:10px;text-align:center;color:#856404;">
-                    ⏳ This tour is pending admin approval. Please check back later.
+                    ⏳ This tour is pending admin approval.
                 </div>
             `}
             <button class="btn ${isWishlisted ? 'btn-danger' : 'btn-outline'} btn-block" onclick="toggleWishlist('${tour._id}'); closeModal();" style="margin-top:8px;">
@@ -1076,21 +1094,16 @@ async function viewTourDetail(tourId) {
 }
 
 async function toggleWishlist(tourId) {
-    try {
-        const index = wishlistItems.indexOf(tourId);
-        if (index > -1) {
-            wishlistItems.splice(index, 1);
-            showToast('❤️ Removed from wishlist');
-        } else {
-            wishlistItems.push(tourId);
-            showToast('❤️ Added to wishlist!');
-        }
-        // Refresh current view
-        if (currentPage === 'home' || currentPage === 'tours' || currentPage === 'wishlist') {
-            navigateTo(currentPage);
-        }
-    } catch (error) {
-        showToast('❌ Error updating wishlist');
+    const index = wishlistItems.indexOf(tourId);
+    if (index > -1) {
+        wishlistItems.splice(index, 1);
+        showToast('❤️ Removed from wishlist');
+    } else {
+        wishlistItems.push(tourId);
+        showToast('❤️ Added to wishlist!');
+    }
+    if (currentPage === 'home' || currentPage === 'tours' || currentPage === 'wishlist') {
+        navigateTo(currentPage);
     }
 }
 
@@ -1218,14 +1231,9 @@ async function confirmBooking(tourId) {
             status: 'pending'
         });
         
-        // Upload receipt
         const formData = new FormData();
         formData.append('image', receiptFile);
-        
-        const uploadRes = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-        });
+        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
         const uploadData = await uploadRes.json();
         
         if (uploadData.success) {
@@ -1273,7 +1281,6 @@ function showTours() {
 function filterTours() {
     const query = document.getElementById('tourSearchInput').value.toLowerCase();
     const category = document.getElementById('tourCategoryFilter').value;
-    
     let results = allTours.filter(t => t.status === 'approved');
     if (query) {
         results = results.filter(t => 
@@ -1285,7 +1292,6 @@ function filterTours() {
     if (category) {
         results = results.filter(t => t.category === category);
     }
-    
     document.getElementById('tourResults').innerHTML = results.length === 0 
         ? '<p style="text-align:center;padding:40px;color:#6C757D;grid-column:1/-1;">No tours found. Try a different search!</p>'
         : results.map(tour => renderTourCard(tour)).join('');
@@ -1294,7 +1300,6 @@ function filterTours() {
 function searchTours() {
     const query = document.getElementById('searchInput').value.toLowerCase();
     const category = document.getElementById('categoryFilter').value;
-    
     let results = allTours.filter(t => t.status === 'approved');
     if (query) {
         results = results.filter(t => 
@@ -1306,14 +1311,11 @@ function searchTours() {
     if (category) {
         results = results.filter(t => t.category === category);
     }
-    
     const c = document.getElementById('mainContent');
     c.innerHTML = `
         <h2 class="section-title">🔍 Search Results (${results.length})</h2>
         ${results.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours found. Try a different search!</p>' : ''}
-        <div class="grid-3">
-            ${results.map(tour => renderTourCard(tour)).join('')}
-        </div>
+        <div class="grid-3">${results.map(tour => renderTourCard(tour)).join('')}</div>
         <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
     `;
 }
@@ -1326,10 +1328,7 @@ function filterByCategory(category) {
 function showHotels() {
     const c = document.getElementById('mainContent');
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>🏨 Premium Accommodations</h3>
-            <p>Stay at the best hotels across Ethiopia</p>
-        </div>
+        <div class="partner-banner"><h3>🏨 Premium Accommodations</h3><p>Stay at the best hotels across Ethiopia</p></div>
         <h2 class="section-title">🏨 Hotels & Accommodations</h2>
         <p class="section-subtitle">Find the perfect place to stay</p>
         <div class="grid-3">
@@ -1356,12 +1355,8 @@ function showHotels() {
 function showGuides() {
     const c = document.getElementById('mainContent');
     const guides = allUsers.filter(u => u.role === 'guide' && u.status === 'verified');
-    
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>👨‍🏫 Professional Guides</h3>
-            <p>Expert local guides certified by Ethiopian Tourism</p>
-        </div>
+        <div class="partner-banner"><h3>👨‍🏫 Professional Guides</h3><p>Expert local guides certified by Ethiopian Tourism</p></div>
         <h2 class="section-title">👨‍🏫 Professional Guides</h2>
         <p class="section-subtitle">Hire expert local guides for your journey</p>
         <div class="grid-3">
@@ -1375,9 +1370,7 @@ function showGuides() {
                         <div style="font-size:0.85rem;color:#6C757D;">${guide.specialty || 'Professional Guide'}</div>
                         <div class="rating">${getStarRating(guide.rating || 0)} ${guide.rating || 0}</div>
                         <div class="price">${formatPrice(guide.pricePerHour || 50)} <span>/ hour</span></div>
-                        <div style="font-size:0.8rem;margin:6px 0;">
-                            <strong>Languages:</strong> ${guide.languages || 'English, Amharic'}
-                        </div>
+                        <div style="font-size:0.8rem;margin:6px 0;"><strong>Languages:</strong> ${guide.languages || 'English, Amharic'}</div>
                         <button class="btn btn-primary" onclick="showToast('👨‍🏫 Guide booking coming soon!')">Hire Guide</button>
                     </div>
                 </div>
@@ -1390,10 +1383,7 @@ function showGuides() {
 function showVehicles() {
     const c = document.getElementById('mainContent');
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>🚗 Reliable Transport</h3>
-            <p>Safe and comfortable vehicles for your journey</p>
-        </div>
+        <div class="partner-banner"><h3>🚗 Reliable Transport</h3><p>Safe and comfortable vehicles for your journey</p></div>
         <h2 class="section-title">🚗 Vehicles & Transport</h2>
         <p class="section-subtitle">Rent vehicles for your Ethiopian adventure</p>
         <div class="grid-3">
@@ -1421,24 +1411,19 @@ function showVehicles() {
 function showWishlist() {
     const c = document.getElementById('mainContent');
     const wishlistedTours = allTours.filter(t => wishlistItems.some(w => w === t._id) && t.status === 'approved');
-    
     c.innerHTML = `
         <h2 class="section-title">❤️ Your Wishlist</h2>
         <p class="section-subtitle">${wishlistedTours.length} tours saved</p>
         ${wishlistedTours.length === 0 ? '<p style="text-align:center;padding:40px;color:#6C757D;">No tours in your wishlist yet. Start exploring!</p>' : ''}
-        <div class="grid-3">
-            ${wishlistedTours.map(tour => renderTourCard(tour)).join('')}
-        </div>
+        <div class="grid-3">${wishlistedTours.map(tour => renderTourCard(tour)).join('')}</div>
         <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:20px;">← Back to Home</button>
     `;
 }
 
 async function showMyBookings() {
     const c = document.getElementById('mainContent');
-    
     try {
         const bookings = await apiCall('/bookings/user/' + currentUser.id);
-        
         c.innerHTML = `
             <h2 class="section-title">📅 My Bookings</h2>
             <p class="section-subtitle">${bookings.length} bookings found</p>
@@ -1449,18 +1434,14 @@ async function showMyBookings() {
                         <div class="card-body">
                             <h3>${b.tourId?.name || 'Tour Booking'}</h3>
                             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-                                <span style="color:#6C757D;font-size:0.85rem;">
-                                    <i class="fas fa-calendar-alt"></i> ${b.date || 'TBD'}
-                                </span>
+                                <span style="color:#6C757D;font-size:0.85rem;"><i class="fas fa-calendar-alt"></i> ${b.date || 'TBD'}</span>
                                 <span class="status-badge ${b.status}">${b.status}</span>
                             </div>
                             <div style="margin:6px 0;">
                                 <span style="font-weight:700;font-size:1rem;color:#1B5E20;">${formatPrice(b.totalPrice || 0)}</span>
                                 <span style="color:#6C757D;font-size:0.8rem;"> for ${b.people || 1} people</span>
                             </div>
-                            <div style="font-size:0.8rem;color:#6C757D;">
-                                <i class="fas fa-user"></i> ${b.userName || 'Guest'}
-                            </div>
+                            <div style="font-size:0.8rem;color:#6C757D;"><i class="fas fa-user"></i> ${b.userName || 'Guest'}</div>
                             ${b.receiptImage ? `<div style="font-size:0.8rem;color:#28A745;"><i class="fas fa-check-circle"></i> Receipt uploaded</div>` : ''}
                         </div>
                     </div>
@@ -1476,16 +1457,11 @@ async function showMyBookings() {
 function showMap() {
     const c = document.getElementById('mainContent');
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>🗺️ Explore Ethiopia</h3>
-            <p>Discover amazing destinations with Ethiopian Airlines</p>
-        </div>
+        <div class="partner-banner"><h3>🗺️ Explore Ethiopia</h3><p>Discover amazing destinations with Ethiopian Airlines</p></div>
         <h2 class="section-title">🗺️ Explore Ethiopia</h2>
         <p class="section-subtitle">Discover the best destinations</p>
         <div style="background:white;border-radius:16px;padding:16px;border:1px solid #E9ECEF;">
-            <div id="mapContainer" style="height:400px;border-radius:10px;background:linear-gradient(135deg,#1B5E20,#2E7D32);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;">
-                🗺️ Interactive Map
-            </div>
+            <div id="mapContainer" style="height:400px;border-radius:10px;background:linear-gradient(135deg,#1B5E20,#2E7D32);display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;">🗺️ Interactive Map</div>
         </div>
         <div class="grid-4" style="margin-top:16px;">
             ${[
@@ -1514,12 +1490,8 @@ function showMap() {
 async function showHostDashboard() {
     const c = document.getElementById('mainContent');
     const hostTours = allTours.filter(t => t.hostId === currentUser.id);
-    
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>🏢 Host Dashboard</h3>
-            <p>Manage your tours with Ethiopian Airlines & Ethio Telecom</p>
-        </div>
+        <div class="partner-banner"><h3>🏢 Host Dashboard</h3><p>Manage your tours with Ethiopian Airlines & Ethio Telecom</p></div>
         <h2 class="section-title">🏢 Host Dashboard</h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;">
             <div style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
@@ -1551,7 +1523,6 @@ async function showHostDashboard() {
 async function showHostListings() {
     const c = document.getElementById('mainContent');
     const hostTours = allTours.filter(t => t.hostId === currentUser.id);
-    
     c.innerHTML = `
         <h2 class="section-title">📋 My Listings</h2>
         <p class="section-subtitle">${hostTours.length} tours listed</p>
@@ -1594,28 +1565,12 @@ function showHostAddTour() {
         <h2 class="section-title">➕ Add New Tour</h2>
         <div class="card" style="max-width:700px;margin:0 auto;">
             <div class="card-body">
-                <div class="input-group">
-                    <label>🏛️ Tour Name *</label>
-                    <input type="text" id="addTourName" placeholder="e.g., Northern Historic Route">
-                </div>
-                <div class="input-group">
-                    <label>📍 Location *</label>
-                    <input type="text" id="addTourLocation" placeholder="e.g., Lalibela, Gondar, Axum">
-                </div>
-                <div class="input-group">
-                    <label>📅 Duration *</label>
-                    <input type="text" id="addTourDuration" placeholder="e.g., 10 Days">
-                </div>
-                <div class="input-group">
-                    <label>💰 Price (USD) *</label>
-                    <input type="number" id="addTourPrice" placeholder="e.g., 1850">
-                </div>
-                <div class="input-group">
-                    <label>👨‍🏫 Guide Name *</label>
-                    <input type="text" id="addTourGuide" placeholder="e.g., Kurabachew Endeshaw">
-                </div>
-                <div class="input-group">
-                    <label>📂 Category *</label>
+                <div class="input-group"><label>🏛️ Tour Name *</label><input type="text" id="addTourName" placeholder="e.g., Northern Historic Route"></div>
+                <div class="input-group"><label>📍 Location *</label><input type="text" id="addTourLocation" placeholder="e.g., Lalibela, Gondar, Axum"></div>
+                <div class="input-group"><label>📅 Duration *</label><input type="text" id="addTourDuration" placeholder="e.g., 10 Days"></div>
+                <div class="input-group"><label>💰 Price (USD) *</label><input type="number" id="addTourPrice" placeholder="e.g., 1850"></div>
+                <div class="input-group"><label>👨‍🏫 Guide Name *</label><input type="text" id="addTourGuide" placeholder="e.g., Kurabachew Endeshaw"></div>
+                <div class="input-group"><label>📂 Category *</label>
                     <select id="addTourCategory">
                         <option value="historical">🏛️ Historical</option>
                         <option value="cultural">🛖 Cultural</option>
@@ -1625,10 +1580,7 @@ function showHostAddTour() {
                         <option value="food">☕ Food & Coffee</option>
                     </select>
                 </div>
-                <div class="input-group">
-                    <label>📝 Description *</label>
-                    <textarea id="addTourDescription" placeholder="Describe your tour..." rows="3"></textarea>
-                </div>
+                <div class="input-group"><label>📝 Description *</label><textarea id="addTourDescription" placeholder="Describe your tour..." rows="3"></textarea></div>
                 
                 <h4 style="margin:12px 0 8px;">📋 10-Day Itinerary</h4>
                 <p style="font-size:0.8rem;color:#6C757D;margin-bottom:10px;">Add each day's activity</p>
@@ -1700,7 +1652,6 @@ async function showHostBookings() {
     const c = document.getElementById('mainContent');
     try {
         const bookings = await apiCall('/bookings/host/' + currentUser.id);
-        
         c.innerHTML = `
             <h2 class="section-title">📅 My Bookings</h2>
             <p class="section-subtitle">${bookings.length} bookings for your tours</p>
@@ -1733,12 +1684,8 @@ async function showHostBookings() {
 async function showAdminDashboard() {
     const c = document.getElementById('mainContent');
     const pendingCount = pendingUsers.length + allTours.filter(t => t.status === 'pending').length;
-    
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>🔑 Admin Dashboard</h3>
-            <p>Manage Ethiopia Travel with Ethiopian Airlines & Ethio Telecom</p>
-        </div>
+        <div class="partner-banner"><h3>🔑 Admin Dashboard</h3><p>Manage Ethiopia Travel with Ethiopian Airlines & Ethio Telecom</p></div>
         <h2 class="section-title">📊 Admin Dashboard</h2>
         <div class="grid-4">
             <div class="stat-card purple"><span class="stat-number">${allTours.length}</span><span class="stat-label">Total Tours</span></div>
@@ -1804,7 +1751,6 @@ async function rejectTourAdmin(tourId) {
 async function showAdminVerifications() {
     const c = document.getElementById('mainContent');
     const pending = allUsers.filter(u => u.status === 'pending');
-    
     c.innerHTML = `
         <h2 class="section-title">✅ Verify Users</h2>
         <p class="section-subtitle">${pending.length} pending verifications</p>
@@ -1831,7 +1777,6 @@ async function showAdminVerifications() {
 
 async function showAdminTours() {
     const c = document.getElementById('mainContent');
-    
     c.innerHTML = `
         <h2 class="section-title">📋 Manage Tours</h2>
         <p class="section-subtitle">${allTours.length} tours in the system</p>
@@ -1873,7 +1818,6 @@ async function deleteTourAdmin(tourId) {
 
 async function showAdminUsers() {
     const c = document.getElementById('mainContent');
-    
     c.innerHTML = `
         <h2 class="section-title">👥 Registered Users</h2>
         <p class="section-subtitle">${allUsers.length} users registered</p>
@@ -1898,7 +1842,6 @@ async function showAdminBookings() {
     const c = document.getElementById('mainContent');
     try {
         const bookings = await apiCall('/bookings');
-        
         c.innerHTML = `
             <h2 class="section-title">📅 All Bookings</h2>
             <p class="section-subtitle">${bookings.length} total bookings</p>
@@ -1931,12 +1874,8 @@ async function showAdminBookings() {
 function showGuideDashboard() {
     const c = document.getElementById('mainContent');
     const guideTours = allTours.filter(t => t.guide === currentUser.name);
-    
     c.innerHTML = `
-        <div class="partner-banner">
-            <h3>👨‍🏫 Guide Dashboard</h3>
-            <p>Manage your services with Ethiopian Airlines & Ethio Telecom</p>
-        </div>
+        <div class="partner-banner"><h3>👨‍🏫 Guide Dashboard</h3><p>Manage your services with Ethiopian Airlines & Ethio Telecom</p></div>
         <h2 class="section-title">👨‍🏫 Guide Dashboard</h2>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;">
             <div style="background:white;padding:16px;border-radius:12px;text-align:center;border:1px solid #E9ECEF;">
@@ -1964,7 +1903,6 @@ function showGuideDashboard() {
 function showGuideListings() {
     const c = document.getElementById('mainContent');
     const guideTours = allTours.filter(t => t.guide === currentUser.name);
-    
     c.innerHTML = `
         <h2 class="section-title">📋 My Services</h2>
         <p class="section-subtitle">${guideTours.length} services listed</p>
@@ -1995,26 +1933,11 @@ function showGuideAddService() {
         <h2 class="section-title">➕ Add Guide Service</h2>
         <div class="card" style="max-width:600px;margin:0 auto;">
             <div class="card-body">
-                <div class="input-group">
-                    <label>🎯 Service Title *</label>
-                    <input type="text" id="guideServiceName" placeholder="e.g., Bird Watching Tour">
-                </div>
-                <div class="input-group">
-                    <label>📍 Location *</label>
-                    <input type="text" id="guideServiceLocation" placeholder="e.g., Addis Ababa">
-                </div>
-                <div class="input-group">
-                    <label>⏱️ Duration *</label>
-                    <input type="text" id="guideServiceDuration" placeholder="e.g., 4 hours">
-                </div>
-                <div class="input-group">
-                    <label>💰 Price (USD) *</label>
-                    <input type="number" id="guideServicePrice" placeholder="e.g., 60">
-                </div>
-                <div class="input-group">
-                    <label>📝 Description *</label>
-                    <textarea id="guideServiceDesc" placeholder="Describe your service..." rows="3"></textarea>
-                </div>
+                <div class="input-group"><label>🎯 Service Title *</label><input type="text" id="guideServiceName" placeholder="e.g., Bird Watching Tour"></div>
+                <div class="input-group"><label>📍 Location *</label><input type="text" id="guideServiceLocation" placeholder="e.g., Addis Ababa"></div>
+                <div class="input-group"><label>⏱️ Duration *</label><input type="text" id="guideServiceDuration" placeholder="e.g., 4 hours"></div>
+                <div class="input-group"><label>💰 Price (USD) *</label><input type="number" id="guideServicePrice" placeholder="e.g., 60"></div>
+                <div class="input-group"><label>📝 Description *</label><textarea id="guideServiceDesc" placeholder="Describe your service..." rows="3"></textarea></div>
                 <button class="btn btn-primary btn-block" onclick="addGuideService()">✅ Submit Service</button>
                 <button class="btn btn-outline btn-block" onclick="navigateTo('guideListings')" style="margin-top:8px;">Cancel</button>
             </div>
