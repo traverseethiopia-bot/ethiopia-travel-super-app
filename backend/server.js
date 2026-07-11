@@ -4,6 +4,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const fileUpload = require('express-fileupload');
 const cloudinary = require('cloudinary').v2;
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,15 @@ app.use(fileUpload({
     tempFileDir: '/tmp/'
 }));
 
+// ===== SERVE FRONTEND =====
+// Serve static files from root directory
+app.use(express.static(path.join(__dirname, '..')));
+
+// Serve index.html for root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -46,19 +56,17 @@ const UserSchema = new mongoose.Schema({
     phone: String,
     role: { type: String, enum: ['guest', 'host', 'guide', 'admin'], default: 'guest' },
     profileImage: String,
-    // Host specific
     companyName: String,
     license: String,
     tin: String,
     licenseDocument: String,
-    status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
-    // Guide specific
     specialty: String,
     languages: String,
     diploma: String,
     diplomaDocument: String,
     idDocument: String,
     experience: String,
+    status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
     verified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now }
 });
@@ -141,42 +149,31 @@ app.get('/api/test', (req, res) => {
 // AUTH ROUTES
 // ============================================
 
-// Register
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password, phone, role } = req.body;
-        
-        // Check if user exists
         const existingUser = await User.findOne({ email });
         if (existingUser) {
             return res.status(400).json({ error: 'Email already registered' });
         }
-        
-        // Hash password (in production, use bcrypt)
         const user = new User({ name, email, password, phone, role });
         await user.save();
-        
         res.status(201).json({ message: 'User registered successfully', user: { id: user._id, name, email } });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        
-        // In production, compare hashed password
         if (user.password !== password) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-        
         res.json({ 
             message: 'Login successful', 
             user: { 
@@ -196,17 +193,14 @@ app.post('/api/auth/login', async (req, res) => {
 // TOUR ROUTES
 // ============================================
 
-// Get all tours
 app.get('/api/tours', async (req, res) => {
     try {
         const { category, featured, status } = req.query;
         const filter = {};
-        
         if (category) filter.category = category;
         if (featured) filter.featured = featured === 'true';
         if (status) filter.status = status;
         else filter.status = 'approved';
-        
         const tours = await Tour.find(filter).sort({ createdAt: -1 });
         res.json(tours);
     } catch (error) {
@@ -214,7 +208,6 @@ app.get('/api/tours', async (req, res) => {
     }
 });
 
-// Get single tour
 app.get('/api/tours/:id', async (req, res) => {
     try {
         const tour = await Tour.findById(req.params.id);
@@ -227,24 +220,9 @@ app.get('/api/tours/:id', async (req, res) => {
     }
 });
 
-// Create tour (host/guide)
 app.post('/api/tours', async (req, res) => {
     try {
-        const { name, description, location, duration, price, category, guide, hostId, itinerary } = req.body;
-        
-        const tour = new Tour({
-            name,
-            description,
-            location,
-            duration,
-            price,
-            category,
-            guide,
-            hostId,
-            itinerary: itinerary || [],
-            status: 'pending'
-        });
-        
+        const tour = new Tour(req.body);
         await tour.save();
         res.status(201).json(tour);
     } catch (error) {
@@ -252,7 +230,6 @@ app.post('/api/tours', async (req, res) => {
     }
 });
 
-// Update tour
 app.put('/api/tours/:id', async (req, res) => {
     try {
         const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -262,7 +239,6 @@ app.put('/api/tours/:id', async (req, res) => {
     }
 });
 
-// Delete tour
 app.delete('/api/tours/:id', async (req, res) => {
     try {
         await Tour.findByIdAndDelete(req.params.id);
@@ -276,24 +252,9 @@ app.delete('/api/tours/:id', async (req, res) => {
 // BOOKING ROUTES
 // ============================================
 
-// Create booking
 app.post('/api/bookings', async (req, res) => {
     try {
-        const { tourId, userId, userName, userEmail, userPhone, date, people, totalPrice, paymentMethod } = req.body;
-        
-        const booking = new Booking({
-            tourId,
-            userId,
-            userName,
-            userEmail,
-            userPhone,
-            date,
-            people,
-            totalPrice,
-            paymentMethod,
-            status: 'pending'
-        });
-        
+        const booking = new Booking(req.body);
         await booking.save();
         res.status(201).json(booking);
     } catch (error) {
@@ -301,7 +262,6 @@ app.post('/api/bookings', async (req, res) => {
     }
 });
 
-// Get user bookings
 app.get('/api/bookings/user/:userId', async (req, res) => {
     try {
         const bookings = await Booking.find({ userId: req.params.userId })
@@ -313,7 +273,6 @@ app.get('/api/bookings/user/:userId', async (req, res) => {
     }
 });
 
-// Get host bookings
 app.get('/api/bookings/host/:hostId', async (req, res) => {
     try {
         const tours = await Tour.find({ hostId: req.params.hostId });
@@ -327,7 +286,6 @@ app.get('/api/bookings/host/:hostId', async (req, res) => {
     }
 });
 
-// Update booking status
 app.put('/api/bookings/:id', async (req, res) => {
     try {
         const booking = await Booking.findByIdAndUpdate(
@@ -350,13 +308,11 @@ app.post('/api/upload', async (req, res) => {
         if (!req.files || !req.files.image) {
             return res.status(400).json({ error: 'No image uploaded' });
         }
-
         const file = req.files.image;
         const result = await cloudinary.uploader.upload(file.tempFilePath, {
             folder: 'ethiopia_travel',
             resource_type: 'auto'
         });
-
         res.json({
             success: true,
             url: result.secure_url,
@@ -372,7 +328,6 @@ app.post('/api/upload', async (req, res) => {
 // WISHLIST ROUTES
 // ============================================
 
-// Add to wishlist
 app.post('/api/wishlist', async (req, res) => {
     try {
         const { userId, tourId } = req.body;
@@ -388,7 +343,6 @@ app.post('/api/wishlist', async (req, res) => {
     }
 });
 
-// Get wishlist
 app.get('/api/wishlist/:userId', async (req, res) => {
     try {
         const wishlist = await Wishlist.find({ userId: req.params.userId })
@@ -399,7 +353,6 @@ app.get('/api/wishlist/:userId', async (req, res) => {
     }
 });
 
-// Remove from wishlist
 app.delete('/api/wishlist/:userId/:tourId', async (req, res) => {
     try {
         await Wishlist.findOneAndDelete({ 
@@ -416,28 +369,23 @@ app.delete('/api/wishlist/:userId/:tourId', async (req, res) => {
 // REVIEW ROUTES
 // ============================================
 
-// Add review
 app.post('/api/reviews', async (req, res) => {
     try {
         const { tourId, userId, userName, rating, comment } = req.body;
         const review = new Review({ tourId, userId, userName, rating, comment });
         await review.save();
-        
-        // Update tour rating
         const reviews = await Review.find({ tourId });
         const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
         await Tour.findByIdAndUpdate(tourId, { 
             rating: avgRating,
             reviews: reviews.length
         });
-        
         res.status(201).json(review);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get tour reviews
 app.get('/api/reviews/tour/:tourId', async (req, res) => {
     try {
         const reviews = await Review.find({ tourId: req.params.tourId })
@@ -452,7 +400,6 @@ app.get('/api/reviews/tour/:tourId', async (req, res) => {
 // USER ROUTES
 // ============================================
 
-// Get all users (admin)
 app.get('/api/users', async (req, res) => {
     try {
         const users = await User.find().select('-password');
@@ -462,7 +409,6 @@ app.get('/api/users', async (req, res) => {
     }
 });
 
-// Get user by ID
 app.get('/api/users/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select('-password');
@@ -475,7 +421,6 @@ app.get('/api/users/:id', async (req, res) => {
     }
 });
 
-// Update user status (admin)
 app.put('/api/users/:id/status', async (req, res) => {
     try {
         const { status } = req.body;
