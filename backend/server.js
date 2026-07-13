@@ -41,10 +41,7 @@ app.use(fileUpload({
 // ============================================
 // SERVE FRONTEND - index.html is in backend/ folder
 // ============================================
-// Serve static files from the current directory (where index.html is)
 app.use(express.static(path.join(__dirname)));
-
-// Serve index.html for root route
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -152,7 +149,7 @@ const HotelSchema = new mongoose.Schema({
     price: Number,
     amenities: String,
     icon: { type: String, default: '🏨' },
-    status: { type: String, default: 'active' },
+    status: { type: String, default: 'pending' },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
@@ -164,7 +161,7 @@ const VehicleSchema = new mongoose.Schema({
     features: String,
     icon: { type: String, default: '🚙' },
     company: String,
-    status: { type: String, default: 'active' },
+    status: { type: String, default: 'pending' },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
@@ -202,13 +199,11 @@ async function seedAdmin() {
 // ============================================
 app.get('/api/test', (req, res) => {
     res.json({ message: '✅ Ethiopia Travel API is running!' });
-});
-
-// ============================================
-// AUTH ROUTES
+});// ============================================
+// AUTH ROUTES - FIXED
 // ============================================
 
-// Register
+// REGISTER - FIXED to handle all entity types
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { 
@@ -219,32 +214,37 @@ app.post('/api/auth/register', async (req, res) => {
             vehicleType, vehiclePlate, vehicleCapacity, vehicleFeatures
         } = req.body;
         
+        // Check if user exists
         const existing = await User.findOne({ email });
         if (existing) {
             return res.status(400).json({ error: 'Email already registered' });
         }
 
+        // Build user data based on entity type
         const userData = { 
             name, 
             email, 
             password, 
             phone, 
             entityType: entityType || 'guest',
-            status: 'pending'
+            status: entityType === 'guest' ? 'verified' : 'pending'
         };
         
+        // Tour Company
         if (entityType === 'tour_company') {
             userData.companyName = companyName;
             userData.license = license;
             userData.tin = tin;
         }
         
+        // Hotel
         if (entityType === 'hotel') {
             userData.hotelName = hotelName;
             userData.hotelCity = hotelCity;
             userData.hotelAmenities = hotelAmenities;
         }
         
+        // Guide
         if (entityType === 'guide') {
             userData.specialty = specialty;
             userData.languages = languages;
@@ -253,6 +253,7 @@ app.post('/api/auth/register', async (req, res) => {
             userData.pricePerHour = pricePerHour || 0;
         }
         
+        // Vehicle
         if (entityType === 'vehicle') {
             userData.vehicleType = vehicleType;
             userData.vehiclePlate = vehiclePlate;
@@ -264,7 +265,7 @@ app.post('/api/auth/register', async (req, res) => {
         await user.save();
 
         res.status(201).json({
-            message: 'Registration successful! Waiting for admin verification.',
+            message: 'Registration successful!',
             user: { 
                 id: user._id, 
                 name, 
@@ -278,7 +279,7 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
-// Login
+// LOGIN - FIXED to return full user data
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -518,7 +519,7 @@ app.put('/api/bookings/:id/receipt', async (req, res) => {
 
 app.get('/api/hotels', async (req, res) => {
     try {
-        const hotels = await Hotel.find({ status: 'active' });
+        const hotels = await Hotel.find({ status: { $ne: 'inactive' } });
         res.json(hotels);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -555,7 +556,7 @@ app.put('/api/hotels/:id/status', async (req, res) => {
 
 app.get('/api/vehicles', async (req, res) => {
     try {
-        const vehicles = await Vehicle.find({ status: 'active' });
+        const vehicles = await Vehicle.find({ status: { $ne: 'inactive' } });
         res.json(vehicles);
     } catch (error) {
         res.status(500).json({ error: error.message });
