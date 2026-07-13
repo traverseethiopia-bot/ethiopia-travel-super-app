@@ -166,11 +166,35 @@ const VehicleSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 });
 
+// ============================================
+// WISHLIST MODEL - ADDED
+// ============================================
+const WishlistSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour', required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// ============================================
+// REVIEW MODEL - ADDED
+// ============================================
+const ReviewSchema = new mongoose.Schema({
+    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour', required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    userName: String,
+    rating: { type: Number, min: 1, max: 5, required: true },
+    comment: String,
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Create Models
 const User = mongoose.model('User', UserSchema);
 const Tour = mongoose.model('Tour', TourSchema);
 const Booking = mongoose.model('Booking', BookingSchema);
 const Hotel = mongoose.model('Hotel', HotelSchema);
 const Vehicle = mongoose.model('Vehicle', VehicleSchema);
+const Wishlist = mongoose.model('Wishlist', WishlistSchema);
+const Review = mongoose.model('Review', ReviewSchema);
 
 // ============================================
 // SEED ADMIN
