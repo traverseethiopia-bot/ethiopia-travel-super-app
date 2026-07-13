@@ -296,6 +296,24 @@
             color: #6c757d;
             margin-bottom: 10px;
         }
+        .register-section .btn-register {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            color: white;
+            transition: all 0.3s;
+        }
+        .register-section .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn-hotel-register { background: linear-gradient(135deg, #2196F3, #1976D2); }
+        .btn-host-register { background: linear-gradient(135deg, #1B5E20, #2E7D32); }
+        .btn-guide-register { background: linear-gradient(135deg, #6C5CE7, #A29BFE); }
+        .btn-vehicle-register { background: linear-gradient(135deg, #FF9800, #F57C00); }
     </style>
 </head>
 
@@ -583,7 +601,7 @@
                     const newUser = {
                         _id: generateId(),
                         ...data,
-                        status: 'pending', // All new registrations need admin approval
+                        status: 'pending',
                         createdAt: new Date().toISOString()
                     };
                     demoUsers.push(newUser);
@@ -882,7 +900,7 @@
                     <div class="register-section">
                         <h4>🏢 New Tour Company?</h4>
                         <p>Register your company and start listing tours</p>
-                        <button class="login-btn" style="background:linear-gradient(135deg,#1B5E20,#2E7D32);padding:10px;font-size:0.9rem;" onclick="showEntityRegistration('tour_company')">
+                        <button class="btn-register btn-host-register" onclick="showEntityRegistration('tour_company')">
                             🏢 Register Tour Company
                         </button>
                     </div>
@@ -896,7 +914,7 @@
                 return;
             }
 
-            // HOTEL LOGIN
+            // HOTEL LOGIN - FIXED: Registration button is here, NOT after admin login
             if (currentRole === "hotel") {
                 c.innerHTML = `
                     <div class="login-logo">
@@ -920,7 +938,7 @@
                     <div class="register-section">
                         <h4>🏨 New Hotel?</h4>
                         <p>Register your hotel and start accepting bookings</p>
-                        <button class="login-btn" style="background:linear-gradient(135deg,#2196F3,#1976D2);padding:10px;font-size:0.9rem;" onclick="showEntityRegistration('hotel')">
+                        <button class="btn-register btn-hotel-register" onclick="showEntityRegistration('hotel')">
                             🏨 Register Hotel
                         </button>
                     </div>
@@ -958,7 +976,7 @@
                     <div class="register-section">
                         <h4>👨‍🏫 New Guide?</h4>
                         <p>Register as a guide and start offering tours</p>
-                        <button class="login-btn" style="background:linear-gradient(135deg,#6C5CE7,#A29BFE);padding:10px;font-size:0.9rem;" onclick="showEntityRegistration('guide')">
+                        <button class="btn-register btn-guide-register" onclick="showEntityRegistration('guide')">
                             👨‍🏫 Register as Guide
                         </button>
                     </div>
@@ -996,7 +1014,7 @@
                     <div class="register-section">
                         <h4>🚗 New Vehicle Rental?</h4>
                         <p>Register your vehicle and start renting</p>
-                        <button class="login-btn" style="background:linear-gradient(135deg,#FF9800,#F57C00);padding:10px;font-size:0.9rem;" onclick="showEntityRegistration('vehicle')">
+                        <button class="btn-register btn-vehicle-register" onclick="showEntityRegistration('vehicle')">
                             🚗 Register Vehicle Rental
                         </button>
                     </div>
@@ -1107,12 +1125,10 @@
             try {
                 const result = await apiCall("/auth/login", "POST", { email, password });
                 
-                // Check if the user's entity type matches
                 if (result.user.entityType !== entityType) {
                     throw new Error(`${getEntityLabel(entityType)} access required`);
                 }
                 
-                // Check if account is verified (pending accounts can't login)
                 if (result.user.status === "pending") {
                     throw new Error("Your account is pending verification. Please wait for admin approval.");
                 }
@@ -1145,7 +1161,7 @@
         }
 
         // ============================================
-        // ENTITY REGISTRATION (Independent)
+        // ENTITY REGISTRATION (Available on Login Pages)
         // ============================================
         function showEntityRegistration(entityType) {
             let entityFields = "";
@@ -1370,7 +1386,7 @@
         }
 
         // ============================================
-        // GUEST PAGES (Same as before)
+        // GUEST PAGES (Same as before - shortened for brevity)
         // ============================================
         function showHome() {
             const c = document.getElementById("mainContent");
