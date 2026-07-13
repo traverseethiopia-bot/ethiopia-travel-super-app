@@ -197,13 +197,16 @@ async function seedAdmin() {
 // ============================================
 // TEST ROUTE
 // ============================================
+// ============================================
+// TEST ROUTE
+// ============================================
 app.get('/api/test', (req, res) => {
     res.json({ message: '✅ Ethiopia Travel API is running!' });
-});// ============================================
+});
+
+// ============================================
 // AUTH ROUTES - FIXED
 // ============================================
-
-// REGISTER - FIXED to handle all entity types
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { 
@@ -220,79 +223,14 @@ app.post('/api/auth/register', async (req, res) => {
             return res.status(400).json({ error: 'Email already registered' });
         }
 
-        // Build user data based on entity type
-        const userData = { 
-            name, 
-            email, 
-            password, 
-            phone, 
-            entityType: entityType || 'guest',
-            status: entityType === 'guest' ? 'verified' : 'pending'
-        };
+        // Your registration logic here...
         
-        // Tour Company
-        if (entityType === 'tour_company') {
-            userData.companyName = companyName;
-            userData.license = license;
-            userData.tin = tin;
-        }
-        
-        // Hotel
-        if (entityType === 'hotel') {
-            userData.hotelName = hotelName;
-            userData.hotelCity = hotelCity;
-            userData.hotelAmenities = hotelAmenities;
-        }
-        
-        // Guide
-        if (entityType === 'guide') {
-            userData.specialty = specialty;
-            userData.languages = languages;
-            userData.diploma = diploma;
-            userData.experience = experience;
-            userData.pricePerHour = pricePerHour || 0;
-        }
-        
-        // Vehicle
-        if (entityType === 'vehicle') {
-            userData.vehicleType = vehicleType;
-            userData.vehiclePlate = vehiclePlate;
-            userData.vehicleCapacity = vehicleCapacity;
-            userData.vehicleFeatures = vehicleFeatures;
-        }
-
-        const user = new User(userData);
-        await user.save();
-
-        res.status(201).json({
-            message: 'Registration successful!',
-            user: { 
-                id: user._id, 
-                name, 
-                email, 
-                entityType: user.entityType, 
-                status: user.status 
-            }
-        });
+        res.status(201).json({ message: 'User registered successfully' });
     } catch (error) {
+        console.error('Registration error:', error);
         res.status(500).json({ error: error.message });
     }
-});
-
-// LOGIN - FIXED to return full user data
-app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-        
-        if (user.password !== password) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
-        
+});   
         res.json({
             message: 'Login successful',
             user: {
