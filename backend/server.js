@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: server.js - FIXED for Node.js v24.10.0
+// FILE: server.js - COMPLETE WITH FRONTEND SERVING
 // ============================================================
 
 const express = require('express');
@@ -11,10 +11,7 @@ const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { Server } = require('socket.io');
 const http = require('http');
-
-// FIXED: Correct nodemailer import for v24
 const nodemailer = require('nodemailer');
-
 const path = require('path');
 require('dotenv').config();
 
@@ -43,7 +40,7 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET || 'DkwEBIkRWBa_6QXmmMOHVeuH-4U'
 });
 
-// FIXED: Email transporter with correct syntax
+// Email transporter
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -71,7 +68,20 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Authentication Middleware
+// ============================================================
+// 3. SERVE FRONTEND (FIX FOR RAILWAY)
+// ============================================================
+// Serve static files
+app.use(express.static(__dirname));
+
+// Serve index.html for root route
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// ============================================================
+// 4. AUTH MIDDLEWARE
+// ============================================================
 const authenticate = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -100,7 +110,7 @@ const authorize = (...roles) => {
 };
 
 // ============================================================
-// 3. DATABASE MODELS
+// 5. DATABASE MODELS
 // ============================================================
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
@@ -321,7 +331,7 @@ const VehicleSchema = new mongoose.Schema({
 });
 
 // ============================================================
-// 4. CREATE MODELS
+// 6. CREATE MODELS
 // ============================================================
 const User = mongoose.model('User', UserSchema);
 const Tour = mongoose.model('Tour', TourSchema);
@@ -334,7 +344,7 @@ const Hotel = mongoose.model('Hotel', HotelSchema);
 const Vehicle = mongoose.model('Vehicle', VehicleSchema);
 
 // ============================================================
-// 5. UPLOAD ROUTES
+// 7. UPLOAD ROUTES
 // ============================================================
 app.post('/api/upload', authenticate, upload.single('image'), async (req, res) => {
     try {
@@ -368,7 +378,7 @@ app.post('/api/upload/base64', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 6. AUTH ROUTES
+// 8. AUTH ROUTES
 // ============================================================
 app.post('/api/auth/register', async (req, res) => {
     try {
@@ -388,7 +398,6 @@ app.post('/api/auth/register', async (req, res) => {
             ...extra
         });
         await user.save();
-        // Try to send email but don't fail if it doesn't work
         try {
             await sendEmail(
                 email,
@@ -396,7 +405,7 @@ app.post('/api/auth/register', async (req, res) => {
                 `Hello ${name},\n\nYour account has been created successfully.\n\nBest regards,\nEthiopia Travel Team`
             );
         } catch (emailError) {
-            console.log('Email not sent (this is fine in development):', emailError.message);
+            console.log('Email not sent:', emailError.message);
         }
         res.status(201).json({
             success: true,
@@ -475,7 +484,7 @@ app.post('/api/auth/refresh', async (req, res) => {
 });
 
 // ============================================================
-// 7. USER ROUTES
+// 9. USER ROUTES
 // ============================================================
 app.put('/api/auth/verify/:userId', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -545,7 +554,7 @@ app.put('/api/users/:userId', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 8. TOUR ROUTES
+// 10. TOUR ROUTES
 // ============================================================
 app.get('/api/tours', async (req, res) => {
     try {
@@ -690,7 +699,7 @@ app.delete('/api/tours/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 9. BOOKING ROUTES
+// 11. BOOKING ROUTES
 // ============================================================
 app.post('/api/bookings', authenticate, async (req, res) => {
     try {
@@ -849,7 +858,7 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 10. PAYMENT ROUTES
+// 12. PAYMENT ROUTES
 // ============================================================
 app.post('/api/payments/initialize', authenticate, async (req, res) => {
     try {
@@ -909,7 +918,7 @@ app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 11. REVIEW ROUTES
+// 13. REVIEW ROUTES
 // ============================================================
 app.post('/api/reviews', authenticate, async (req, res) => {
     try {
@@ -999,7 +1008,7 @@ app.delete('/api/reviews/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 12. CHAT ROUTES
+// 14. CHAT ROUTES
 // ============================================================
 app.post('/api/chats', authenticate, async (req, res) => {
     try {
@@ -1104,7 +1113,7 @@ app.put('/api/chats/read/:chatId', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 13. NOTIFICATION ROUTES
+// 15. NOTIFICATION ROUTES
 // ============================================================
 async function createNotification(userId, title, message, type = 'info') {
     const notification = new Notification({
@@ -1176,7 +1185,7 @@ app.delete('/api/notifications/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 14. HOTEL ROUTES
+// 16. HOTEL ROUTES
 // ============================================================
 app.get('/api/hotels', async (req, res) => {
     try {
@@ -1267,7 +1276,7 @@ app.delete('/api/hotels/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 15. VEHICLE ROUTES
+// 17. VEHICLE ROUTES
 // ============================================================
 app.get('/api/vehicles', async (req, res) => {
     try {
@@ -1358,7 +1367,7 @@ app.delete('/api/vehicles/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 16. EMAIL SERVICE (FIXED)
+// 18. EMAIL SERVICE
 // ============================================================
 async function sendEmail(to, subject, message) {
     try {
@@ -1391,7 +1400,7 @@ async function sendEmail(to, subject, message) {
 }
 
 // ============================================================
-// 17. SOCKET.IO
+// 19. SOCKET.IO
 // ============================================================
 io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
@@ -1419,7 +1428,7 @@ io.on('connection', (socket) => {
 });
 
 // ============================================================
-// 18. ANALYTICS ROUTES
+// 20. ANALYTICS ROUTES
 // ============================================================
 app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -1457,14 +1466,22 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
 });
 
 // ============================================================
-// 19. HEALTH CHECK
+// 21. HEALTH CHECK
 // ============================================================
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // ============================================================
-// 20. START SERVER
+// 22. SERVE FRONTEND FOR ALL OTHER ROUTES
+// ============================================================
+// This must be LAST - after all API routes
+app.get('*', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// ============================================================
+// 23. START SERVER
 // ============================================================
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
@@ -1472,4 +1489,5 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
     console.log(`📸 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5'}`);
     console.log(`✅ ALL 16 FEATURES ARE LIVE!`);
+    console.log(`🌐 Frontend available at http://localhost:${PORT}`);
 });
