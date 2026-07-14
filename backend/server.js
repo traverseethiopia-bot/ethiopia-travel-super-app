@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: server.js - COMPLETE BACKEND WITH ALL 16 FEATURES
+// FILE: server.js - Compatible with Node.js v24.10.0
 // ============================================================
 
 const express = require('express');
@@ -12,6 +12,7 @@ const cloudinary = require('cloudinary').v2;
 const { Server } = require('socket.io');
 const http = require('http');
 const nodemailer = require('nodemailer');
+const path = require('path');
 require('dotenv').config();
 
 // ============================================================
@@ -23,7 +24,8 @@ const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST", "PUT", "DELETE"]
-    }
+    },
+    transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 5000;
@@ -47,7 +49,7 @@ const transporter = nodemailer.createTransporter({
     }
 });
 
-// Multer
+// Multer - Fixed for Node.js v24
 const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
@@ -57,10 +59,16 @@ const upload = multer({
 // ============================================================
 // 2. MIDDLEWARE
 // ============================================================
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Authentication Middleware
 const authenticate = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -93,7 +101,8 @@ const authorize = (...roles) => {
 // ============================================================
 mongoose.connect(MONGODB_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000
 }).then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
@@ -829,7 +838,7 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
-        const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+        const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
         const payment = new Payment({
             userId: req.user._id,
             bookingId: booking._id,
@@ -840,6 +849,8 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
             status: 'pending'
         });
         await payment.save();
+        
+        // Simulate payment success
         setTimeout(async () => {
             payment.status = 'completed';
             await payment.save();
@@ -854,6 +865,7 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
                 'success'
             );
         }, 2000);
+        
         res.json({
             success: true,
             checkout_url: `${req.headers.origin}/payment/success?tx_ref=${tx_ref}`,
@@ -914,7 +926,7 @@ app.post('/api/reviews', authenticate, async (req, res) => {
         });
         await review.save();
         const reviews = await Review.find({ tourId, status: 'approved' });
-        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length || 0;
         await Tour.findByIdAndUpdate(tourId, {
             rating: Math.round(avgRating * 10) / 10,
             reviews: reviews.length
@@ -1425,9 +1437,16 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
 });
 
 // ============================================================
-// 19. START SERVER
+// 19. HEALTH CHECK
 // ============================================================
-server.listen(PORT, () => {
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ============================================================
+// 20. START SERVER
+// ============================================================
+server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 API available at http://localhost:${PORT}/api`);
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
