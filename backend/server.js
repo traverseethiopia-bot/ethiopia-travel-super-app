@@ -12,7 +12,6 @@ const cloudinary = require('cloudinary').v2;
 const { Server } = require('socket.io');
 const http = require('http');
 const nodemailer = require('nodemailer');
-const crypto = require('crypto');
 require('dotenv').config();
 
 // ============================================================
@@ -32,15 +31,12 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ethiop
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
 
-// Chapa Payment
-const CHAPA_SECRET_KEY = process.env.CHAPA_SECRET_KEY || 'CHASECK_TEST-xxxxxxxxxxxxxxxxxxxxx';
-const CHAPA_API_URL = 'https://api.chapa.co/v1';
-
-// Cloudinary
+// Cloudinary Config
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || fxszo8e5,
-    api_key: process.env.CLOUDINARY_API_KEY || 296256252878274,
-    api_secret: process.env.CLOUDINARY_API_SECRET || DkwEBIkRWBa_6QXmmMOHVeuH-4U});
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5',
+    api_key: process.env.CLOUDINARY_API_KEY || '296256252878274',
+    api_secret: process.env.CLOUDINARY_API_SECRET || 'DkwEBIkRWBa_6QXmmMOHVeuH-4U'
+});
 
 // Email
 const transporter = nodemailer.createTransporter({
@@ -53,9 +49,9 @@ const transporter = nodemailer.createTransporter({
 
 // Multer for file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // ============================================================
@@ -108,13 +104,13 @@ const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     phone: { type: String, required: true },
-    entityType: { 
-        type: String, 
+    entityType: {
+        type: String,
         enum: ['guest', 'tour_company', 'hotel', 'guide', 'vehicle', 'admin'],
         default: 'guest'
     },
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'verified', 'rejected', 'active'],
         default: 'pending'
     },
@@ -151,18 +147,18 @@ const TourSchema = new mongoose.Schema({
     duration: { type: String, required: true },
     price: { type: Number, required: true },
     guide: { type: String, required: true },
-    category: { 
-        type: String, 
+    category: {
+        type: String,
         enum: ['historical', 'cultural', 'adventure', 'nature', 'city', 'food'],
-        required: true 
+        required: true
     },
     description: { type: String, required: true },
     image: String,
     gallery: [String],
     company: String,
     hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'approved', 'rejected', 'draft'],
         default: 'pending'
     },
@@ -194,19 +190,19 @@ const BookingSchema = new mongoose.Schema({
     date: { type: Date, required: true },
     people: { type: Number, required: true, min: 1 },
     totalPrice: { type: Number, required: true },
-    paymentMethod: { 
-        type: String, 
+    paymentMethod: {
+        type: String,
         enum: ['telebirr', 'card', 'cash', 'chapa'],
         default: 'telebirr'
     },
-    paymentStatus: { 
-        type: String, 
+    paymentStatus: {
+        type: String,
         enum: ['pending', 'paid', 'failed', 'refunded'],
         default: 'pending'
     },
     transactionId: String,
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'confirmed', 'completed', 'cancelled'],
         default: 'pending'
     },
@@ -224,8 +220,8 @@ const ReviewSchema = new mongoose.Schema({
     rating: { type: Number, required: true, min: 1, max: 5 },
     comment: { type: String, required: true },
     images: [String],
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
     },
@@ -246,8 +242,8 @@ const NotificationSchema = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     title: { type: String, required: true },
     message: { type: String, required: true },
-    type: { 
-        type: String, 
+    type: {
+        type: String,
         enum: ['info', 'success', 'warning', 'error', 'booking', 'payment'],
         default: 'info'
     },
@@ -262,14 +258,14 @@ const PaymentSchema = new mongoose.Schema({
     bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
     amount: { type: Number, required: true },
     currency: { type: String, default: 'ETB' },
-    method: { 
-        type: String, 
+    method: {
+        type: String,
         enum: ['telebirr', 'card', 'chapa'],
-        required: true 
+        required: true
     },
     transactionId: String,
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'completed', 'failed', 'refunded'],
         default: 'pending'
     },
@@ -286,8 +282,8 @@ const HotelSchema = new mongoose.Schema({
     icon: String,
     gallery: [String],
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'active', 'inactive'],
         default: 'pending'
     },
@@ -310,8 +306,8 @@ const VehicleSchema = new mongoose.Schema({
     gallery: [String],
     company: String,
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    status: { 
-        type: String, 
+    status: {
+        type: String,
         enum: ['pending', 'active', 'inactive'],
         default: 'pending'
     },
@@ -337,7 +333,7 @@ const Vehicle = mongoose.model('Vehicle', VehicleSchema);
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password, phone, entityType, ...extra } = req.body;
-        
+
         const existing = await User.findOne({ email });
         if (existing) {
             return res.status(400).json({ error: 'Email already registered' });
@@ -432,7 +428,7 @@ app.post('/api/auth/refresh', async (req, res) => {
         const { refreshToken } = req.body;
         const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
         const user = await User.findById(decoded.userId);
-        
+
         if (!user) {
             return res.status(401).json({ error: 'User not found' });
         }
@@ -456,7 +452,7 @@ app.put('/api/auth/verify/:userId', authenticate, authorize('admin'), async (req
     try {
         const { status } = req.body;
         const user = await User.findById(req.params.userId);
-        
+
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
@@ -527,7 +523,7 @@ app.get('/api/tours', async (req, res) => {
     try {
         const { category, status, featured, search, minPrice, maxPrice, location } = req.query;
         let query = { status: 'approved' };
-        
+
         if (category) query.category = category;
         if (featured === 'true') query.featured = true;
         if (minPrice || maxPrice) {
@@ -604,7 +600,6 @@ app.post('/api/tours', authenticate, upload.single('image'), async (req, res) =>
         const tour = new Tour(tourData);
         await tour.save();
 
-        // Notify admin
         const admin = await User.findOne({ entityType: 'admin' });
         if (admin) {
             await createNotification(
@@ -632,7 +627,6 @@ app.put('/api/tours/:id', authenticate, upload.single('image'), async (req, res)
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        // Upload new image if provided
         if (req.file) {
             const result = await cloudinary.uploader.upload(
                 `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
@@ -654,7 +648,7 @@ app.put('/api/tours/:id/status', authenticate, authorize('admin'), async (req, r
     try {
         const { status } = req.body;
         const tour = await Tour.findById(req.params.id);
-        
+
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
         }
@@ -686,7 +680,6 @@ app.delete('/api/tours/:id', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        // Delete image from Cloudinary
         if (tour.image) {
             const publicId = tour.image.split('/').pop().split('.')[0];
             await cloudinary.uploader.destroy(`ethiopia_travel/tours/${publicId}`);
@@ -721,7 +714,6 @@ app.post('/api/bookings', authenticate, async (req, res) => {
         const booking = new Booking(bookingData);
         await booking.save();
 
-        // Notify host
         await createNotification(
             tour.hostId,
             'New Booking',
@@ -781,7 +773,7 @@ app.put('/api/bookings/:id/status', authenticate, async (req, res) => {
     try {
         const { status } = req.body;
         const booking = await Booking.findById(req.params.id);
-        
+
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
@@ -824,7 +816,6 @@ app.put('/api/bookings/:id/receipt', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Access denied' });
         }
 
-        // Upload to Cloudinary
         if (req.body.receiptImage) {
             const result = await cloudinary.uploader.upload(req.body.receiptImage, {
                 folder: 'ethiopia_travel/receipts'
@@ -863,14 +854,14 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
 app.post('/api/payments/initialize', authenticate, async (req, res) => {
     try {
         const { bookingId, amount, phone, email, name } = req.body;
-        
+
         const booking = await Booking.findById(bookingId);
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
 
         const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
-        
+
         const response = await fetch(`${CHAPA_API_URL}/transaction/initialize`, {
             method: 'POST',
             headers: {
@@ -924,7 +915,7 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
 app.post('/api/payments/webhook', async (req, res) => {
     try {
         const { tx_ref, status } = req.body;
-        
+
         const payment = await Payment.findOne({ transactionId: tx_ref });
         if (!payment) {
             return res.status(404).json({ error: 'Payment not found' });
@@ -944,7 +935,7 @@ app.post('/api/payments/webhook', async (req, res) => {
                 await createNotification(
                     booking.userId,
                     status === 'success' ? 'Payment Successful' : 'Payment Failed',
-                    status === 'success' 
+                    status === 'success'
                         ? `Your payment of ${payment.amount} ETB has been confirmed`
                         : `Your payment of ${payment.amount} ETB failed`,
                     status === 'success' ? 'success' : 'error'
@@ -977,7 +968,7 @@ app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
 app.post('/api/reviews', authenticate, async (req, res) => {
     try {
         const { tourId, rating, comment, images } = req.body;
-        
+
         const booking = await Booking.findOne({
             tourId,
             userId: req.user._id,
@@ -1014,10 +1005,9 @@ app.post('/api/reviews', authenticate, async (req, res) => {
 
         await review.save();
 
-        // Update tour rating
         const reviews = await Review.find({ tourId, status: 'approved' });
         const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-        
+
         await Tour.findByIdAndUpdate(tourId, {
             rating: Math.round(avgRating * 10) / 10,
             reviews: reviews.length
@@ -1031,7 +1021,7 @@ app.post('/api/reviews', authenticate, async (req, res) => {
 
 app.get('/api/reviews/tour/:tourId', async (req, res) => {
     try {
-        const reviews = await Review.find({ 
+        const reviews = await Review.find({
             tourId: req.params.tourId,
             status: 'approved'
         }).sort({ createdAt: -1 });
@@ -1151,7 +1141,6 @@ app.get('/api/chats/conversations', authenticate, async (req, res) => {
             { $sort: { lastMessageTime: -1 } }
         ]);
 
-        // Populate user details
         const populated = [];
         for (const conv of conversations) {
             const user = await User.findById(conv._id).select('name email phone profileImage entityType');
@@ -1192,7 +1181,7 @@ async function createNotification(userId, title, message, type = 'info') {
         type
     });
     await notification.save();
-    
+
     io.to(userId.toString()).emit('new_notification', notification);
 }
 
@@ -1611,21 +1600,5 @@ server.listen(PORT, () => {
     console.log(`📊 API available at http://localhost:${PORT}/api`);
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
     console.log(`✅ All 16 features are live!`);
-    console.log(`\n📋 Features:`);
-    console.log(`1. ✅ Payment (Chapa + Telebirr)`);
-    console.log(`2. ✅ Maps (Leaflet with markers)`);
-    console.log(`3. ✅ Chat (Socket.io real-time)`);
-    console.log(`4. ✅ Reviews (CRUD + moderation)`);
-    console.log(`5. ✅ Booking Management (Calendar, status)`);
-    console.log(`6. ✅ Notifications (Email + In-app + Socket)`);
-    console.log(`7. ✅ Multi-language (Amharic + English)`);
-    console.log(`8. ✅ Admin Dashboard (Analytics)`);
-    console.log(`9. ✅ Security (JWT + bcrypt)`);
-    console.log(`10. ✅ Database (MongoDB real)`);
-    console.log(`11. ✅ Share & Compare Features`);
-    console.log(`12. ✅ PWA (Offline, Service Worker)`);
-    console.log(`13. ✅ Currency (ETB + USD live rates)`);
-    console.log(`14. ✅ Advanced Search (Filters, sorting)`);
-    console.log(`15. ✅ Media Management (Cloudinary)`);
-    console.log(`16. ✅ Business Logic (Taxes, fees, commissions)`);
+    console.log(`📸 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME}`);
 });
