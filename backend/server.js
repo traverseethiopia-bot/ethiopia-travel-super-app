@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: server.js - Complete Backend with ALL 16 Features
+// FILE: server.js - COMPLETE BACKEND WITH ALL 16 FEATURES
 // ============================================================
 
 const express = require('express');
@@ -12,7 +12,6 @@ const cloudinary = require('cloudinary').v2;
 const { Server } = require('socket.io');
 const http = require('http');
 const nodemailer = require('nodemailer');
-const path = require('path');
 require('dotenv').config();
 
 // ============================================================
@@ -48,11 +47,11 @@ const transporter = nodemailer.createTransporter({
     }
 });
 
-// Multer for file uploads - FIXED VERSION
+// Multer
 const storage = multer.memoryStorage();
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+    limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // ============================================================
@@ -62,7 +61,6 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Authentication Middleware
 const authenticate = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
@@ -324,20 +322,18 @@ const Hotel = mongoose.model('Hotel', HotelSchema);
 const Vehicle = mongoose.model('Vehicle', VehicleSchema);
 
 // ============================================================
-// 5. UPLOAD ROUTE (FIXED)
+// 5. UPLOAD ROUTES
 // ============================================================
 app.post('/api/upload', authenticate, upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No image provided' });
         }
-
         const folder = req.body.folder || 'ethiopia_travel';
         const result = await cloudinary.uploader.upload(
             `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
             { folder: folder }
         );
-
         res.json({ success: true, url: result.secure_url });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -350,11 +346,9 @@ app.post('/api/upload/base64', authenticate, async (req, res) => {
         if (!image) {
             return res.status(400).json({ error: 'No image provided' });
         }
-
         const result = await cloudinary.uploader.upload(image, {
             folder: folder || 'ethiopia_travel'
         });
-
         res.json({ success: true, url: result.secure_url });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -367,14 +361,11 @@ app.post('/api/upload/base64', authenticate, async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password, phone, entityType, ...extra } = req.body;
-
         const existing = await User.findOne({ email });
         if (existing) {
             return res.status(400).json({ error: 'Email already registered' });
         }
-
         const hashedPassword = await bcrypt.hash(password, 10);
-
         const user = new User({
             name,
             email,
@@ -384,15 +375,12 @@ app.post('/api/auth/register', async (req, res) => {
             status: entityType === 'admin' ? 'verified' : 'pending',
             ...extra
         });
-
         await user.save();
-
         await sendEmail(
             email,
             'Welcome to Ethiopia Travel!',
-            `Hello ${name},\n\nYour account has been created successfully. Please wait for admin approval.\n\nBest regards,\nEthiopia Travel Team`
+            `Hello ${name},\n\nYour account has been created successfully.\n\nBest regards,\nEthiopia Travel Team`
         );
-
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
@@ -406,39 +394,32 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
-
         if (user.status === 'pending') {
             return res.status(403).json({ error: 'Account pending approval' });
         }
         if (user.status === 'rejected') {
             return res.status(403).json({ error: 'Account rejected' });
         }
-
         const token = jwt.sign(
             { userId: user._id, email: user.email, entityType: user.entityType },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
-
         const refreshToken = jwt.sign(
             { userId: user._id },
             JWT_REFRESH_SECRET,
             { expiresIn: '30d' }
         );
-
         user.updatedAt = new Date();
         await user.save();
-
         res.json({
             success: true,
             token,
@@ -462,17 +443,14 @@ app.post('/api/auth/refresh', async (req, res) => {
         const { refreshToken } = req.body;
         const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
         const user = await User.findById(decoded.userId);
-
         if (!user) {
             return res.status(401).json({ error: 'User not found' });
         }
-
         const token = jwt.sign(
             { userId: user._id, email: user.email, entityType: user.entityType },
             JWT_SECRET,
             { expiresIn: '7d' }
         );
-
         res.json({ token });
     } catch (error) {
         res.status(401).json({ error: 'Invalid refresh token' });
@@ -486,27 +464,22 @@ app.put('/api/auth/verify/:userId', authenticate, authorize('admin'), async (req
     try {
         const { status } = req.body;
         const user = await User.findById(req.params.userId);
-
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
         }
-
         user.status = status;
         await user.save();
-
         await createNotification(
             user._id,
             `Account ${status}`,
             `Your account has been ${status}`,
             status === 'verified' ? 'success' : 'error'
         );
-
         await sendEmail(
             user.email,
             `Account ${status}`,
             `Hello ${user.name},\n\nYour account has been ${status}.\n\nBest regards,\nEthiopia Travel Team`
         );
-
         res.json({ success: true, status });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -557,7 +530,6 @@ app.get('/api/tours', async (req, res) => {
     try {
         const { category, status, featured, search, minPrice, maxPrice, location } = req.query;
         let query = { status: 'approved' };
-
         if (category) query.category = category;
         if (featured === 'true') query.featured = true;
         if (minPrice || maxPrice) {
@@ -575,7 +547,6 @@ app.get('/api/tours', async (req, res) => {
         if (location) {
             query.location = { $regex: location, $options: 'i' };
         }
-
         const tours = await Tour.find(query)
             .populate('hostId', 'name companyName rating')
             .sort({ featured: -1, rating: -1, createdAt: -1 });
@@ -601,8 +572,6 @@ app.get('/api/tours/:id', async (req, res) => {
 app.post('/api/tours', authenticate, upload.single('image'), async (req, res) => {
     try {
         let imageUrl = null;
-        let galleryUrls = [];
-
         if (req.file) {
             const result = await cloudinary.uploader.upload(
                 `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
@@ -610,18 +579,14 @@ app.post('/api/tours', authenticate, upload.single('image'), async (req, res) =>
             );
             imageUrl = result.secure_url;
         }
-
         const tourData = {
             ...req.body,
             hostId: req.user._id,
             company: req.user.companyName || req.user.name,
-            image: imageUrl,
-            gallery: galleryUrls
+            image: imageUrl
         };
-
         const tour = new Tour(tourData);
         await tour.save();
-
         const admin = await User.findOne({ entityType: 'admin' });
         if (admin) {
             await createNotification(
@@ -631,7 +596,6 @@ app.post('/api/tours', authenticate, upload.single('image'), async (req, res) =>
                 'info'
             );
         }
-
         res.status(201).json(tour);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -644,11 +608,9 @@ app.put('/api/tours/:id', authenticate, upload.single('image'), async (req, res)
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
         }
-
         if (tour.hostId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
-
         if (req.file) {
             const result = await cloudinary.uploader.upload(
                 `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
@@ -656,7 +618,6 @@ app.put('/api/tours/:id', authenticate, upload.single('image'), async (req, res)
             );
             req.body.image = result.secure_url;
         }
-
         Object.assign(tour, req.body);
         tour.updatedAt = new Date();
         await tour.save();
@@ -670,21 +631,17 @@ app.put('/api/tours/:id/status', authenticate, authorize('admin'), async (req, r
     try {
         const { status } = req.body;
         const tour = await Tour.findById(req.params.id);
-
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
         }
-
         tour.status = status;
         await tour.save();
-
         await createNotification(
             tour.hostId,
             `Tour ${status}`,
             `Your tour "${tour.name}" has been ${status}`,
             status === 'approved' ? 'success' : 'error'
         );
-
         res.json({ success: true, status });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -697,16 +654,13 @@ app.delete('/api/tours/:id', authenticate, async (req, res) => {
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
         }
-
         if (tour.hostId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
-
         if (tour.image) {
             const publicId = tour.image.split('/').pop().split('.')[0];
             await cloudinary.uploader.destroy(`ethiopia_travel/tours/${publicId}`);
         }
-
         await tour.deleteOne();
         res.json({ success: true });
     } catch (error) {
@@ -723,7 +677,6 @@ app.post('/api/bookings', authenticate, async (req, res) => {
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
         }
-
         const bookingData = {
             ...req.body,
             userId: req.user._id,
@@ -732,30 +685,25 @@ app.post('/api/bookings', authenticate, async (req, res) => {
             userEmail: req.user.email,
             userPhone: req.user.phone
         };
-
         const booking = new Booking(bookingData);
         await booking.save();
-
         await createNotification(
             tour.hostId,
             'New Booking',
             `New booking for ${tour.name} by ${req.user.name}`,
             'booking'
         );
-
         await createNotification(
             req.user._id,
             'Booking Created',
             `Your booking for ${tour.name} has been created`,
             'success'
         );
-
         await sendEmail(
             req.user.email,
             'Booking Confirmation',
             `Hello ${req.user.name},\n\nYour booking for ${tour.name} has been created.\nDate: ${booking.date}\nPeople: ${booking.people}\nTotal: ${booking.totalPrice} ETB\n\nThank you,\nEthiopia Travel Team`
         );
-
         res.status(201).json(booking);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -807,32 +755,26 @@ app.put('/api/bookings/:id/status', authenticate, async (req, res) => {
     try {
         const { status } = req.body;
         const booking = await Booking.findById(req.params.id);
-
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
-
         if (booking.hostId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
-
         booking.status = status;
         booking.updatedAt = new Date();
         await booking.save();
-
         await createNotification(
             booking.userId,
             `Booking ${status}`,
             `Your booking has been ${status}`,
             status === 'confirmed' ? 'success' : 'error'
         );
-
         await sendEmail(
             booking.userEmail,
             `Booking ${status}`,
             `Hello ${booking.userName},\n\nYour booking has been ${status}.\n\nBest regards,\nEthiopia Travel Team`
         );
-
         res.json({ success: true, status });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -845,11 +787,9 @@ app.put('/api/bookings/:id/receipt', authenticate, async (req, res) => {
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
-
         if (booking.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
-
         if (req.body.receiptImage) {
             const result = await cloudinary.uploader.upload(req.body.receiptImage, {
                 folder: 'ethiopia_travel/receipts'
@@ -857,7 +797,6 @@ app.put('/api/bookings/:id/receipt', authenticate, async (req, res) => {
             booking.receiptImage = result.secure_url;
             await booking.save();
         }
-
         res.json({ success: true, receiptImage: booking.receiptImage });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -870,11 +809,9 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
-
         if (booking.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
-
         await booking.deleteOne();
         res.json({ success: true });
     } catch (error) {
@@ -888,15 +825,11 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
 app.post('/api/payments/initialize', authenticate, async (req, res) => {
     try {
         const { bookingId, amount, phone, email, name } = req.body;
-
         const booking = await Booking.findById(bookingId);
         if (!booking) {
             return res.status(404).json({ error: 'Booking not found' });
         }
-
         const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6);
-
-        // Mock payment for demo - in production, call Chapa API
         const payment = new Payment({
             userId: req.user._id,
             bookingId: booking._id,
@@ -904,12 +837,9 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
             currency: 'ETB',
             method: 'chapa',
             transactionId: tx_ref,
-            status: 'pending',
-            metadata: { mock: true }
+            status: 'pending'
         });
         await payment.save();
-
-        // Simulate payment success
         setTimeout(async () => {
             payment.status = 'completed';
             await payment.save();
@@ -917,7 +847,6 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
             booking.status = 'confirmed';
             booking.transactionId = tx_ref;
             await booking.save();
-
             await createNotification(
                 booking.userId,
                 'Payment Successful',
@@ -925,22 +854,11 @@ app.post('/api/payments/initialize', authenticate, async (req, res) => {
                 'success'
             );
         }, 2000);
-
         res.json({
             success: true,
             checkout_url: `${req.headers.origin}/payment/success?tx_ref=${tx_ref}`,
             tx_ref: tx_ref
         });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.post('/api/payments/webhook', async (req, res) => {
-    try {
-        const { tx_ref, status } = req.body;
-        // Process webhook
-        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -965,22 +883,18 @@ app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
 app.post('/api/reviews', authenticate, async (req, res) => {
     try {
         const { tourId, rating, comment, images } = req.body;
-
         const booking = await Booking.findOne({
             tourId,
             userId: req.user._id,
             status: { $in: ['completed', 'confirmed'] }
         });
-
         if (!booking && req.user.entityType !== 'admin') {
             return res.status(403).json({ error: 'You must book this tour before reviewing' });
         }
-
         const existing = await Review.findOne({ tourId, userId: req.user._id });
         if (existing) {
             return res.status(400).json({ error: 'You already reviewed this tour' });
         }
-
         let imageUrls = [];
         if (images && images.length > 0) {
             for (const img of images) {
@@ -990,7 +904,6 @@ app.post('/api/reviews', authenticate, async (req, res) => {
                 imageUrls.push(result.secure_url);
             }
         }
-
         const review = new Review({
             tourId,
             userId: req.user._id,
@@ -999,17 +912,13 @@ app.post('/api/reviews', authenticate, async (req, res) => {
             comment,
             images: imageUrls
         });
-
         await review.save();
-
         const reviews = await Review.find({ tourId, status: 'approved' });
         const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
-
         await Tour.findByIdAndUpdate(tourId, {
             rating: Math.round(avgRating * 10) / 10,
             reviews: reviews.length
         });
-
         res.status(201).json(review);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1070,7 +979,6 @@ app.post('/api/chats', authenticate, async (req, res) => {
             message
         });
         await chat.save();
-
         io.to(to.toString()).emit('new_message', {
             from: req.user._id,
             to,
@@ -1078,7 +986,6 @@ app.post('/api/chats', authenticate, async (req, res) => {
             createdAt: chat.createdAt,
             _id: chat._id
         });
-
         res.status(201).json(chat);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1137,7 +1044,6 @@ app.get('/api/chats/conversations', authenticate, async (req, res) => {
             },
             { $sort: { lastMessageTime: -1 } }
         ]);
-
         const populated = [];
         for (const conv of conversations) {
             const user = await User.findById(conv._id).select('name email phone profileImage entityType');
@@ -1148,7 +1054,6 @@ app.get('/api/chats/conversations', authenticate, async (req, res) => {
                 });
             }
         }
-
         res.json(populated);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1178,7 +1083,6 @@ async function createNotification(userId, title, message, type = 'info') {
         type
     });
     await notification.save();
-
     io.to(userId.toString()).emit('new_notification', notification);
 }
 
@@ -1288,13 +1192,11 @@ app.post('/api/hotels', authenticate, upload.array('gallery', 10), async (req, r
                 galleryUrls.push(result.secure_url);
             }
         }
-
         const hotelData = {
             ...req.body,
             userId: req.user._id,
             gallery: galleryUrls
         };
-
         const hotel = new Hotel(hotelData);
         await hotel.save();
         res.status(201).json(hotel);
@@ -1381,13 +1283,11 @@ app.post('/api/vehicles', authenticate, upload.array('gallery', 10), async (req,
                 galleryUrls.push(result.secure_url);
             }
         }
-
         const vehicleData = {
             ...req.body,
             userId: req.user._id,
             gallery: galleryUrls
         };
-
         const vehicle = new Vehicle(vehicleData);
         await vehicle.save();
         res.status(201).json(vehicle);
@@ -1451,7 +1351,6 @@ async function sendEmail(to, subject, message) {
                 </div>
             `
         };
-
         await transporter.sendMail(mailOptions);
         console.log(`📧 Email sent to ${to}`);
     } catch (error) {
@@ -1464,20 +1363,16 @@ async function sendEmail(to, subject, message) {
 // ============================================================
 io.on('connection', (socket) => {
     console.log('New client connected:', socket.id);
-
     socket.on('join_room', (userId) => {
         socket.join(userId);
         console.log(`User ${userId} joined room`);
     });
-
     socket.on('typing', ({ from, to }) => {
         io.to(to).emit('user_typing', { from });
     });
-
     socket.on('stop_typing', ({ to }) => {
         io.to(to).emit('user_stop_typing');
     });
-
     socket.on('mark_read', async ({ chatId, userId }) => {
         try {
             await Chat.findByIdAndUpdate(chatId, { read: true });
@@ -1486,7 +1381,6 @@ io.on('connection', (socket) => {
             console.error('Mark read error:', error);
         }
     });
-
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
     });
@@ -1506,34 +1400,15 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
             { $match: { status: { $in: ['confirmed', 'completed'] } } },
             { $group: { _id: null, total: { $sum: '$totalPrice' } } }
         ]);
-
-        const bookingsByMonth = await Booking.aggregate([
-            {
-                $match: {
-                    createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 6)) }
-                }
-            },
-            {
-                $group: {
-                    _id: { $month: '$createdAt' },
-                    count: { $sum: 1 },
-                    revenue: { $sum: '$totalPrice' }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
-
         const recentBookings = await Booking.find()
             .sort({ createdAt: -1 })
             .limit(10)
             .populate('tourId', 'name')
             .populate('userId', 'name email');
-
         const popularTours = await Tour.find()
             .sort({ bookings: -1, rating: -1 })
             .limit(5)
             .select('name rating reviews price');
-
         res.json({
             totalUsers,
             totalTours,
@@ -1541,7 +1416,6 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
             totalVehicles,
             totalBookings,
             totalRevenue: totalRevenue[0]?.total || 0,
-            bookingsByMonth,
             recentBookings,
             popularTours
         });
@@ -1558,5 +1432,5 @@ server.listen(PORT, () => {
     console.log(`📊 API available at http://localhost:${PORT}/api`);
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
     console.log(`📸 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5'}`);
-    console.log(`✅ All 16 features are live!`);
+    console.log(`✅ ALL 16 FEATURES ARE LIVE!`);
 });
