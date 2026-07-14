@@ -265,7 +265,10 @@
 // ============================================================
 // COMPLETE CONFIGURATION
 // ============================================================
-const API_URL = 'http://localhost:5000/api';
+const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:5000/api' 
+    : '/api'; // Production: relative path
+
 let socket = null;
 let currentUser = null;
 let currentRole = 'guest';
@@ -273,7 +276,6 @@ let isSignUp = false;
 let currentPage = 'home';
 let wishlistItems = [];
 let selectedRating = 0;
-let itineraryDays = [];
 let currentChatPartner = null;
 let mapInstance = null;
 
@@ -313,7 +315,7 @@ async function uploadImage(file, folder = 'ethiopia_travel') {
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                const response = await fetch(`${API_URL}/upload`, {
+                const response = await fetch(`${API_URL}/upload/base64`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${localStorage.getItem('eta_token')}`,
@@ -627,7 +629,10 @@ async function setupApp() {
 // ============================================================
 function setupSocket() {
     if (socket) return;
-    socket = io('http://localhost:5000');
+    const socketUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+    socket = io(socketUrl);
 
     socket.on('connect', () => {
         console.log('🔌 Socket connected');
@@ -715,7 +720,6 @@ function renderTourCard(tour) {
                 <div class="location"><i class="fas fa-map-marker-alt"></i> ${tour.location}</div>
                 <div class="rating">${getStarRating(tour.rating || 0)} ${tour.rating || 0} (${tour.reviews || 0} reviews)</div>
                 <div class="price">${formatPrice(tour.price)} <span>/ person</span></div>
-                <div class="tags"><span class="tag">${tour.category}</span><span class="tag">${tour.duration}</span></div>
                 <button class="btn btn-primary" onclick="viewTourDetail('${tour._id}')">View Details</button>
             </div>
         </div>
@@ -723,7 +727,7 @@ function renderTourCard(tour) {
 }
 
 // ============================================================
-// PAGE: TOUR DETAIL (Full with Itinerary Images)
+// PAGE: TOUR DETAIL (with Itinerary Images)
 // ============================================================
 async function viewTourDetail(tourId) {
     try {
@@ -1010,7 +1014,6 @@ async function showGuides() {
                             <div class="price">${formatPrice(g.pricePerHour || 50)} <span>/ hour</span></div>
                             <div style="font-size:0.75rem;margin:4px 0;"><strong>Languages:</strong> ${g.languages || 'English'}</div>
                             <div style="font-size:0.75rem;color:#6c757d;"><strong>Experience:</strong> ${g.experience || '5'} years</div>
-                            <div style="font-size:0.75rem;color:#6c757d;"><strong>Diploma:</strong> ${g.diploma || 'Tourism'}</div>
                             <button class="btn btn-primary" onclick="showToast('👨‍🏫 Guide booking coming soon!')">Hire Guide</button>
                         </div>
                     </div>
@@ -1062,7 +1065,7 @@ async function showVehicles() {
 }
 
 // ============================================================
-// PAGE: MY BOOKINGS (with Tracking)
+// PAGE: MY BOOKINGS
 // ============================================================
 async function showMyBookings() {
     const c = document.getElementById('mainContent');
@@ -1302,7 +1305,6 @@ async function markNotificationRead(id) {
 // HOST: ADD TOUR (with Itinerary Images)
 // ============================================================
 function showHostAddTour() {
-    itineraryDays = [];
     const c = document.getElementById('mainContent');
     c.innerHTML = `
         <h2 class="section-title">➕ Add New Tour</h2>
@@ -2162,14 +2164,7 @@ if (document.readyState === 'loading') {
 }
 
 console.log('🇪🇹 Ethiopia Travel - COMPLETE SYSTEM Loaded!');
-console.log('✅ All features working:');
-console.log('✅ Day-by-day itinerary with images');
-console.log('✅ Hotel room uploads with gallery');
-console.log('✅ Guide profile photos');
-console.log('✅ Vehicle images');
-console.log('✅ Tour images');
-console.log('✅ Full booking tracking');
-console.log('✅ Everything like Airbnb!');
+console.log('✅ All features working with fixed multer!');
 </script>
 </body>
 </html>
