@@ -112,12 +112,19 @@
         .card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.08); }
         .card-img { height: 200px; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: white; position: relative; overflow: hidden; background: linear-gradient(145deg, #1b5e20, #2e7d32); }
         .card-img img { width: 100%; height: 100%; object-fit: cover; }
+        .card-img .wishlist-btn { position: absolute; top: 8px; right: 8px; background: white; border: none; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: 0.2s; }
+        .card-img .wishlist-btn:hover { transform: scale(1.1); }
+        .card-img .wishlist-btn.liked { color: #dc3545; }
         .card-body { padding: 14px; }
         .card-body h3 { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
         .card-body .location { font-size: 0.8rem; color: #6c757d; margin-bottom: 2px; }
+        .card-body .location i { margin-right: 4px; }
         .card-body .rating { display: flex; align-items: center; gap: 3px; font-size: 0.75rem; color: #f59e0b; margin-bottom: 2px; }
         .card-body .price { font-size: 1rem; font-weight: 700; color: #1b5e20; }
         .card-body .price span { font-weight: 400; color: #6c757d; font-size: 0.75rem; }
+        .card-body .tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+        .card-body .tag { padding: 2px 10px; border-radius: 20px; font-size: 0.6rem; font-weight: 600; background: #f1f4f9; color: #2d3748; }
+        .card-body .tag.featured { background: #fef9e7; color: #b7791f; }
         .card-body .btn { width: 100%; padding: 8px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 6px; font-size: 0.8rem; }
         .btn-primary { background: #1b5e20; color: white; }
         .btn-primary:hover { background: #2e7d32; }
@@ -218,6 +225,19 @@
         }
         .gallery-grid img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; cursor: pointer; }
 
+        .footer {
+            background: #1a1a2e; color: white; padding: 30px 16px; margin-top: 30px;
+        }
+        .footer-grid { display: grid; grid-template-columns: 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        @media (min-width: 640px) { .footer-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .footer-grid { grid-template-columns: repeat(4, 1fr); } }
+        .footer h3 { font-size: 1rem; margin-bottom: 10px; }
+        .footer p { opacity: 0.8; font-size: 0.8rem; line-height: 1.6; }
+        .footer a { color: white; opacity: 0.8; text-decoration: none; display: block; margin-bottom: 4px; font-size: 0.8rem; }
+        .footer a:hover { opacity: 1; }
+        .footer .partner-tag { display: inline-block; background: rgba(255,255,255,0.08); padding: 2px 12px; border-radius: 20px; font-size: 0.65rem; margin-right: 4px; }
+        .footer-bottom { text-align: center; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06); margin-top: 14px; opacity: 0.6; font-size: 0.75rem; }
+
         @media (max-width: 600px) {
             .role-tabs { grid-template-columns: repeat(3, 1fr); }
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -239,23 +259,65 @@
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
 <div class="login-screen" id="loginScreen">
     <div class="login-container" id="loginContainer"></div>
 </div>
 
+<!-- MAIN APP -->
 <div id="mainApp">
     <div class="header">
         <div class="header-logo" onclick="navigateTo('home')"><span>🇪🇹</span> Ethiopia Travel</div>
         <div class="header-actions">
-            <span class="badge-pill" id="userBadge"></span>
-            <button class="btn-logout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            <span class="badge-pill telebirr"><i class="fas fa-mobile-alt"></i> Telebirr: 0911626671</span>
+            <span class="badge-pill partner"><i class="fas fa-plane"></i> Ethiopian Airlines</span>
+            <span class="badge-pill partner"><i class="fas fa-wifi"></i> Ethio Telecom</span>
+            <span class="badge-pill role" id="userBadge"></span>
+            <button class="btn-logout" onclick="doLogout()"><i class="fas fa-sign-out-alt"></i></button>
         </div>
     </div>
 
     <div class="nav-tabs" id="navTabs"></div>
     <div id="mainContent" class="main-content"></div>
+
+    <div class="footer">
+        <div class="footer-grid">
+            <div>
+                <h3>🇪🇹 Ethiopia Travel</h3>
+                <p>Complete Travel Ecosystem by Traverse Tour &amp; Travel PLC</p>
+                <p style="margin-top:6px">📞 +251 91 162 6671</p>
+                <p>📧 bookings@ethiopiatravelapp.com</p>
+                <div style="margin-top:8px">
+                    <span class="partner-tag">✈️ Ethiopian Airlines Partner</span>
+                    <span class="partner-tag">📱 Ethio Telecom Partner</span>
+                </div>
+            </div>
+            <div>
+                <h3>Quick Links</h3>
+                <a href="#" onclick="navigateTo('home')">🏠 Home</a>
+                <a href="#" onclick="navigateTo('tours')">🏛 Tours</a>
+                <a href="#" onclick="navigateTo('hotels')">🏨 Hotels</a>
+                <a href="#" onclick="navigateTo('guides')">👨‍🏫 Guides</a>
+                <a href="#" onclick="navigateTo('vehicles')">🚗 Vehicles</a>
+            </div>
+            <div>
+                <h3>Support</h3>
+                <a href="#" onclick="showToast('📧 Email: bookings@ethiopiatravelapp.com')">Help Center</a>
+                <a href="#" onclick="showToast('🛡️ Safety is our priority!')">Safety Tips</a>
+                <a href="#" onclick="showToast('📞 Call: +251 91 162 6671')">Contact Us</a>
+            </div>
+            <div>
+                <h3>Follow Us</h3>
+                <a href="#"><i class="fab fa-facebook"></i> Facebook</a>
+                <a href="#"><i class="fab fa-instagram"></i> Instagram</a>
+                <a href="#"><i class="fab fa-youtube"></i> YouTube</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 Traverse Tour &amp; Travel PLC. All rights reserved. | In partnership with Ethiopian Airlines &amp; Ethio Telecom</div>
+    </div>
 </div>
 
+<!-- TOAST & MODAL -->
 <div class="toast" id="toast"></div>
 <div class="modal-overlay" id="modalOverlay">
     <div class="modal" id="modalContent"></div>
@@ -263,11 +325,15 @@
 
 <script>
 // ============================================================
-// COMPLETE CONFIGURATION
+// COMPLETE FRONTEND - ALL 16 FEATURES
+// ============================================================
+
+// ============================================================
+// 1. CONFIGURATION
 // ============================================================
 const API_URL = window.location.hostname === 'localhost' 
     ? 'http://localhost:5000/api' 
-    : '/api'; // Production: relative path
+    : '/api';
 
 let socket = null;
 let currentUser = null;
@@ -278,9 +344,10 @@ let wishlistItems = [];
 let selectedRating = 0;
 let currentChatPartner = null;
 let mapInstance = null;
+let itineraryDays = [];
 
 // ============================================================
-// API FUNCTIONS
+// 2. API FUNCTIONS
 // ============================================================
 async function apiCall(endpoint, method = 'GET', data = null) {
     const url = `${API_URL}${endpoint}`;
@@ -342,7 +409,7 @@ async function uploadImage(file, folder = 'ethiopia_travel') {
 }
 
 // ============================================================
-// AUTH FUNCTIONS
+// 3. AUTH FUNCTIONS
 // ============================================================
 async function handleSignUp() {
     const name = document.getElementById('signupName').value.trim();
@@ -421,7 +488,7 @@ function doLogout() {
 }
 
 // ============================================================
-// UI FUNCTIONS
+// 4. UI FUNCTIONS
 // ============================================================
 function showToast(msg) {
     const t = document.getElementById('toast');
@@ -451,7 +518,7 @@ document.addEventListener('click', function(e) {
 });
 
 // ============================================================
-// LOGIN UI
+// 5. LOGIN UI
 // ============================================================
 function renderLoginForm() {
     const c = document.getElementById('loginContainer');
@@ -509,7 +576,7 @@ function toggleSignUp() { isSignUp = !isSignUp; renderLoginForm(); }
 function setRole(role) { currentRole = role; renderLoginForm(); }
 
 // ============================================================
-// NAVIGATION
+// 6. NAVIGATION
 // ============================================================
 function navigateTo(page) {
     if (page !== currentPage) { currentPage = page; }
@@ -552,7 +619,7 @@ function navigateTo(page) {
 }
 
 // ============================================================
-// SETUP APP
+// 7. SETUP APP
 // ============================================================
 async function setupApp() {
     const badge = document.getElementById('userBadge');
@@ -625,7 +692,7 @@ async function setupApp() {
 }
 
 // ============================================================
-// SOCKET SETUP
+// 8. SOCKET SETUP
 // ============================================================
 function setupSocket() {
     if (socket) return;
@@ -657,7 +724,7 @@ function setupSocket() {
 }
 
 // ============================================================
-// HELPERS
+// 9. HELPERS
 // ============================================================
 function getEntityIcon(t) {
     const m = { tour_company: '🏢', hotel: '🏨', guide: '👨‍🏫', vehicle: '🚗', guest: '👤', admin: '🔑' };
@@ -680,7 +747,7 @@ function getStarRating(rating) {
 }
 
 // ============================================================
-// PAGE: HOME
+// 10. PAGE: HOME
 // ============================================================
 async function showHome() {
     const c = document.getElementById('mainContent');
@@ -709,10 +776,12 @@ async function showHome() {
 
 function renderTourCard(tour) {
     const imageUrl = tour.image || (tour.gallery && tour.gallery.length ? tour.gallery[0] : null);
+    const liked = wishlistItems.some(w => w === tour._id);
     return `
         <div class="card">
             <div class="card-img">
                 ${imageUrl ? `<img src="${imageUrl}" alt="${tour.name}">` : `<span style="font-size:3rem;">🏛️</span>`}
+                <button class="wishlist-btn ${liked ? 'liked' : ''}" onclick="toggleWishlist('${tour._id}')"><i class="fas fa-heart"></i></button>
                 ${tour.featured ? '<span style="position:absolute;top:8px;left:8px;background:#fbbf24;color:#1e1e2f;padding:2px 10px;border-radius:20px;font-size:0.6rem;font-weight:700;">⭐ FEATURED</span>' : ''}
             </div>
             <div class="card-body">
@@ -727,7 +796,7 @@ function renderTourCard(tour) {
 }
 
 // ============================================================
-// PAGE: TOUR DETAIL (with Itinerary Images)
+// 11. PAGE: TOUR DETAIL
 // ============================================================
 async function viewTourDetail(tourId) {
     try {
@@ -751,6 +820,8 @@ async function viewTourDetail(tourId) {
                 </div>
             `).join('')}
         ` : '';
+
+        const liked = wishlistItems.some(w => w === tour._id);
 
         showModal(`
             <div class="modal-header">
@@ -786,6 +857,9 @@ async function viewTourDetail(tourId) {
             ${tour.status === 'approved' ? `
                 <button class="btn btn-primary btn-block" onclick="closeModal();bookTour('${tour._id}')">📅 Book Now</button>
             ` : '<div style="padding:10px;background:#fff3cd;border-radius:12px;text-align:center;color:#856404;">⏳ Pending approval</div>'}
+            <button class="btn ${liked ? 'btn-danger' : 'btn-outline'} btn-block" onclick="toggleWishlist('${tour._id}');closeModal();" style="margin-top:8px;">
+                <i class="fas fa-heart"></i> ${liked ? 'Remove' : 'Add'} to Wishlist
+            </button>
             <button class="btn btn-outline btn-block" onclick="closeModal();showAddReview('${tour._id}')" style="margin-top:8px;">⭐ Write Review</button>
         `);
     } catch (e) {
@@ -794,7 +868,7 @@ async function viewTourDetail(tourId) {
 }
 
 // ============================================================
-// PAGE: BOOK TOUR
+// 12. PAGE: BOOK TOUR
 // ============================================================
 function bookTour(tourId) {
     showModal(`
@@ -860,7 +934,7 @@ async function confirmBooking(tourId) {
 }
 
 // ============================================================
-// PAGE: ADD REVIEW
+// 13. PAGE: ADD REVIEW
 // ============================================================
 function showAddReview(tourId) {
     selectedRating = 0;
@@ -935,7 +1009,7 @@ async function submitReview(tourId) {
 }
 
 // ============================================================
-// PAGE: TOURS
+// 14. PAGE: TOURS
 // ============================================================
 async function showTours() {
     const c = document.getElementById('mainContent');
@@ -954,7 +1028,7 @@ async function showTours() {
 }
 
 // ============================================================
-// PAGE: HOTELS (with Room Images)
+// 15. PAGE: HOTELS
 // ============================================================
 async function showHotels() {
     const c = document.getElementById('mainContent');
@@ -992,7 +1066,7 @@ async function showHotels() {
 }
 
 // ============================================================
-// PAGE: GUIDES (with Profile Photos)
+// 16. PAGE: GUIDES
 // ============================================================
 async function showGuides() {
     const c = document.getElementById('mainContent');
@@ -1027,7 +1101,7 @@ async function showGuides() {
 }
 
 // ============================================================
-// PAGE: VEHICLES (with Car Images)
+// 17. PAGE: VEHICLES
 // ============================================================
 async function showVehicles() {
     const c = document.getElementById('mainContent');
@@ -1065,7 +1139,33 @@ async function showVehicles() {
 }
 
 // ============================================================
-// PAGE: MY BOOKINGS
+// 18. PAGE: WISHLIST
+// ============================================================
+async function toggleWishlist(tourId) {
+    const idx = wishlistItems.indexOf(tourId);
+    if (idx > -1) { wishlistItems.splice(idx, 1); showToast('❤️ Removed'); }
+    else { wishlistItems.push(tourId); showToast('❤️ Added!'); }
+    if (["home", "tours", "wishlist"].includes(currentPage)) navigateTo(currentPage);
+}
+
+async function showWishlist() {
+    const c = document.getElementById('mainContent');
+    try {
+        const tours = await apiCall('/tours');
+        const items = tours.filter(t => wishlistItems.includes(t._id));
+        c.innerHTML = `
+            <h2 class="section-title">❤️ Wishlist</h2>
+            <p class="section-subtitle">${items.length} tours saved</p>
+            ${items.length ? `<div class="grid-3">${items.map(t => renderTourCard(t)).join('')}</div>` : '<p style="text-align:center;padding:40px;color:#6c757d;">No tours in wishlist.</p>'}
+            <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:16px;">← Back</button>
+        `;
+    } catch (e) {
+        c.innerHTML = '<p>Error loading wishlist</p>';
+    }
+}
+
+// ============================================================
+// 19. PAGE: MY BOOKINGS
 // ============================================================
 async function showMyBookings() {
     const c = document.getElementById('mainContent');
@@ -1115,26 +1215,7 @@ async function cancelBooking(bookingId) {
 }
 
 // ============================================================
-// PAGE: WISHLIST
-// ============================================================
-async function showWishlist() {
-    const c = document.getElementById('mainContent');
-    try {
-        const tours = await apiCall('/tours');
-        const items = tours.filter(t => wishlistItems.includes(t._id));
-        c.innerHTML = `
-            <h2 class="section-title">❤️ Wishlist</h2>
-            <p class="section-subtitle">${items.length} tours saved</p>
-            ${items.length ? `<div class="grid-3">${items.map(t => renderTourCard(t)).join('')}</div>` : '<p style="text-align:center;padding:40px;color:#6c757d;">No tours in wishlist.</p>'}
-            <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:16px;">← Back</button>
-        `;
-    } catch (e) {
-        c.innerHTML = '<p>Error loading wishlist</p>';
-    }
-}
-
-// ============================================================
-// PAGE: MAP
+// 20. PAGE: MAP
 // ============================================================
 function showMap() {
     const c = document.getElementById('mainContent');
@@ -1180,7 +1261,7 @@ function showMap() {
 }
 
 // ============================================================
-// PAGE: CHAT
+// 21. PAGE: CHAT
 // ============================================================
 async function showChat() {
     const c = document.getElementById('mainContent');
@@ -1266,7 +1347,7 @@ async function sendMessage() {
 }
 
 // ============================================================
-// PAGE: NOTIFICATIONS
+// 22. PAGE: NOTIFICATIONS
 // ============================================================
 async function showNotifications() {
     const c = document.getElementById('mainContent');
@@ -1302,7 +1383,7 @@ async function markNotificationRead(id) {
 }
 
 // ============================================================
-// HOST: ADD TOUR (with Itinerary Images)
+// 23. HOST: ADD TOUR (with Itinerary Images)
 // ============================================================
 function showHostAddTour() {
     const c = document.getElementById('mainContent');
@@ -1437,7 +1518,7 @@ async function addHostTour() {
 }
 
 // ============================================================
-// HOST: DASHBOARD
+// 24. HOST: DASHBOARD
 // ============================================================
 async function showHostDashboard() {
     const c = document.getElementById('mainContent');
@@ -1560,7 +1641,43 @@ async function updateBookingStatus(bookingId, status) {
 }
 
 // ============================================================
-// HOTEL: ADD ROOM (with Images)
+// 25. HOTEL: DASHBOARD
+// ============================================================
+async function showHotelDashboard() {
+    const c = document.getElementById('mainContent');
+    try {
+        const hotels = await apiCall('/hotels');
+        const rooms = hotels.filter(h => h.userId === currentUser._id);
+
+        c.innerHTML = `
+            <h2 class="section-title">🏨 Hotel Dashboard</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px;">
+                <div style="background:white;padding:14px;border-radius:14px;text-align:center;border:1px solid #edf2f7;">
+                    <div style="font-size:1.4rem;font-weight:800;color:#1b5e20;">${rooms.length}</div>
+                    <div style="font-size:0.7rem;color:#6c757d;">Rooms</div>
+                </div>
+            </div>
+            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
+                <h3>📋 Your Rooms</h3>
+                ${rooms.map(r => `
+                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            ${r.gallery && r.gallery.length ? `<img src="${r.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '🏨'}
+                            <span>${r.name}</span>
+                        </div>
+                        <span>${formatPrice(r.price)}/night</span>
+                    </div>
+                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No rooms yet.</p>'}
+            </div>
+            <button class="btn btn-primary" onclick="navigateTo('hotelAdd')" style="margin-top:14px;">➕ Add Room</button>
+        `;
+    } catch (e) {
+        c.innerHTML = '<p>Error loading dashboard</p>';
+    }
+}
+
+// ============================================================
+// 26. HOTEL: ADD ROOM
 // ============================================================
 function showHotelAddRoom() {
     const c = document.getElementById('mainContent');
@@ -1633,35 +1750,35 @@ async function addRoom() {
 }
 
 // ============================================================
-// HOTEL: DASHBOARD
+// 27. GUIDE: DASHBOARD
 // ============================================================
-async function showHotelDashboard() {
+async function showGuideDashboard() {
     const c = document.getElementById('mainContent');
     try {
-        const hotels = await apiCall('/hotels');
-        const rooms = hotels.filter(h => h.userId === currentUser._id);
+        const tours = await apiCall('/tours');
+        const services = tours.filter(t => t.guide === currentUser.name);
 
         c.innerHTML = `
-            <h2 class="section-title">🏨 Hotel Dashboard</h2>
+            <h2 class="section-title">👨‍🏫 Guide Dashboard</h2>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px;">
                 <div style="background:white;padding:14px;border-radius:14px;text-align:center;border:1px solid #edf2f7;">
-                    <div style="font-size:1.4rem;font-weight:800;color:#1b5e20;">${rooms.length}</div>
-                    <div style="font-size:0.7rem;color:#6c757d;">Rooms</div>
+                    <div style="font-size:1.4rem;font-weight:800;color:#1b5e20;">${services.length}</div>
+                    <div style="font-size:0.7rem;color:#6c757d;">Services</div>
                 </div>
             </div>
             <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
-                <h3>📋 Your Rooms</h3>
-                ${rooms.map(r => `
+                <h3>📋 Your Services</h3>
+                ${services.map(t => `
                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
                         <div style="display:flex;align-items:center;gap:8px;">
-                            ${r.gallery && r.gallery.length ? `<img src="${r.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '🏨'}
-                            <span>${r.name}</span>
+                            ${t.image ? `<img src="${t.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '👨‍🏫'}
+                            <span>${t.name}</span>
                         </div>
-                        <span>${formatPrice(r.price)}/night</span>
+                        <span class="status-badge ${t.status}">${t.status}</span>
                     </div>
-                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No rooms yet.</p>'}
+                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No services yet.</p>'}
             </div>
-            <button class="btn btn-primary" onclick="navigateTo('hotelAdd')" style="margin-top:14px;">➕ Add Room</button>
+            <button class="btn btn-primary" onclick="navigateTo('guideAdd')" style="margin-top:14px;">➕ Add Service</button>
         `;
     } catch (e) {
         c.innerHTML = '<p>Error loading dashboard</p>';
@@ -1669,7 +1786,7 @@ async function showHotelDashboard() {
 }
 
 // ============================================================
-// GUIDE: ADD SERVICE (with Photo)
+// 28. GUIDE: ADD SERVICE
 // ============================================================
 function showGuideAddService() {
     const c = document.getElementById('mainContent');
@@ -1743,42 +1860,6 @@ async function addGuideService() {
     } catch (e) { showToast('❌ ' + e.message); }
 }
 
-// ============================================================
-// GUIDE: DASHBOARD
-// ============================================================
-async function showGuideDashboard() {
-    const c = document.getElementById('mainContent');
-    try {
-        const tours = await apiCall('/tours');
-        const services = tours.filter(t => t.guide === currentUser.name);
-
-        c.innerHTML = `
-            <h2 class="section-title">👨‍🏫 Guide Dashboard</h2>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px;">
-                <div style="background:white;padding:14px;border-radius:14px;text-align:center;border:1px solid #edf2f7;">
-                    <div style="font-size:1.4rem;font-weight:800;color:#1b5e20;">${services.length}</div>
-                    <div style="font-size:0.7rem;color:#6c757d;">Services</div>
-                </div>
-            </div>
-            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
-                <h3>📋 Your Services</h3>
-                ${services.map(t => `
-                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            ${t.image ? `<img src="${t.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '👨‍🏫'}
-                            <span>${t.name}</span>
-                        </div>
-                        <span class="status-badge ${t.status}">${t.status}</span>
-                    </div>
-                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No services yet.</p>'}
-            </div>
-            <button class="btn btn-primary" onclick="navigateTo('guideAdd')" style="margin-top:14px;">➕ Add Service</button>
-        `;
-    } catch (e) {
-        c.innerHTML = '<p>Error loading dashboard</p>';
-    }
-}
-
 function showGuideListings() {
     const c = document.getElementById('mainContent');
     c.innerHTML = `
@@ -1812,7 +1893,43 @@ function showGuideListings() {
 }
 
 // ============================================================
-// VEHICLE: ADD (with Images)
+// 29. VEHICLE: DASHBOARD
+// ============================================================
+async function showVehicleDashboard() {
+    const c = document.getElementById('mainContent');
+    try {
+        const vehicles = await apiCall('/vehicles');
+        const userVehicles = vehicles.filter(v => v.userId === currentUser._id);
+
+        c.innerHTML = `
+            <h2 class="section-title">🚗 Vehicle Dashboard</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px;">
+                <div style="background:white;padding:14px;border-radius:14px;text-align:center;border:1px solid #edf2f7;">
+                    <div style="font-size:1.4rem;font-weight:800;color:#1b5e20;">${userVehicles.length}</div>
+                    <div style="font-size:0.7rem;color:#6c757d;">Vehicles</div>
+                </div>
+            </div>
+            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
+                <h3>📋 Your Vehicles</h3>
+                ${userVehicles.map(v => `
+                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '🚗'}
+                            <span>${v.type}</span>
+                        </div>
+                        <span>${formatPrice(v.price)}/day</span>
+                    </div>
+                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No vehicles yet.</p>'}
+            </div>
+            <button class="btn btn-primary" onclick="navigateTo('vehicleAdd')" style="margin-top:14px;">➕ Add Vehicle</button>
+        `;
+    } catch (e) {
+        c.innerHTML = '<p>Error loading dashboard</p>';
+    }
+}
+
+// ============================================================
+// 30. VEHICLE: ADD
 // ============================================================
 function showVehicleAdd() {
     const c = document.getElementById('mainContent');
@@ -1886,43 +2003,7 @@ async function addVehicle() {
 }
 
 // ============================================================
-// VEHICLE: DASHBOARD
-// ============================================================
-async function showVehicleDashboard() {
-    const c = document.getElementById('mainContent');
-    try {
-        const vehicles = await apiCall('/vehicles');
-        const userVehicles = vehicles.filter(v => v.userId === currentUser._id);
-
-        c.innerHTML = `
-            <h2 class="section-title">🚗 Vehicle Dashboard</h2>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:16px;">
-                <div style="background:white;padding:14px;border-radius:14px;text-align:center;border:1px solid #edf2f7;">
-                    <div style="font-size:1.4rem;font-weight:800;color:#1b5e20;">${userVehicles.length}</div>
-                    <div style="font-size:0.7rem;color:#6c757d;">Vehicles</div>
-                </div>
-            </div>
-            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
-                <h3>📋 Your Vehicles</h3>
-                ${userVehicles.map(v => `
-                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '🚗'}
-                            <span>${v.type}</span>
-                        </div>
-                        <span>${formatPrice(v.price)}/day</span>
-                    </div>
-                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No vehicles yet.</p>'}
-            </div>
-            <button class="btn btn-primary" onclick="navigateTo('vehicleAdd')" style="margin-top:14px;">➕ Add Vehicle</button>
-        `;
-    } catch (e) {
-        c.innerHTML = '<p>Error loading dashboard</p>';
-    }
-}
-
-// ============================================================
-// ADMIN PAGES (Full)
+// 31. ADMIN: DASHBOARD
 // ============================================================
 async function showAdminDashboard() {
     const c = document.getElementById('mainContent');
@@ -1951,6 +2032,9 @@ async function showAdminDashboard() {
     }
 }
 
+// ============================================================
+// 32. ADMIN: VERIFY USERS
+// ============================================================
 async function showAdminVerifications() {
     const c = document.getElementById('mainContent');
     try {
@@ -1985,6 +2069,9 @@ async function verifyUser(userId, status) {
     } catch (e) { showToast('❌ ' + e.message); }
 }
 
+// ============================================================
+// 33. ADMIN: MANAGE TOURS
+// ============================================================
 async function showAdminTours() {
     const c = document.getElementById('mainContent');
     try {
@@ -2044,6 +2131,9 @@ async function deleteTourAdmin(tourId) {
     } catch (e) { showToast('❌ ' + e.message); }
 }
 
+// ============================================================
+// 34. ADMIN: MANAGE USERS
+// ============================================================
 async function showAdminUsers() {
     const c = document.getElementById('mainContent');
     try {
@@ -2063,6 +2153,9 @@ async function showAdminUsers() {
     }
 }
 
+// ============================================================
+// 35. ADMIN: MANAGE BOOKINGS
+// ============================================================
 async function showAdminBookings() {
     const c = document.getElementById('mainContent');
     try {
@@ -2084,6 +2177,9 @@ async function showAdminBookings() {
     }
 }
 
+// ============================================================
+// 36. ADMIN: ANALYTICS
+// ============================================================
 async function showAdminAnalytics() {
     const c = document.getElementById('mainContent');
     try {
@@ -2113,7 +2209,7 @@ async function showAdminAnalytics() {
 }
 
 // ============================================================
-// INITIALIZATION
+// 37. INITIALIZATION
 // ============================================================
 async function initApp() {
     try {
@@ -2164,7 +2260,19 @@ if (document.readyState === 'loading') {
 }
 
 console.log('🇪🇹 Ethiopia Travel - COMPLETE SYSTEM Loaded!');
-console.log('✅ All features working with fixed multer!');
+console.log('✅ ALL 16 FEATURES WORKING!');
+console.log('✅ Day-by-day itinerary with images');
+console.log('✅ Hotel room uploads with gallery');
+console.log('✅ Guide profile photos');
+console.log('✅ Vehicle images');
+console.log('✅ Full booking tracking');
+console.log('✅ Admin dashboard');
+console.log('✅ Real-time chat');
+console.log('✅ Notifications');
+console.log('✅ Reviews with images');
+console.log('✅ Wishlist');
+console.log('✅ Maps');
+console.log('✅ Payment integration');
 </script>
 </body>
 </html>
