@@ -1,6 +1,3 @@
-This is a complete, functional HTML document for the "Ethiopia Travel - Complete Travel Ecosystem" application. It's a single-page web app that serves as a travel booking and management platform.
-
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -664,13 +661,22 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
     }
 
     // ============================================================
-    // AUTH UI
+    // AUTH UI (Unified Sign Up for all roles)
     // ============================================================
     function renderLoginForm() {
         const c = document.getElementById("loginContainer");
         if (!c) return;
 
-        if (currentRole === "guest" && isSignUp) {
+        // --- SIGN UP (unified for all roles) ---
+        if (isSignUp) {
+            const roleOptions = [
+                { value: 'guest', label: '👤 Guest' },
+                { value: 'tour_company', label: '🏢 Tour Company' },
+                { value: 'hotel', label: '🏨 Hotel' },
+                { value: 'guide', label: '👨‍🏫 Guide' },
+                { value: 'vehicle', label: '🚗 Vehicle' },
+                { value: 'admin', label: '🔑 Admin' }
+            ];
             c.innerHTML = `
                 <div class="login-logo">
                     <span class="logo-icon">🧳</span>
@@ -679,25 +685,37 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
                     <div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span><span>🏢 Traverse Tour</span></div>
                 </div>
                 <div class="role-tabs">
-                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab active" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
+                    ${roleOptions.map(r => `
+                        <div class="role-tab ${currentRole === r.value ? 'active' : ''}" onclick="setRole('${r.value}')">
+                            <span class="tab-icon">${r.label.split(' ')[0]}</span>
+                            ${r.label.split(' ').slice(1).join(' ')}
+                        </div>
+                    `).join("")}
                 </div>
-                <div class="input-group"><label>Full Name</label><input type="text" id="signupName" placeholder="Enter your full name"></div>
-                <div class="input-group"><label>Email</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
-                <div class="input-group"><label>Phone</label><input type="tel" id="signupPhone" placeholder="+251 9XX XXX XXX"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="signupPass" placeholder="Min 4 characters"></div>
-                <button class="login-btn" onclick="handleSignUp()">✨ Create Free Account</button>
+                <div class="input-group"><label>Full Name *</label><input type="text" id="signupName" placeholder="Enter your full name"></div>
+                <div class="input-group"><label>Email *</label><input type="email" id="signupEmail" placeholder="your@email.com"></div>
+                <div class="input-group"><label>Phone *</label><input type="tel" id="signupPhone" placeholder="+251 9XX XXX XXX"></div>
+                <div class="input-group"><label>Password *</label><input type="password" id="signupPass" placeholder="Min 4 characters"></div>
+                <div style="padding:10px;background:#f0f7ff;border-radius:12px;margin:8px 0;font-size:0.8rem;color:#1b5e20;">
+                    ⚡ You'll be able to manage your ${getEntityLabel(currentRole)} account after admin approval.
+                </div>
+                <button class="login-btn" onclick="handleSignUp()">✨ Create Account</button>
                 <p class="login-error" id="loginError"></p>
                 <p class="switch-link" onclick="toggleSignUp()">Already have an account? <strong>Sign In</strong></p>
             `;
             return;
         }
 
-        if (currentRole === "guest" && !isSignUp) {
+        // --- SIGN IN ---
+        if (!isSignUp) {
+            const roleOptions = [
+                { value: 'guest', label: '👤 Guest' },
+                { value: 'tour_company', label: '🏢 Tour Co' },
+                { value: 'hotel', label: '🏨 Hotel' },
+                { value: 'guide', label: '👨‍🏫 Guide' },
+                { value: 'vehicle', label: '🚗 Vehicle' },
+                { value: 'admin', label: '🔑 Admin' }
+            ];
             c.innerHTML = `
                 <div class="login-logo">
                     <span class="logo-icon">🧳</span>
@@ -706,12 +724,12 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
                     <div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span><span>🏢 Traverse Tour</span></div>
                 </div>
                 <div class="role-tabs">
-                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab active" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
+                    ${roleOptions.map(r => `
+                        <div class="role-tab ${currentRole === r.value ? 'active' : ''}" onclick="setRole('${r.value}')">
+                            <span class="tab-icon">${r.label.split(' ')[0]}</span>
+                            ${r.label.split(' ').slice(1).join(' ')}
+                        </div>
+                    `).join("")}
                 </div>
                 <div class="input-group"><label>Email</label><input type="email" id="signinEmail" placeholder="your@email.com"></div>
                 <div class="input-group"><label>Password</label><input type="password" id="signinPass" placeholder="Enter your password"></div>
@@ -721,111 +739,6 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
             `;
             return;
         }
-
-        if (currentRole === "admin") {
-            c.innerHTML = `
-                <div class="login-logo"><span class="logo-icon">🔑</span><h2>Admin Login</h2><p>System Administration</p><div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span></div></div>
-                <div class="role-tabs">
-                    <div class="role-tab active" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
-                </div>
-                <div class="input-group"><label>Email</label><input type="email" id="loginUser" placeholder="admin@ethiopiatravel.com"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
-                <button class="login-btn" onclick="doAdminLogin()">🔓 Sign In</button>
-                <p class="login-error" id="loginError"></p>
-                <div class="login-hint">🔑 Admin: admin@ethiopiatravel.com / 1111</div>
-            `;
-            return;
-        }
-
-        if (currentRole === "host") {
-            c.innerHTML = `
-                <div class="login-logo"><span class="logo-icon">🏢</span><h2>Tour Company Login</h2><p>Access your tour company dashboard</p><div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span></div></div>
-                <div class="role-tabs">
-                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab active" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
-                </div>
-                <div class="register-section"><h4>🏢 New Tour Company?</h4><p>Register your company and start listing tours</p><button class="btn-register btn-host-register" onclick="showEntityRegistration('tour_company')">🏢 Register Tour Company</button></div>
-                <div class="input-group"><label>Email</label><input type="email" id="loginUser" placeholder="Enter your email"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
-                <button class="login-btn" onclick="doEntityLogin('tour_company')">🔓 Sign In</button>
-                <p class="login-error" id="loginError"></p>
-                <div class="login-hint">🏢 Demo: traverse@ethiopiatravel.com / traverse123</div>
-            `;
-            return;
-        }
-
-        if (currentRole === "hotel") {
-            c.innerHTML = `
-                <div class="login-logo"><span class="logo-icon">🏨</span><h2>Hotel Login</h2><p>Access your hotel dashboard</p><div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span></div></div>
-                <div class="role-tabs">
-                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab active" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
-                </div>
-                <div class="register-section"><h4>🏨 New Hotel?</h4><p>Register your hotel and start accepting bookings</p><button class="btn-register btn-hotel-register" onclick="showEntityRegistration('hotel')">🏨 Register Hotel</button></div>
-                <div class="input-group"><label>Email</label><input type="email" id="loginUser" placeholder="Enter your email"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
-                <button class="login-btn" onclick="doEntityLogin('hotel')">🔓 Sign In</button>
-                <p class="login-error" id="loginError"></p>
-                <div class="login-hint">🏨 Demo: sheraton@hotels.com / 1111</div>
-            `;
-            return;
-        }
-
-        if (currentRole === "guide") {
-            c.innerHTML = `
-                <div class="login-logo"><span class="logo-icon">👨‍🏫</span><h2>Guide Login</h2><p>Access your guide dashboard</p><div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span></div></div>
-                <div class="role-tabs">
-                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab active" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
-                </div>
-                <div class="register-section"><h4>👨‍🏫 New Guide?</h4><p>Register as a guide and start offering tours</p><button class="btn-register btn-guide-register" onclick="showEntityRegistration('guide')">👨‍🏫 Register as Guide</button></div>
-                <div class="input-group"><label>Email</label><input type="email" id="loginUser" placeholder="Enter your email"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
-                <button class="login-btn" onclick="doEntityLogin('guide')">🔓 Sign In</button>
-                <p class="login-error" id="loginError"></p>
-                <div class="login-hint">👨‍🏫 Demo: kurabachew@guides.com / guide123</div>
-            `;
-            return;
-        }
-
-        if (currentRole === "vehicle") {
-            c.innerHTML = `
-                <div class="login-logo"><span class="logo-icon">🚗</span><h2>Vehicle Rental Login</h2><p>Access your vehicle dashboard</p><div class="partners"><span>✈️ Ethiopian Airlines</span><span>📱 Ethio Telecom</span></div></div>
-                <div class="role-tabs">
-                    <div class="role-tab" onclick="setRole('admin')"><span class="tab-icon">🔑</span>Admin</div>
-                    <div class="role-tab" onclick="setRole('guest')"><span class="tab-icon">👤</span>Guest</div>
-                    <div class="role-tab" onclick="setRole('host')"><span class="tab-icon">🏢</span>Host</div>
-                    <div class="role-tab" onclick="setRole('guide')"><span class="tab-icon">👨‍🏫</span>Guide</div>
-                    <div class="role-tab" onclick="setRole('hotel')"><span class="tab-icon">🏨</span>Hotel</div>
-                    <div class="role-tab active" onclick="setRole('vehicle')"><span class="tab-icon">🚗</span>Vehicle</div>
-                </div>
-                <div class="register-section"><h4>🚗 New Vehicle Rental?</h4><p>Register your vehicle and start renting</p><button class="btn-register btn-vehicle-register" onclick="showEntityRegistration('vehicle')">🚗 Register Vehicle Rental</button></div>
-                <div class="input-group"><label>Email</label><input type="email" id="loginUser" placeholder="Enter your email"></div>
-                <div class="input-group"><label>Password</label><input type="password" id="loginPass" placeholder="Enter password"></div>
-                <button class="login-btn" onclick="doEntityLogin('vehicle')">🔓 Sign In</button>
-                <p class="login-error" id="loginError"></p>
-                <div class="login-hint">🚗 Demo: owner@vehicles.com / vehicle123</div>
-            `;
-            return;
-        }
-        c.innerHTML = `<p>Loading...</p>`;
     }
 
     function toggleSignUp() { isSignUp = !isSignUp; renderLoginForm(); }
@@ -842,12 +755,20 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
         const err = document.getElementById("loginError");
         if (!name || !email || !phone || !password) { err.textContent="❌ All fields required"; err.classList.add("show"); return; }
         if (password.length<4) { err.textContent="❌ Password min 4 chars"; err.classList.add("show"); return; }
+
         try {
-            await apiCall("/auth/register","POST",{name,email,password,phone,entityType:"guest"});
-            showToast("✅ Account created! Please sign in.");
-            isSignUp=false; renderLoginForm();
+            await apiCall("/auth/register","POST",{
+                name, email, password, phone,
+                entityType: currentRole || "guest"
+            });
+            showToast(`✅ ${getEntityLabel(currentRole)} account created! Please sign in.`);
+            isSignUp = false;
+            renderLoginForm();
             setTimeout(()=>{ const el=document.getElementById("signinEmail"); if(el) el.value=email; },100);
-        } catch(e) { err.textContent="❌ "+e.message; err.classList.add("show"); }
+        } catch(e) {
+            err.textContent="❌ "+e.message;
+            err.classList.add("show");
+        }
     }
 
     async function handleSignIn() {
@@ -863,41 +784,10 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
             document.getElementById("mainApp").style.display = "block";
             setupApp();
             showToast(`✅ Welcome, ${currentUser.name}!`);
-        } catch(e) { err.textContent="❌ "+e.message; err.classList.add("show"); }
-    }
-
-    async function doAdminLogin() {
-        const email = document.getElementById("loginUser").value.trim();
-        const password = document.getElementById("loginPass").value.trim();
-        const err = document.getElementById("loginError");
-        try {
-            const result = await apiCall("/auth/login","POST",{email,password});
-            if (result.user.entityType !== "admin") throw new Error("Admin access required");
-            currentUser = result.user;
-            localStorage.setItem("eta_user", JSON.stringify(currentUser));
-            document.getElementById("loginScreen").classList.add("hidden");
-            document.getElementById("mainApp").style.display = "block";
-            setupApp();
-            showToast("✅ Welcome, Admin!");
-        } catch(e) { err.textContent="❌ "+e.message; err.classList.add("show"); }
-    }
-
-    async function doEntityLogin(entityType) {
-        const email = document.getElementById("loginUser").value.trim();
-        const password = document.getElementById("loginPass").value.trim();
-        const err = document.getElementById("loginError");
-        try {
-            const result = await apiCall("/auth/login","POST",{email,password});
-            if (result.user.entityType !== entityType) throw new Error(`${getEntityLabel(entityType)} access required`);
-            if (result.user.status === "pending") throw new Error("Your account is pending verification.");
-            if (result.user.status === "rejected") throw new Error("Your account has been rejected.");
-            currentUser = result.user;
-            localStorage.setItem("eta_user", JSON.stringify(currentUser));
-            document.getElementById("loginScreen").classList.add("hidden");
-            document.getElementById("mainApp").style.display = "block";
-            setupApp();
-            showToast(`✅ Welcome, ${currentUser.name}!`);
-        } catch(e) { err.textContent="❌ "+e.message; err.classList.add("show"); }
+        } catch(e) {
+            err.textContent="❌ "+e.message;
+            err.classList.add("show");
+        }
     }
 
     function doLogout() {
@@ -907,119 +797,6 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
         document.getElementById("mainApp").style.display = "none";
         renderLoginForm();
         showToast("👋 Logged out");
-    }
-
-    // ============================================================
-    // ENTITY REGISTRATION (MODAL)
-    // ============================================================
-    function showEntityRegistration(entityType) {
-        let fields="", title="", icon="";
-        if (entityType === "tour_company") {
-            title="Register Tour Company"; icon="🏢";
-            fields=`
-                <div class="input-group"><label>🏢 Company Name *</label><input type="text" id="entityCompanyName" placeholder="Enter company name"></div>
-                <div class="input-group"><label>👤 Manager Name *</label><input type="text" id="entityName" placeholder="Full name"></div>
-                <div class="input-group"><label>📧 Email *</label><input type="email" id="entityEmail" placeholder="company@email.com"></div>
-                <div class="input-group"><label>📞 Phone *</label><input type="tel" id="entityPhone" placeholder="+251 9XX XXX XXX"></div>
-                <div class="input-group"><label>📋 License Number *</label><input type="text" id="entityLicense" placeholder="ET-TOUR-XXX"></div>
-                <div class="input-group"><label>📋 TIN Number *</label><input type="text" id="entityTin" placeholder="1234567890"></div>
-                <div class="input-group"><label>🔒 Password *</label><input type="password" id="entityPass" placeholder="Min 4 characters"></div>
-                <div style="padding:10px;background:#fff3cd;border-radius:12px;margin:8px 0;font-size:0.8rem;color:#856404;">⏳ Your account will be pending until admin approves it.</div>
-            `;
-        } else if (entityType === "hotel") {
-            title="Register Hotel"; icon="🏨";
-            fields=`
-                <div class="input-group"><label>🏨 Hotel Name *</label><input type="text" id="entityHotelName" placeholder="Enter hotel name"></div>
-                <div class="input-group"><label>👤 Manager Name *</label><input type="text" id="entityName" placeholder="Full name"></div>
-                <div class="input-group"><label>📧 Email *</label><input type="email" id="entityEmail" placeholder="hotel@email.com"></div>
-                <div class="input-group"><label>📞 Phone *</label><input type="tel" id="entityPhone" placeholder="+251 9XX XXX XXX"></div>
-                <div class="input-group"><label>📍 City *</label><input type="text" id="entityCity" placeholder="Addis Ababa"></div>
-                <div class="input-group"><label>💰 Price per Night *</label><input type="number" id="entityPrice" placeholder="100"></div>
-                <div class="input-group"><label>✨ Amenities</label><input type="text" id="entityAmenities" placeholder="Pool, Spa, Restaurant"></div>
-                <div class="input-group"><label>🔒 Password *</label><input type="password" id="entityPass" placeholder="Min 4 characters"></div>
-                <div style="padding:10px;background:#fff3cd;border-radius:12px;margin:8px 0;font-size:0.8rem;color:#856404;">⏳ Your account will be pending until admin approves it.</div>
-            `;
-        } else if (entityType === "guide") {
-            title="Register as Guide"; icon="👨‍🏫";
-            fields=`
-                <div class="input-group"><label>👤 Full Name *</label><input type="text" id="entityName" placeholder="Your full name"></div>
-                <div class="input-group"><label>📧 Email *</label><input type="email" id="entityEmail" placeholder="your@email.com"></div>
-                <div class="input-group"><label>📞 Phone *</label><input type="tel" id="entityPhone" placeholder="+251 9XX XXX XXX"></div>
-                <div class="input-group"><label>🎯 Specialty *</label><input type="text" id="entitySpecialty" placeholder="e.g., Bird Watching, History"></div>
-                <div class="input-group"><label>🗣️ Languages *</label><input type="text" id="entityLanguages" placeholder="English, Amharic, Oromo"></div>
-                <div class="input-group"><label>🎓 Degree/Diploma *</label><input type="text" id="entityDiploma" placeholder="BA in Tourism"></div>
-                <div class="input-group"><label>📅 Experience (Years) *</label><input type="number" id="entityExperience" placeholder="5"></div>
-                <div class="input-group"><label>💰 Price per Hour (USD)</label><input type="number" id="entityPrice" placeholder="50"></div>
-                <div class="input-group"><label>🔒 Password *</label><input type="password" id="entityPass" placeholder="Min 4 characters"></div>
-                <div style="padding:10px;background:#fff3cd;border-radius:12px;margin:8px 0;font-size:0.8rem;color:#856404;">⏳ Your account will be pending until admin approves it.</div>
-            `;
-        } else if (entityType === "vehicle") {
-            title="Register Vehicle Rental"; icon="🚗";
-            fields=`
-                <div class="input-group"><label>🚗 Vehicle Type *</label><input type="text" id="entityVehicleType" placeholder="Toyota Land Cruiser V8"></div>
-                <div class="input-group"><label>👤 Owner Name *</label><input type="text" id="entityName" placeholder="Full name"></div>
-                <div class="input-group"><label>📧 Email *</label><input type="email" id="entityEmail" placeholder="owner@email.com"></div>
-                <div class="input-group"><label>📞 Phone *</label><input type="tel" id="entityPhone" placeholder="+251 9XX XXX XXX"></div>
-                <div class="input-group"><label>📋 Plate Number *</label><input type="text" id="entityPlate" placeholder="AA-12345"></div>
-                <div class="input-group"><label>👥 Capacity *</label><input type="text" id="entityCapacity" placeholder="7 passengers"></div>
-                <div class="input-group"><label>💰 Price per Day *</label><input type="number" id="entityPrice" placeholder="120"></div>
-                <div class="input-group"><label>✨ Features</label><input type="text" id="entityFeatures" placeholder="4WD, AC, Roof Rack"></div>
-                <div class="input-group"><label>🔒 Password *</label><input type="password" id="entityPass" placeholder="Min 4 characters"></div>
-                <div style="padding:10px;background:#fff3cd;border-radius:12px;margin:8px 0;font-size:0.8rem;color:#856404;">⏳ Your account will be pending until admin approves it.</div>
-            `;
-        }
-        showModal(`
-            <div class="modal-header"><h2>${icon} ${title}</h2><button class="modal-close" onclick="closeModal()">✕</button></div>
-            ${fields}
-            <div style="margin-top:14px;display:flex;gap:10px;">
-                <button class="btn btn-primary btn-block" onclick="registerEntity('${entityType}')">✅ Register</button>
-                <button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button>
-            </div>
-        `);
-    }
-
-    async function registerEntity(entityType) {
-        const name = document.getElementById("entityName")?.value.trim() || "";
-        const email = document.getElementById("entityEmail")?.value.trim() || "";
-        const phone = document.getElementById("entityPhone")?.value.trim() || "";
-        const password = document.getElementById("entityPass")?.value || "";
-        let data = { name, email, password, phone, entityType, status:"pending" };
-
-        if (entityType === "tour_company") {
-            data.companyName = document.getElementById("entityCompanyName")?.value.trim() || "";
-            data.license = document.getElementById("entityLicense")?.value.trim() || "";
-            data.tin = document.getElementById("entityTin")?.value.trim() || "";
-            if (!data.companyName || !data.license || !data.tin) { showToast("❌ Please fill all fields"); return; }
-        } else if (entityType === "hotel") {
-            data.hotelName = document.getElementById("entityHotelName")?.value.trim() || "";
-            data.hotelCity = document.getElementById("entityCity")?.value.trim() || "";
-            data.hotelAmenities = document.getElementById("entityAmenities")?.value.trim() || "";
-            data.price = parseInt(document.getElementById("entityPrice")?.value) || 0;
-            if (!data.hotelName || !data.hotelCity || !data.price) { showToast("❌ Please fill all fields"); return; }
-        } else if (entityType === "guide") {
-            data.specialty = document.getElementById("entitySpecialty")?.value.trim() || "";
-            data.languages = document.getElementById("entityLanguages")?.value.trim() || "";
-            data.diploma = document.getElementById("entityDiploma")?.value.trim() || "";
-            data.experience = document.getElementById("entityExperience")?.value || "";
-            data.pricePerHour = parseInt(document.getElementById("entityPrice")?.value) || 0;
-            if (!data.specialty || !data.languages || !data.diploma || !data.experience) { showToast("❌ Please fill all fields"); return; }
-        } else if (entityType === "vehicle") {
-            data.vehicleType = document.getElementById("entityVehicleType")?.value.trim() || "";
-            data.vehiclePlate = document.getElementById("entityPlate")?.value.trim() || "";
-            data.vehicleCapacity = document.getElementById("entityCapacity")?.value.trim() || "";
-            data.vehicleFeatures = document.getElementById("entityFeatures")?.value.trim() || "";
-            data.price = parseInt(document.getElementById("entityPrice")?.value) || 0;
-            if (!data.vehicleType || !data.vehiclePlate || !data.vehicleCapacity || !data.price) { showToast("❌ Please fill all fields"); return; }
-        }
-        if (!name || !email || !phone || !password) { showToast("❌ Please fill all fields"); return; }
-        if (password.length<4) { showToast("❌ Password min 4 chars"); return; }
-
-        try {
-            await apiCall("/auth/register","POST",data);
-            closeModal();
-            showToast(`✅ ${getEntityLabel(entityType)} registered! Waiting for admin approval.`);
-            renderLoginForm();
-        } catch(e) { showToast("❌ "+e.message); }
     }
 
     // ============================================================
@@ -1088,7 +865,7 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
     }
 
     // ============================================================
-    // GUEST PAGES
+    // GUEST PAGES (same as before)
     // ============================================================
     function showHome() {
         const c = document.getElementById("mainContent");
@@ -1458,7 +1235,7 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
     }
 
     // ============================================================
-    // HOST, HOTEL, GUIDE, VEHICLE, ADMIN PAGES
+    // HOST, HOTEL, GUIDE, VEHICLE, ADMIN PAGES (same as before)
     // ============================================================
     function showHostDashboard() {
         const c=document.getElementById("mainContent");
@@ -1943,13 +1720,11 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
     // keyboard shortcut for login
     document.addEventListener("keydown", function(e) {
         if (e.key==="Enter" && !document.getElementById("loginScreen").classList.contains("hidden")) {
-            const role = currentRole;
-            if (role==="guest") { if (isSignUp) handleSignUp(); else handleSignIn(); }
-            else if (role==="admin") doAdminLogin();
-            else if (role==="host") doEntityLogin("tour_company");
-            else if (role==="guide") doEntityLogin("guide");
-            else if (role==="hotel") doEntityLogin("hotel");
-            else if (role==="vehicle") doEntityLogin("vehicle");
+            if (isSignUp) {
+                handleSignUp();
+            } else {
+                handleSignIn();
+            }
         }
     });
 
@@ -1962,4 +1737,3 @@ This is a complete, functional HTML document for the "Ethiopia Travel - Complete
 </script>
 </body>
 </html>
-```
