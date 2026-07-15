@@ -276,7 +276,7 @@
 
 <script>
 // ============================================================
-// COMPLETE JAVASCRIPT - ALL 16 FEATURES
+// COMPLETE JAVASCRIPT - FIXED REGISTRATION
 // ============================================================
 
 // CONFIGURATION
@@ -401,7 +401,7 @@ function toggleTheme() {
 }
 
 // ============================================================
-// API FUNCTIONS - FIXED
+// API FUNCTIONS - FIXED WITH BETTER ERROR HANDLING
 // ============================================================
 async function apiCall(endpoint, method = 'GET', data = null) {
     const url = `${API_URL}${endpoint}`;
@@ -412,10 +412,8 @@ async function apiCall(endpoint, method = 'GET', data = null) {
             'Accept': 'application/json'
         } 
     };
-    
     const token = localStorage.getItem('eta_token');
     if (token) options.headers['Authorization'] = `Bearer ${token}`;
-    
     if (data) {
         try {
             options.body = JSON.stringify(data);
@@ -425,19 +423,24 @@ async function apiCall(endpoint, method = 'GET', data = null) {
         }
     }
     
+    console.log(`📡 ${method} ${url}`, data);
+    
     try {
         const response = await fetch(url, options);
-        
-        // Check if response is JSON
         const contentType = response.headers.get('content-type');
+        
         if (!contentType || !contentType.includes('application/json')) {
             const text = await response.text();
             console.error('❌ Non-JSON response:', text.substring(0, 200));
-            throw new Error('Server error - check backend logs');
+            throw new Error(`Server error: ${response.status}`);
         }
         
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || result.message || 'Request failed');
+        console.log(`📥 Response:`, result);
+        
+        if (!response.ok) {
+            throw new Error(result.error || result.message || `Request failed: ${response.status}`);
+        }
         return result;
     } catch (error) {
         console.error('❌ API Error:', error);
@@ -516,7 +519,7 @@ function getStarRating(rating) {
 }
 
 // ============================================================
-// AUTH FUNCTIONS - FIXED
+// AUTH FUNCTIONS - FIXED REGISTRATION
 // ============================================================
 async function handleSignUp() {
     const name = document.getElementById('signupName').value.trim();
@@ -537,20 +540,20 @@ async function handleSignUp() {
         return;
     }
     
-    // FIX: Clean data before sending
     const userData = {
         name: name,
-        email: email.toLowerCase().trim(),
+        email: email,
         phone: phone,
         password: password,
-        entityType: entityType
+        entityType: entityType,
+        status: 'pending'
     };
     
-    console.log('📤 Sending registration:', userData);
+    console.log('📤 Registering user:', { name, email, phone, entityType });
     
     try {
         const result = await apiCall('/auth/register', 'POST', userData);
-        console.log('📥 Registration response:', result);
+        console.log('✅ Registration success:', result);
         showToast('✅ Account created! Please sign in.');
         isSignUp = false;
         renderLoginForm();
@@ -577,10 +580,7 @@ async function handleSignIn() {
     }
     
     try {
-        const result = await apiCall('/auth/login', 'POST', { 
-            email: email.toLowerCase().trim(), 
-            password: password 
-        });
+        const result = await apiCall('/auth/login', 'POST', { email, password });
         localStorage.setItem('eta_token', result.token);
         localStorage.setItem('eta_refresh_token', result.refreshToken);
         localStorage.setItem('eta_user', JSON.stringify(result.user));
@@ -590,7 +590,6 @@ async function handleSignIn() {
         await setupApp();
         showToast(`✅ Welcome, ${currentUser.name}!`);
     } catch (e) {
-        console.error('❌ Login error:', e);
         err.textContent = '❌ ' + e.message;
         err.classList.add('show');
     }
@@ -2460,7 +2459,7 @@ else initApp();
 
 console.log('🇪🇹 Ethiopia Travel - COMPLETE SYSTEM Loaded!');
 console.log('✅ ALL 16 FEATURES WORKING!');
-console.log('✅ NO "Coming Soon" - Everything works!');
+console.log('✅ Registration fixed with status field');
 console.log('🔌 API URL:', API_URL);
 console.log('📸 Cloudinary connected');
 console.log('💬 Socket.io ready');
