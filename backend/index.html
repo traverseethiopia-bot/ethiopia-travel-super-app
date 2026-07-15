@@ -276,19 +276,20 @@
 
 <script>
 // ============================================================
-// COMPLETE JAVASCRIPT - FIXED REGISTRATION
+// COMPLETE JAVASCRIPT - FIXED FOR RAILWAY
 // ============================================================
 
-// CONFIGURATION
-const RAILWAY_APP_NAME = 'ethiopia-travel-super-app';
-const API_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000/api' 
-    : `https://${RAILWAY_APP_NAME}.up.railway.app/api`;
-const SOCKET_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:5000' 
-    : `https://${RAILWAY_APP_NAME}.up.railway.app`;
+// CONFIGURATION - FIXED: Use relative URLs on Railway
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000/api'
+    : '/api';
+    
+const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:5000'
+    : '';
 
 console.log('🔌 API URL:', API_URL);
+console.log('🔌 SOCKET URL:', SOCKET_URL);
 
 // STATE
 let socket = null;
@@ -780,7 +781,7 @@ async function setupApp() {
 // ============================================================
 function setupSocket() {
     if (socket) return;
-    socket = io(SOCKET_URL);
+    socket = io(SOCKET_URL || undefined);
     socket.on('connect', () => {
         console.log('🔌 Socket connected');
         if (currentUser) socket.emit('join_room', currentUser._id);
@@ -2459,7 +2460,6 @@ else initApp();
 
 console.log('🇪🇹 Ethiopia Travel - COMPLETE SYSTEM Loaded!');
 console.log('✅ ALL 16 FEATURES WORKING!');
-console.log('✅ Registration fixed with status field');
 console.log('🔌 API URL:', API_URL);
 console.log('📸 Cloudinary connected');
 console.log('💬 Socket.io ready');
