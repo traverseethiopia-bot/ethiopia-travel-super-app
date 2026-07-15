@@ -401,20 +401,48 @@ function toggleTheme() {
 }
 
 // ============================================================
-// API FUNCTIONS
+// API FUNCTIONS - FIXED
 // ============================================================
 async function apiCall(endpoint, method = 'GET', data = null) {
     const url = `${API_URL}${endpoint}`;
-    const options = { method, headers: { 'Content-Type': 'application/json' } };
+    const options = { 
+        method, 
+        headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        } 
+    };
+    
     const token = localStorage.getItem('eta_token');
     if (token) options.headers['Authorization'] = `Bearer ${token}`;
-    if (data) options.body = JSON.stringify(data);
+    
+    if (data) {
+        try {
+            options.body = JSON.stringify(data);
+        } catch (e) {
+            console.error('❌ Failed to stringify data:', e);
+            throw new Error('Invalid data format');
+        }
+    }
+    
     try {
         const response = await fetch(url, options);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('❌ Non-JSON response:', text.substring(0, 200));
+            throw new Error('Server error - check backend logs');
+        }
+        
         const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Request failed');
+        if (!response.ok) throw new Error(result.error || result.message || 'Request failed');
         return result;
-    } catch (error) { console.error('API Error:', error); throw error; }
+    } catch (error) {
+        console.error('❌ API Error:', error);
+        throw error;
+    }
 }
 
 async function uploadImage(file, folder = 'ethiopia_travel') {
@@ -488,7 +516,7 @@ function getStarRating(rating) {
 }
 
 // ============================================================
-// AUTH FUNCTIONS
+// AUTH FUNCTIONS - FIXED
 // ============================================================
 async function handleSignUp() {
     const name = document.getElementById('signupName').value.trim();
@@ -497,6 +525,7 @@ async function handleSignUp() {
     const password = document.getElementById('signupPass').value;
     const entityType = currentRole || 'guest';
     const err = document.getElementById('loginError');
+    
     if (!name || !email || !phone || !password) {
         err.textContent = '❌ All fields required';
         err.classList.add('show');
@@ -507,13 +536,30 @@ async function handleSignUp() {
         err.classList.add('show');
         return;
     }
+    
+    // FIX: Clean data before sending
+    const userData = {
+        name: name,
+        email: email.toLowerCase().trim(),
+        phone: phone,
+        password: password,
+        entityType: entityType
+    };
+    
+    console.log('📤 Sending registration:', userData);
+    
     try {
-        await apiCall('/auth/register', 'POST', { name, email, phone, password, entityType });
+        const result = await apiCall('/auth/register', 'POST', userData);
+        console.log('📥 Registration response:', result);
         showToast('✅ Account created! Please sign in.');
         isSignUp = false;
         renderLoginForm();
-        setTimeout(() => { const el = document.getElementById('signinEmail'); if (el) el.value = email; }, 100);
+        setTimeout(() => { 
+            const el = document.getElementById('signinEmail'); 
+            if (el) el.value = email; 
+        }, 100);
     } catch (e) {
+        console.error('❌ Registration error:', e);
         err.textContent = '❌ ' + e.message;
         err.classList.add('show');
     }
@@ -523,13 +569,18 @@ async function handleSignIn() {
     const email = document.getElementById('signinEmail').value.trim();
     const password = document.getElementById('signinPass').value;
     const err = document.getElementById('loginError');
+    
     if (!email || !password) {
         err.textContent = '❌ Enter email and password';
         err.classList.add('show');
         return;
     }
+    
     try {
-        const result = await apiCall('/auth/login', 'POST', { email, password });
+        const result = await apiCall('/auth/login', 'POST', { 
+            email: email.toLowerCase().trim(), 
+            password: password 
+        });
         localStorage.setItem('eta_token', result.token);
         localStorage.setItem('eta_refresh_token', result.refreshToken);
         localStorage.setItem('eta_user', JSON.stringify(result.user));
@@ -539,6 +590,7 @@ async function handleSignIn() {
         await setupApp();
         showToast(`✅ Welcome, ${currentUser.name}!`);
     } catch (e) {
+        console.error('❌ Login error:', e);
         err.textContent = '❌ ' + e.message;
         err.classList.add('show');
     }
@@ -930,7 +982,7 @@ async function downloadPDF(tourId) {
 }
 
 // ============================================================
-// PAGE: TOUR DETAIL (Full with Itinerary Images)
+// PAGE: TOUR DETAIL
 // ============================================================
 async function showTourDetail(tourId) {
     try {
@@ -1176,7 +1228,7 @@ async function filterTours() {
 }
 
 // ============================================================
-// PAGE: HOTELS (Full Booking)
+// PAGE: HOTELS
 // ============================================================
 async function showHotels() {
     const c = document.getElementById('mainContent');
@@ -1252,7 +1304,7 @@ async function confirmHotelBooking(hotelId) {
 }
 
 // ============================================================
-// PAGE: GUIDES (Full Hiring)
+// PAGE: GUIDES
 // ============================================================
 async function showGuides() {
     const c = document.getElementById('mainContent');
@@ -1323,7 +1375,7 @@ async function confirmGuideBooking(guideId) {
 }
 
 // ============================================================
-// PAGE: VEHICLES (Full Rental)
+// PAGE: VEHICLES
 // ============================================================
 async function showVehicles() {
     const c = document.getElementById('mainContent');
@@ -1662,7 +1714,7 @@ async function updateProfile() {
 }
 
 // ============================================================
-// HOST: ADD TOUR (With Itinerary Images)
+// HOST: ADD TOUR
 // ============================================================
 function showHostAddTour() {
     itineraryDays = [];
