@@ -2,8 +2,8 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
-// Get MongoDB URI from environment or use direct
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@YOUR_CLUSTER.mongodb.net/ethiopia_travel';
+// YOUR ACTUAL MONGODB URI FROM .env
+const MONGODB_URI = 'mongodb+srv://Kurabachew:185582Kura@cluster0.hh2ap3v.mongodb.net/?appName=Cluster0';
 
 // Define User Schema (match your existing schema)
 const userSchema = new mongoose.Schema({
@@ -26,7 +26,7 @@ async function createAdmin() {
         await mongoose.connect(MONGODB_URI);
         console.log('✅ Connected to MongoDB');
 
-        // Check if admin exists
+        // Check if admin already exists
         const existingAdmin = await User.findOne({ email: 'admin@ethiopiatravel.com' });
         if (existingAdmin) {
             console.log('⚠️ Admin already exists!');
@@ -35,10 +35,11 @@ async function createAdmin() {
             process.exit(0);
         }
 
-        // Hash password
+        // Hash the password
         const hashedPassword = await bcrypt.hash('admin123', 10);
+        console.log('✅ Password hashed');
 
-        // Create admin
+        // Create admin user
         const admin = new User({
             name: 'Admin User',
             email: 'admin@ethiopiatravel.com',
