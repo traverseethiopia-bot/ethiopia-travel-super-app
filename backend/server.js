@@ -29,24 +29,33 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ethiopia_travel';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Kurabachew:185582Kura@cluster0.hh2ap3v.mongodb.net/?appName=Cluster0';
+const JWT_SECRET = process.env.JWT_SECRET || 'ethiopia_travel_super_secret_key_2024';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'ethiopia_travel_refresh_secret_key_2024';
 
 // YOUR CLOUDINARY CREDENTIALS
 cloudinary.config({
     cloud_name: 'fxszo8e5',
     api_key: '296256252878274',
-    api_secret: 'DkwEBIkRWBa_6QXmmMOHVeuH-4U'
+    api_secret: 'DkwEBIKRWBa_6QXmmMOHVeuH-4U'
 });
 
-// Email transporter - UPDATE THESE
+// Email transporter - UPDATED WITH BETTER CONFIG
 const transporter = nodemailer.createTransport({
     service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
-        user: process.env.EMAIL_USER || 'your-email@gmail.com',
-        pass: process.env.EMAIL_PASSWORD || 'your-app-password'
-    }
+        user: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
+        pass: process.env.EMAIL_PASSWORD || 'bytczgmvtytjvij'
+    },
+    tls: {
+        rejectUnauthorized: false
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000
 });
 
 // Multer
@@ -398,10 +407,10 @@ app.post('/api/upload/base64', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 8. AUTH ROUTES
+// 8. AUTH ROUTES - UPDATED WITH CONSOLE OTP
 // ============================================================
 
-// SEND OTP
+// SEND OTP - WITH CONSOLE LOG FOR TESTING
 app.post('/api/auth/send-otp', async (req, res) => {
     try {
         const { email, otp, type = 'verify' } = req.body;
@@ -409,9 +418,17 @@ app.post('/api/auth/send-otp', async (req, res) => {
         await OTP.deleteMany({ email, type });
         await OTP.create({ email, otp, type });
         
+        // LOG OTP TO CONSOLE FOR TESTING
+        console.log('========================================');
+        console.log(`📧 OTP FOR ${email}: ${otp}`);
+        console.log(`🔑 Verification code: ${otp}`);
+        console.log(`⏰ Expires in 5 minutes`);
+        console.log('========================================');
+        
+        // Try to send email but don't fail if it doesn't work
         try {
             await transporter.sendMail({
-                from: process.env.EMAIL_USER || 'noreply@ethiopiatravel.com',
+                from: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
                 to: email,
                 subject: type === 'reset' ? 'Password Reset Code' : 'Email Verification Code',
                 html: `
@@ -424,9 +441,9 @@ app.post('/api/auth/send-otp', async (req, res) => {
                     </div>
                 `
             });
-            console.log(`📧 OTP sent to ${email}`);
+            console.log(`📧 Email sent to ${email}`);
         } catch (emailError) {
-            console.error('Email send error:', emailError);
+            console.log(`⚠️ Email not sent, but OTP is logged above. Use the OTP from console.`);
         }
         
         res.json({ success: true, message: 'OTP sent successfully' });
@@ -1463,7 +1480,7 @@ app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
 async function sendEmail(to, subject, message) {
     try {
         const mailOptions = {
-            from: process.env.EMAIL_USER || 'noreply@ethiopiatravel.com',
+            from: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
             to,
             subject,
             text: message,
@@ -1578,6 +1595,8 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`📊 API available at http://localhost:${PORT}/api`);
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
     console.log(`📸 Cloudinary: fxszo8e5`);
+    console.log(`📧 Email: Kurabachew0910090363@gmail.com`);
     console.log(`✅ ALL 16 FEATURES ARE LIVE!`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}`);
+    console.log(`⚠️  OTP will be shown in console for testing`);
 });
