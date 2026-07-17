@@ -244,7 +244,7 @@ const BookingSchema = new mongoose.Schema({
         enum: ['pending', 'paid', 'confirmed', 'failed', 'refunded'],
         default: 'pending'
     },
-    paymentScreenshot: String, // Guest uploads screenshot after Telebirr payment
+    paymentScreenshot: String,
     transactionId: String,
     status: {
         type: String,
@@ -260,16 +260,13 @@ const BookingSchema = new mongoose.Schema({
     discountApplied: String,
     receiptImage: String,
     specialRequests: String,
-    // Payment verification
     paymentVerifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     paymentVerifiedAt: Date,
-    // Host payment tracking
     hostPaidAdvance: { type: Boolean, default: false },
     hostPaidRemaining: { type: Boolean, default: false },
     advanceAmount: { type: Number, default: 0 },
     remainingAmount: { type: Number, default: 0 },
     commissionAmount: { type: Number, default: 0 },
-    // Tour completion
     tourCompleted: { type: Boolean, default: false },
     guestConfirmedCompletion: { type: Boolean, default: false },
     completedAt: Date,
@@ -714,7 +711,7 @@ app.put('/api/users/:userId', authenticate, async (req, res) => {
 app.get('/api/tours', async (req, res) => {
     try {
         const { category, status, featured, search, minPrice, maxPrice, location } = req.query;
-        let query = { status: 'approved' };
+        let query = {};
         if (category) query.category = category;
         if (featured === 'true') query.featured = true;
         if (minPrice || maxPrice) {
@@ -732,6 +729,31 @@ app.get('/api/tours', async (req, res) => {
         if (location) {
             query.location = { $regex: location, $options: 'i' };
         }
+        // If status not specified, show all (for admin/host)
+        if (status) {
+            query.status = status;
+        } else if (!req.user) {
+            // For guests, only show approved tours
+            query.status = 'approved';
+        }
+        // If user is not admin, filter based on role
+        if (req.user) {
+            if (req.user.entityType === 'admin') {
+                // Admin sees all
+            } else if (req.user.entityType === 'tour_company') {
+                // Tour company sees their own tours + approved tours
+                query.$or = [
+                    { hostId: req.user._id },
+                    { status: 'approved' }
+                ];
+            } else {
+                // Guests and other roles only see approved
+                query.status = 'approved';
+            }
+        } else {
+            query.status = 'approved';
+        }
+        
         const tours = await Tour.find(query)
             .populate('hostId', 'name companyName rating')
             .sort({ featured: -1, rating: -1, createdAt: -1 });
@@ -765,7 +787,6 @@ app.post('/api/tours', authenticate, upload.single('image'), async (req, res) =>
             imageUrl = result.secure_url;
         }
         
-        // Handle gallery images if sent
         let galleryUrls = [];
         if (req.body.gallery && Array.isArray(req.body.gallery)) {
             for (const img of req.body.gallery) {
@@ -880,7 +901,6 @@ app.post('/api/bookings', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'Tour not found' });
         }
         
-        // Calculate commission (10%)
         const commission = req.body.totalPrice * 0.10;
         const advanceAmount = req.body.totalPrice * 0.35;
         const remainingAmount = req.body.totalPrice - commission - advanceAmount;
@@ -940,7 +960,6 @@ app.post('/api/bookings/:id/payment-screenshot', authenticate, async (req, res) 
             booking.paymentStatus = 'paid';
             await booking.save();
             
-            // Notify admin
             const admin = await User.findOne({ entityType: 'admin' });
             if (admin) {
                 await createNotification(
@@ -971,7 +990,6 @@ app.put('/api/bookings/:id/verify-payment', authenticate, authorize('admin'), as
         booking.status = 'confirmed';
         await booking.save();
         
-        // Add to host's balance (after 10% commission)
         const host = await User.findById(booking.hostId);
         if (host) {
             const amountAfterCommission = booking.totalPrice - booking.commissionAmount;
@@ -1017,7 +1035,6 @@ app.post('/api/bookings/:id/request-advance', authenticate, async (req, res) => 
             return res.status(400).json({ error: 'Advance already paid' });
         }
         
-        // Create withdrawal request
         const withdrawal = new Withdrawal({
             userId: req.user._id,
             bookingId: booking._id,
@@ -1035,7 +1052,6 @@ app.post('/api/bookings/:id/request-advance', authenticate, async (req, res) => 
             'withdrawal'
         );
         
-        // Notify admin
         const admin = await User.findOne({ entityType: 'admin' });
         if (admin) {
             await createNotification(
@@ -1782,7 +1798,14 @@ async function sendEmail(to, subject, message) {
 }
 
 // ============================================================
-// 18. ANALYTICS ROUTES
+// 18. HELPER: FORMAT PRICE
+// ============================================================
+function formatPrice(amount) {
+    return `Br ${Math.round(amount || 0).toLocaleString()}`;
+}
+
+// ============================================================
+// 19. ANALYTICS ROUTES
 // ============================================================
 app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -1826,13 +1849,6 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
         res.status(500).json({ error: error.message });
     }
 });
-
-// ============================================================
-// 19. HELPER: FORMAT PRICE
-// ============================================================
-function formatPrice(amount) {
-    return `Br ${Math.round(amount || 0).toLocaleString()}`;
-}
 
 // ============================================================
 // 20. HEALTH CHECK
@@ -1883,9 +1899,9 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 API available at http://localhost:${PORT}/api`);
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
-    console.log(`📸 Cloudinary: fxszo8e5`);
-    console.log(`📧 Email: Kurabachew0910090363@gmail.com`);
-    console.log(`✅ ALL 16 FEATURES ARE LIVE!`);
+    console.log(`📸 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5'}`);
+    console.log(`📧 Email: ${process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com'}`);
+    console.log(`✅ ALL FEATURES ARE LIVE!`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}`);
     console.log(`⚠️  OTP will be shown in console for testing`);
 });
