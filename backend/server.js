@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: server.js - COMPLETE WITH FRONTEND SERVING
+// FILE: server.js - COMPLETE WITH YOUR CREDENTIALS
 // ============================================================
 
 const express = require('express');
@@ -16,7 +16,7 @@ const path = require('path');
 require('dotenv').config();
 
 // ============================================================
-// 1. CONFIGURATION
+// 1. CONFIGURATION - YOUR CREDENTIALS
 // ============================================================
 const app = express();
 const server = http.createServer(app);
@@ -33,14 +33,14 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/ethiop
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-key';
 
-// Cloudinary Config
+// YOUR CLOUDINARY CREDENTIALS
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5',
-    api_key: process.env.CLOUDINARY_API_KEY || '296256252878274',
-    api_secret: process.env.CLOUDINARY_API_SECRET || 'DkwEBIkRWBa_6QXmmMOHVeuH-4U'
+    cloud_name: 'fxszo8e5',
+    api_key: '296256252878274',
+    api_secret: 'DkwEBIkRWBa_6QXmmMOHVeuH-4U'
 });
 
-// Email transporter
+// Email transporter - UPDATE THESE
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -69,12 +69,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ============================================================
-// 3. SERVE FRONTEND (FIX FOR RAILWAY)
+// 3. SERVE FRONTEND
 // ============================================================
-// Serve static files
 app.use(express.static(__dirname));
 
-// Serve index.html for root route
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
@@ -119,6 +117,15 @@ mongoose.connect(MONGODB_URI, {
 }).then(() => console.log('✅ MongoDB Connected'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
+// OTP Schema
+const OTPSchema = new mongoose.Schema({
+    email: { type: String, required: true },
+    otp: { type: String, required: true },
+    type: { type: String, default: 'verify' },
+    createdAt: { type: Date, default: Date.now, expires: 300 }
+});
+const OTP = mongoose.model('OTP', OTPSchema);
+
 // User Schema
 const UserSchema = new mongoose.Schema({
     name: { type: String, required: true },
@@ -135,7 +142,10 @@ const UserSchema = new mongoose.Schema({
         enum: ['pending', 'verified', 'rejected', 'active'],
         default: 'pending'
     },
+    emailVerified: { type: Boolean, default: false },
     companyName: String,
+    companyDesc: String,
+    licenses: [String],
     license: String,
     tin: String,
     hotelName: String,
@@ -197,7 +207,10 @@ const TourSchema = new mongoose.Schema({
 
 // Booking Schema
 const BookingSchema = new mongoose.Schema({
-    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour', required: true },
+    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour' },
+    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel' },
+    vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+    guideId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     userName: String,
@@ -222,6 +235,13 @@ const BookingSchema = new mongoose.Schema({
         enum: ['pending', 'confirmed', 'completed', 'cancelled'],
         default: 'pending'
     },
+    guestProfile: {
+        age: Number,
+        sex: String,
+        passport: String,
+        infants: { type: Number, default: 0 }
+    },
+    discountApplied: String,
     receiptImage: String,
     specialRequests: String,
     createdAt: { type: Date, default: Date.now },
@@ -380,13 +400,51 @@ app.post('/api/upload/base64', authenticate, async (req, res) => {
 // ============================================================
 // 8. AUTH ROUTES
 // ============================================================
+
+// SEND OTP
+app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+        const { email, otp, type = 'verify' } = req.body;
+        
+        await OTP.deleteMany({ email, type });
+        await OTP.create({ email, otp, type });
+        
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER || 'noreply@ethiopiatravel.com',
+                to: email,
+                subject: type === 'reset' ? 'Password Reset Code' : 'Email Verification Code',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f5f7fa; border-radius: 12px;">
+                        <h2 style="color: #1b5e20;">🇪🇹 Ethiopia Travel</h2>
+                        <p>Your verification code is:</p>
+                        <div style="font-size: 32px; font-weight: 700; color: #1b5e20; background: white; padding: 16px; border-radius: 8px; text-align: center; letter-spacing: 8px;">${otp}</div>
+                        <p style="color: #6c757d; font-size: 14px;">This code expires in 5 minutes.</p>
+                        ${type === 'reset' ? '<p>Use this code to reset your password.</p>' : '<p>Use this code to verify your email address.</p>'}
+                    </div>
+                `
+            });
+            console.log(`📧 OTP sent to ${email}`);
+        } catch (emailError) {
+            console.error('Email send error:', emailError);
+        }
+        
+        res.json({ success: true, message: 'OTP sent successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// REGISTER
 app.post('/api/auth/register', async (req, res) => {
     try {
-        const { name, email, password, phone, entityType, ...extra } = req.body;
+        const { name, email, password, phone, entityType, companyName, companyDesc, licenses, emailVerified, ...extra } = req.body;
+        
         const existing = await User.findOne({ email });
         if (existing) {
             return res.status(400).json({ error: 'Email already registered' });
         }
+        
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = new User({
             name,
@@ -394,10 +452,15 @@ app.post('/api/auth/register', async (req, res) => {
             password: hashedPassword,
             phone,
             entityType: entityType || 'guest',
-            status: entityType === 'admin' ? 'verified' : 'pending',
+            status: entityType === 'guest' ? 'active' : 'pending',
+            emailVerified: emailVerified || false,
+            companyName,
+            companyDesc,
+            licenses: licenses || [],
             ...extra
         });
         await user.save();
+        
         try {
             await sendEmail(
                 email,
@@ -407,6 +470,7 @@ app.post('/api/auth/register', async (req, res) => {
         } catch (emailError) {
             console.log('Email not sent:', emailError.message);
         }
+        
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
@@ -417,6 +481,7 @@ app.post('/api/auth/register', async (req, res) => {
     }
 });
 
+// LOGIN
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -424,16 +489,19 @@ app.post('/api/auth/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+        
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) {
             return res.status(401).json({ error: 'Invalid credentials' });
         }
+        
         if (user.status === 'pending') {
             return res.status(403).json({ error: 'Account pending approval' });
         }
         if (user.status === 'rejected') {
             return res.status(403).json({ error: 'Account rejected' });
         }
+        
         const token = jwt.sign(
             { userId: user._id, email: user.email, entityType: user.entityType },
             JWT_SECRET,
@@ -444,8 +512,10 @@ app.post('/api/auth/login', async (req, res) => {
             JWT_REFRESH_SECRET,
             { expiresIn: '30d' }
         );
+        
         user.updatedAt = new Date();
         await user.save();
+        
         res.json({
             success: true,
             token,
@@ -456,7 +526,9 @@ app.post('/api/auth/login', async (req, res) => {
                 email: user.email,
                 phone: user.phone,
                 entityType: user.entityType,
-                status: user.status
+                status: user.status,
+                emailVerified: user.emailVerified,
+                companyName: user.companyName
             }
         });
     } catch (error) {
@@ -464,6 +536,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+// REFRESH TOKEN
 app.post('/api/auth/refresh', async (req, res) => {
     try {
         const { refreshToken } = req.body;
@@ -480,6 +553,24 @@ app.post('/api/auth/refresh', async (req, res) => {
         res.json({ token });
     } catch (error) {
         res.status(401).json({ error: 'Invalid refresh token' });
+    }
+});
+
+// RESET PASSWORD
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+        await OTP.deleteMany({ email, type: 'reset' });
+        res.json({ success: true, message: 'Password reset successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -858,67 +949,7 @@ app.delete('/api/bookings/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 12. PAYMENT ROUTES
-// ============================================================
-app.post('/api/payments/initialize', authenticate, async (req, res) => {
-    try {
-        const { bookingId, amount, phone, email, name } = req.body;
-        const booking = await Booking.findById(bookingId);
-        if (!booking) {
-            return res.status(404).json({ error: 'Booking not found' });
-        }
-        const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
-        const payment = new Payment({
-            userId: req.user._id,
-            bookingId: booking._id,
-            amount: amount || booking.totalPrice,
-            currency: 'ETB',
-            method: 'chapa',
-            transactionId: tx_ref,
-            status: 'pending'
-        });
-        await payment.save();
-        
-        setTimeout(async () => {
-            payment.status = 'completed';
-            await payment.save();
-            booking.paymentStatus = 'paid';
-            booking.status = 'confirmed';
-            booking.transactionId = tx_ref;
-            await booking.save();
-            await createNotification(
-                booking.userId,
-                'Payment Successful',
-                `Your payment of ${payment.amount} ETB has been confirmed`,
-                'success'
-            );
-        }, 2000);
-        
-        res.json({
-            success: true,
-            checkout_url: `${req.headers.origin}/payment/success?tx_ref=${tx_ref}`,
-            tx_ref: tx_ref
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
-    try {
-        if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-        const payments = await Payment.find({ userId: req.params.userId })
-            .sort({ createdAt: -1 });
-        res.json(payments);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ============================================================
-// 13. REVIEW ROUTES
+// 12. REVIEW ROUTES
 // ============================================================
 app.post('/api/reviews', authenticate, async (req, res) => {
     try {
@@ -1008,7 +1039,7 @@ app.delete('/api/reviews/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 14. CHAT ROUTES
+// 13. CHAT ROUTES
 // ============================================================
 app.post('/api/chats', authenticate, async (req, res) => {
     try {
@@ -1113,7 +1144,7 @@ app.put('/api/chats/read/:chatId', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 15. NOTIFICATION ROUTES
+// 14. NOTIFICATION ROUTES
 // ============================================================
 async function createNotification(userId, title, message, type = 'info') {
     const notification = new Notification({
@@ -1185,7 +1216,7 @@ app.delete('/api/notifications/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 16. HOTEL ROUTES
+// 15. HOTEL ROUTES
 // ============================================================
 app.get('/api/hotels', async (req, res) => {
     try {
@@ -1276,7 +1307,7 @@ app.delete('/api/hotels/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 17. VEHICLE ROUTES
+// 16. VEHICLE ROUTES
 // ============================================================
 app.get('/api/vehicles', async (req, res) => {
     try {
@@ -1367,6 +1398,66 @@ app.delete('/api/vehicles/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
+// 17. PAYMENT ROUTES
+// ============================================================
+app.post('/api/payments/initialize', authenticate, async (req, res) => {
+    try {
+        const { bookingId, amount, phone, email, name } = req.body;
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
+        const payment = new Payment({
+            userId: req.user._id,
+            bookingId: booking._id,
+            amount: amount || booking.totalPrice,
+            currency: 'ETB',
+            method: 'chapa',
+            transactionId: tx_ref,
+            status: 'pending'
+        });
+        await payment.save();
+        
+        setTimeout(async () => {
+            payment.status = 'completed';
+            await payment.save();
+            booking.paymentStatus = 'paid';
+            booking.status = 'confirmed';
+            booking.transactionId = tx_ref;
+            await booking.save();
+            await createNotification(
+                booking.userId,
+                'Payment Successful',
+                `Your payment of ${payment.amount} ETB has been confirmed`,
+                'success'
+            );
+        }, 2000);
+        
+        res.json({
+            success: true,
+            checkout_url: `${req.headers.origin}/payment/success?tx_ref=${tx_ref}`,
+            tx_ref: tx_ref
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
+    try {
+        if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const payments = await Payment.find({ userId: req.params.userId })
+            .sort({ createdAt: -1 });
+        res.json(payments);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
 // 18. EMAIL SERVICE
 // ============================================================
 async function sendEmail(to, subject, message) {
@@ -1400,35 +1491,7 @@ async function sendEmail(to, subject, message) {
 }
 
 // ============================================================
-// 19. SOCKET.IO
-// ============================================================
-io.on('connection', (socket) => {
-    console.log('New client connected:', socket.id);
-    socket.on('join_room', (userId) => {
-        socket.join(userId);
-        console.log(`User ${userId} joined room`);
-    });
-    socket.on('typing', ({ from, to }) => {
-        io.to(to).emit('user_typing', { from });
-    });
-    socket.on('stop_typing', ({ to }) => {
-        io.to(to).emit('user_stop_typing');
-    });
-    socket.on('mark_read', async ({ chatId, userId }) => {
-        try {
-            await Chat.findByIdAndUpdate(chatId, { read: true });
-            io.to(userId).emit('message_read', { chatId });
-        } catch (error) {
-            console.error('Mark read error:', error);
-        }
-    });
-    socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-    });
-});
-
-// ============================================================
-// 20. ANALYTICS ROUTES
+// 19. ANALYTICS ROUTES
 // ============================================================
 app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -1466,16 +1529,43 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
 });
 
 // ============================================================
-// 21. HEALTH CHECK
+// 20. HEALTH CHECK
 // ============================================================
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // ============================================================
+// 21. SOCKET.IO
+// ============================================================
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+    socket.on('join_room', (userId) => {
+        socket.join(userId);
+        console.log(`User ${userId} joined room`);
+    });
+    socket.on('typing', ({ from, to }) => {
+        io.to(to).emit('user_typing', { from });
+    });
+    socket.on('stop_typing', ({ to }) => {
+        io.to(to).emit('user_stop_typing');
+    });
+    socket.on('mark_read', async ({ chatId, userId }) => {
+        try {
+            await Chat.findByIdAndUpdate(chatId, { read: true });
+            io.to(userId).emit('message_read', { chatId });
+        } catch (error) {
+            console.error('Mark read error:', error);
+        }
+    });
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+    });
+});
+
+// ============================================================
 // 22. SERVE FRONTEND FOR ALL OTHER ROUTES
 // ============================================================
-// This must be LAST - after all API routes
 app.get('*', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
@@ -1487,7 +1577,7 @@ server.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📊 API available at http://localhost:${PORT}/api`);
     console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
-    console.log(`📸 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5'}`);
+    console.log(`📸 Cloudinary: fxszo8e5`);
     console.log(`✅ ALL 16 FEATURES ARE LIVE!`);
     console.log(`🌐 Frontend available at http://localhost:${PORT}`);
 });
