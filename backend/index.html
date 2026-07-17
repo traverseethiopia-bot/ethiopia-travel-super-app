@@ -205,9 +205,11 @@
         ::-webkit-scrollbar-track { background: #f1f4f9; }
         ::-webkit-scrollbar-thumb { background: #1b5e20; border-radius: 4px; }
         
-        /* Business registration fields */
         .business-fields { border-top: 2px dashed #e2e8f0; margin-top: 12px; padding-top: 12px; }
         .business-fields h4 { font-size: 0.9rem; margin-bottom: 8px; color: #1b5e20; }
+        .otp-display { background: #e8f5e9; padding: 12px; border-radius: 12px; text-align: center; margin: 10px 0; border: 2px solid #1b5e20; }
+        .otp-display .code { font-size: 2rem; font-weight: 800; color: #1b5e20; letter-spacing: 8px; }
+        .otp-note { background: #fff3cd; padding: 8px; border-radius: 8px; margin: 8px 0; font-size: 0.8rem; color: #856404; text-align: center; }
     </style>
 </head>
 <body>
@@ -577,7 +579,7 @@ function renderLoginForm() {
                 <h4>🏢 Business Registration</h4>
                 <div class="input-group"><label>Company Name *</label><input type="text" id="signupCompany" placeholder="Your company name"></div>
                 <div class="input-group"><label>Company Description</label><textarea id="signupCompanyDesc" rows="2" placeholder="Describe your business..."></textarea></div>
-                <div class="input-group"><label>Business License (Upload 3 copies) *</label>
+                <div class="input-group"><label>Business License (Optional - Upload up to 3)</label>
                     <div class="file-upload" onclick="document.getElementById('bizLicense1').click()">
                         <span class="upload-icon">📄</span>
                         <span class="upload-text">Upload License 1</span>
@@ -594,6 +596,7 @@ function renderLoginForm() {
                         <input type="file" id="bizLicense3" accept="image/*">
                     </div>
                     <div id="bizLicensePreview" class="upload-preview"></div>
+                    <p style="font-size:0.7rem;color:#6c757d;margin-top:4px;">💡 Licenses are optional. You can skip this step.</p>
                 </div>
             </div>
             
@@ -665,6 +668,9 @@ function setRole(role) {
     }, 100);
 }
 
+// ============================================================
+// FIXED: HANDLE SIGN UP - LICENSES OPTIONAL
+// ============================================================
 async function handleSignUp() {
     const name = document.getElementById('signupName').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
@@ -689,9 +695,12 @@ async function handleSignUp() {
     
     let companyName = '', companyDesc = '', licenses = [];
     
+    // For non-guest, require company name only
     if (entityType !== 'guest') {
         companyName = document.getElementById('signupCompany')?.value.trim() || '';
         companyDesc = document.getElementById('signupCompanyDesc')?.value.trim() || '';
+        
+        // Try to upload licenses if provided (optional)
         const fileInputs = ['bizLicense1', 'bizLicense2', 'bizLicense3'];
         for (const id of fileInputs) {
             const file = document.getElementById(id)?.files[0];
@@ -699,21 +708,20 @@ async function handleSignUp() {
                 try {
                     const url = await uploadImage(file, 'ethiopia_travel/licenses');
                     licenses.push(url);
+                    console.log('✅ License uploaded:', url);
                 } catch(e) {
                     console.error('License upload error:', e);
                 }
             }
         }
+        
         if (!companyName) {
             err.textContent = '❌ Company name required for business accounts';
             err.classList.add('show');
             return;
         }
-        if (licenses.length < 3) {
-            err.textContent = '❌ Please upload 3 business license copies';
-            err.classList.add('show');
-            return;
-        }
+        
+        console.log(`📄 ${licenses.length} license(s) uploaded`);
     }
     
     const userData = {
@@ -729,15 +737,18 @@ async function handleSignUp() {
     console.log('📤 Sending registration data:', { ...userData, password: '***' });
     
     try {
+        // Generate OTP
         const otp = generateOTP();
         tempOTP = otp;
         tempUserData = userData;
         
         console.log('🔑 Generated OTP:', otp);
+        console.log('📧 Sending OTP to:', email);
         
         await apiCall('/auth/send-otp', 'POST', { email, otp, type: 'verify' });
         err.classList.remove('show');
         
+        // ✅ SHOW OTP VERIFICATION BOX
         showOTPVerification(email, otp);
     } catch (e) {
         console.error('❌ Registration error:', e);
@@ -746,6 +757,9 @@ async function handleSignUp() {
     }
 }
 
+// ============================================================
+// FIXED: SHOW OTP VERIFICATION - WITH OTP DISPLAYED
+// ============================================================
 function showOTPVerification(email, otp) {
     console.log('📧 Showing OTP verification for:', email);
     console.log('🔑 OTP Code:', otp);
@@ -761,18 +775,28 @@ function showOTPVerification(email, otp) {
             <span style="font-size:3rem;">📧</span>
             <h2 style="color:#1b5e20;">Verify Your Email</h2>
             <p style="font-size:0.85rem;color:#6c757d;">Enter the 6-digit code</p>
-            <p style="font-size:0.75rem;color:#dc3545;background:#fff3cd;padding:8px;border-radius:8px;margin:8px 0;">
-                📱 Check your terminal/console for the OTP code
-            </p>
         </div>
+        
+        <div class="otp-display">
+            <p style="font-size:0.8rem;color:#6c757d;">Your OTP Code</p>
+            <div class="code">${otp}</div>
+            <p style="font-size:0.7rem;color:#6c757d;margin-top:4px;">Check your terminal/console for this code</p>
+        </div>
+        
+        <div class="otp-note">
+            📱 The code is also shown in your terminal/console
+        </div>
+        
         <div class="input-group">
-            <label>🔑 Verification Code</label>
+            <label>🔑 Enter Verification Code</label>
             <input type="text" id="otpInput" placeholder="Enter 6-digit code" maxlength="6" style="text-align:center;font-size:1.5rem;letter-spacing:8px;padding:16px;">
         </div>
+        
         <div style="display:flex;gap:8px;">
             <button class="login-btn" onclick="verifyOTP()" style="flex:1;">✅ Verify</button>
             <button class="btn btn-outline" onclick="resendOTP()" style="flex:0;padding:14px 20px;width:auto;border:2px solid #1b5e20;background:transparent;color:#1b5e20;border-radius:14px;font-weight:700;cursor:pointer;">🔄 Resend</button>
         </div>
+        
         <p class="login-error" id="otpError"></p>
         <p class="switch-link" onclick="isSignUp=false;renderLoginForm();">← Back to Login</p>
     `;
@@ -783,6 +807,9 @@ function showOTPVerification(email, otp) {
     }, 300);
 }
 
+// ============================================================
+// FIXED: VERIFY OTP
+// ============================================================
 async function verifyOTP() {
     const otp = document.getElementById('otpInput').value.trim();
     const err = document.getElementById('otpError');
@@ -821,6 +848,9 @@ async function verifyOTP() {
     }
 }
 
+// ============================================================
+// FIXED: RESEND OTP
+// ============================================================
 async function resendOTP() {
     if (!tempUserData) {
         showToast('❌ No pending registration found');
@@ -837,6 +867,10 @@ async function resendOTP() {
         showToast('📧 New code sent! Check your terminal.');
         const err = document.getElementById('otpError');
         if (err) err.classList.remove('show');
+        
+        // Update the OTP displayed on screen
+        const codeDisplay = document.querySelector('.otp-display .code');
+        if (codeDisplay) codeDisplay.textContent = otp;
     } catch (e) {
         const err = document.getElementById('otpError');
         if (err) {
@@ -846,6 +880,9 @@ async function resendOTP() {
     }
 }
 
+// ============================================================
+// HANDLE SIGN IN
+// ============================================================
 async function handleSignIn() {
     const email = document.getElementById('signinEmail').value.trim();
     const password = document.getElementById('signinPass').value;
@@ -873,6 +910,9 @@ async function handleSignIn() {
     }
 }
 
+// ============================================================
+// FORGOT PASSWORD
+// ============================================================
 async function handleForgotPassword() {
     const email = document.getElementById('resetEmail').value.trim();
     const err = document.getElementById('loginError');
@@ -929,6 +969,9 @@ async function confirmResetPassword(email, expectedOtp) {
     }
 }
 
+// ============================================================
+// LOGOUT
+// ============================================================
 function doLogout() {
     localStorage.removeItem('eta_token');
     localStorage.removeItem('eta_refresh_token');
@@ -2897,9 +2940,10 @@ console.log('   - Forgot Password Recovery');
 console.log('   - Guest Profile with Age/Sex/Passport');
 console.log('   - Price Calculator with People/Infants/Discount');
 console.log('   - Ethiopian Airlines 4% Discount');
-console.log('   - Business Registration with Licenses');
+console.log('   - Business Registration with Licenses (Optional)');
 console.log('   - Admin Approval Workflow');
 console.log('   - All 16 features intact');
+console.log('   - OTP displayed on screen for easy access');
 </script>
 </body>
 </html>
