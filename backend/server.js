@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: server.js - COMPLETE WITH YOUR CREDENTIALS
+// FILE: server.js - COMPLETE BACKEND
 // ============================================================
 
 const express = require('express');
@@ -16,7 +16,7 @@ const path = require('path');
 require('dotenv').config();
 
 // ============================================================
-// 1. CONFIGURATION - YOUR CREDENTIALS
+// 1. CONFIGURATION
 // ============================================================
 const app = express();
 const server = http.createServer(app);
@@ -33,14 +33,14 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Kurabachew:185582K
 const JWT_SECRET = process.env.JWT_SECRET || 'ethiopia_travel_super_secret_key_2024';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'ethiopia_travel_refresh_secret_key_2024';
 
-// YOUR CLOUDINARY CREDENTIALS
+// Cloudinary Config
 cloudinary.config({
-    cloud_name: 'fxszo8e5',
-    api_key: '296256252878274',
-    api_secret: 'DkwEBIKRWBa_6QXmmMOHVeuH-4U'
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5',
+    api_key: process.env.CLOUDINARY_API_KEY || '296256252878274',
+    api_secret: process.env.CLOUDINARY_API_SECRET || 'DkwEBIKRWBa_6QXmmMOHVeuH-4U'
 });
 
-// Email transporter - UPDATED WITH BETTER CONFIG
+// Email transporter
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     host: 'smtp.gmail.com',
@@ -407,10 +407,10 @@ app.post('/api/upload/base64', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 8. AUTH ROUTES - UPDATED WITH CONSOLE OTP
+// 8. AUTH ROUTES
 // ============================================================
 
-// SEND OTP - WITH CONSOLE LOG FOR TESTING
+// SEND OTP
 app.post('/api/auth/send-otp', async (req, res) => {
     try {
         const { email, otp, type = 'verify' } = req.body;
@@ -418,14 +418,13 @@ app.post('/api/auth/send-otp', async (req, res) => {
         await OTP.deleteMany({ email, type });
         await OTP.create({ email, otp, type });
         
-        // LOG OTP TO CONSOLE FOR TESTING
         console.log('========================================');
         console.log(`📧 OTP FOR ${email}: ${otp}`);
         console.log(`🔑 Verification code: ${otp}`);
         console.log(`⏰ Expires in 5 minutes`);
         console.log('========================================');
         
-        // Try to send email but don't fail if it doesn't work
+        // Try to send email
         try {
             await transporter.sendMail({
                 from: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
@@ -443,7 +442,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
             });
             console.log(`📧 Email sent to ${email}`);
         } catch (emailError) {
-            console.log(`⚠️ Email not sent, but OTP is logged above. Use the OTP from console.`);
+            console.log(`⚠️ Email not sent, but OTP is logged above`);
         }
         
         res.json({ success: true, message: 'OTP sent successfully' });
