@@ -1,5 +1,5 @@
 // ============================================================
-// FILE: server.js - COMPLETE BACKEND
+// FILE: server.js - COMPLETE BACKEND WITH PAYMENT SYSTEM
 // ============================================================
 
 const express = require('express');
@@ -155,8 +155,14 @@ const UserSchema = new mongoose.Schema({
     companyName: String,
     companyDesc: String,
     licenses: [String],
-    license: String,
-    tin: String,
+    // Balance fields for hosts
+    balance: { type: Number, default: 0 },
+    pendingBalance: { type: Number, default: 0 },
+    totalEarned: { type: Number, default: 0 },
+    // Withdrawal tracking
+    advanceWithdrawn: { type: Boolean, default: false },
+    remainingWithdrawn: { type: Boolean, default: false },
+    // Profile fields
     hotelName: String,
     hotelCity: String,
     hotelAmenities: String,
@@ -235,9 +241,10 @@ const BookingSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'paid', 'failed', 'refunded'],
+        enum: ['pending', 'paid', 'confirmed', 'failed', 'refunded'],
         default: 'pending'
     },
+    paymentScreenshot: String, // Guest uploads screenshot after Telebirr payment
     transactionId: String,
     status: {
         type: String,
@@ -253,6 +260,19 @@ const BookingSchema = new mongoose.Schema({
     discountApplied: String,
     receiptImage: String,
     specialRequests: String,
+    // Payment verification
+    paymentVerifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    paymentVerifiedAt: Date,
+    // Host payment tracking
+    hostPaidAdvance: { type: Boolean, default: false },
+    hostPaidRemaining: { type: Boolean, default: false },
+    advanceAmount: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
+    commissionAmount: { type: Number, default: 0 },
+    // Tour completion
+    tourCompleted: { type: Boolean, default: false },
+    guestConfirmedCompletion: { type: Boolean, default: false },
+    completedAt: Date,
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now }
 });
@@ -289,7 +309,7 @@ const NotificationSchema = new mongoose.Schema({
     message: { type: String, required: true },
     type: {
         type: String,
-        enum: ['info', 'success', 'warning', 'error', 'booking', 'payment'],
+        enum: ['info', 'success', 'warning', 'error', 'booking', 'payment', 'withdrawal'],
         default: 'info'
     },
     read: { type: Boolean, default: false },
@@ -314,7 +334,33 @@ const PaymentSchema = new mongoose.Schema({
         enum: ['pending', 'completed', 'failed', 'refunded'],
         default: 'pending'
     },
+    screenshot: String,
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    verifiedAt: Date,
     metadata: mongoose.Schema.Types.Mixed,
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Withdrawal Schema
+const WithdrawalSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    amount: { type: Number, required: true },
+    type: {
+        type: String,
+        enum: ['advance', 'remaining'],
+        default: 'advance'
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'completed', 'rejected'],
+        default: 'pending'
+    },
+    phoneNumber: String,
+    transactionId: String,
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    approvedAt: Date,
+    completedAt: Date,
     createdAt: { type: Date, default: Date.now }
 });
 
@@ -369,6 +415,7 @@ const Review = mongoose.model('Review', ReviewSchema);
 const Chat = mongoose.model('Chat', ChatSchema);
 const Notification = mongoose.model('Notification', NotificationSchema);
 const Payment = mongoose.model('Payment', PaymentSchema);
+const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
 const Hotel = mongoose.model('Hotel', HotelSchema);
 const Vehicle = mongoose.model('Vehicle', VehicleSchema);
 
@@ -424,7 +471,6 @@ app.post('/api/auth/send-otp', async (req, res) => {
         console.log(`⏰ Expires in 5 minutes`);
         console.log('========================================');
         
-        // Try to send email
         try {
             await transporter.sendMail({
                 from: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
@@ -544,7 +590,9 @@ app.post('/api/auth/login', async (req, res) => {
                 entityType: user.entityType,
                 status: user.status,
                 emailVerified: user.emailVerified,
-                companyName: user.companyName
+                companyName: user.companyName,
+                balance: user.balance || 0,
+                totalEarned: user.totalEarned || 0
             }
         });
     } catch (error) {
@@ -716,11 +764,28 @@ app.post('/api/tours', authenticate, upload.single('image'), async (req, res) =>
             );
             imageUrl = result.secure_url;
         }
+        
+        // Handle gallery images if sent
+        let galleryUrls = [];
+        if (req.body.gallery && Array.isArray(req.body.gallery)) {
+            for (const img of req.body.gallery) {
+                try {
+                    const result = await cloudinary.uploader.upload(img, {
+                        folder: 'ethiopia_travel/tours/gallery'
+                    });
+                    galleryUrls.push(result.secure_url);
+                } catch(e) {
+                    console.error('Gallery upload error:', e);
+                }
+            }
+        }
+        
         const tourData = {
             ...req.body,
             hostId: req.user._id,
             company: req.user.companyName || req.user.name,
-            image: imageUrl
+            image: imageUrl,
+            gallery: galleryUrls
         };
         const tour = new Tour(tourData);
         await tour.save();
@@ -806,7 +871,7 @@ app.delete('/api/tours/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 11. BOOKING ROUTES
+// 11. BOOKING ROUTES WITH PAYMENT SYSTEM
 // ============================================================
 app.post('/api/bookings', authenticate, async (req, res) => {
     try {
@@ -814,16 +879,28 @@ app.post('/api/bookings', authenticate, async (req, res) => {
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
         }
+        
+        // Calculate commission (10%)
+        const commission = req.body.totalPrice * 0.10;
+        const advanceAmount = req.body.totalPrice * 0.35;
+        const remainingAmount = req.body.totalPrice - commission - advanceAmount;
+        
         const bookingData = {
             ...req.body,
             userId: req.user._id,
             hostId: tour.hostId,
             userName: req.user.name,
             userEmail: req.user.email,
-            userPhone: req.user.phone
+            userPhone: req.user.phone,
+            commissionAmount: commission,
+            advanceAmount: advanceAmount,
+            remainingAmount: remainingAmount,
+            paymentStatus: 'pending',
+            status: 'pending'
         };
         const booking = new Booking(bookingData);
         await booking.save();
+        
         await createNotification(
             tour.hostId,
             'New Booking',
@@ -833,29 +910,330 @@ app.post('/api/bookings', authenticate, async (req, res) => {
         await createNotification(
             req.user._id,
             'Booking Created',
-            `Your booking for ${tour.name} has been created`,
+            `Your booking for ${tour.name} has been created. Please complete payment.`,
             'success'
         );
-        try {
-            await sendEmail(
-                req.user.email,
-                'Booking Confirmation',
-                `Hello ${req.user.name},\n\nYour booking for ${tour.name} has been created.\nDate: ${booking.date}\nPeople: ${booking.people}\nTotal: ${booking.totalPrice} ETB\n\nThank you,\nEthiopia Travel Team`
-            );
-        } catch (emailError) {
-            console.log('Email not sent:', emailError.message);
-        }
+        
         res.status(201).json(booking);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
+// Upload payment screenshot (Telebirr)
+app.post('/api/bookings/:id/payment-screenshot', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const { screenshot } = req.body;
+        if (screenshot) {
+            const result = await cloudinary.uploader.upload(screenshot, {
+                folder: 'ethiopia_travel/payments'
+            });
+            booking.paymentScreenshot = result.secure_url;
+            booking.paymentStatus = 'paid';
+            await booking.save();
+            
+            // Notify admin
+            const admin = await User.findOne({ entityType: 'admin' });
+            if (admin) {
+                await createNotification(
+                    admin._id,
+                    'Payment Screenshot Uploaded',
+                    `Payment screenshot uploaded for booking #${booking._id}`,
+                    'payment'
+                );
+            }
+        }
+        res.json({ success: true, screenshot: booking.paymentScreenshot });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin verify payment
+app.put('/api/bookings/:id/verify-payment', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        
+        booking.paymentStatus = 'confirmed';
+        booking.paymentVerifiedBy = req.user._id;
+        booking.paymentVerifiedAt = new Date();
+        booking.status = 'confirmed';
+        await booking.save();
+        
+        // Add to host's balance (after 10% commission)
+        const host = await User.findById(booking.hostId);
+        if (host) {
+            const amountAfterCommission = booking.totalPrice - booking.commissionAmount;
+            host.balance = (host.balance || 0) + amountAfterCommission;
+            host.totalEarned = (host.totalEarned || 0) + amountAfterCommission;
+            await host.save();
+            
+            await createNotification(
+                host._id,
+                'Payment Received',
+                `Payment of ${formatPrice(amountAfterCommission)} received for booking #${booking._id} (10% commission deducted)`,
+                'payment'
+            );
+        }
+        
+        await createNotification(
+            booking.userId,
+            'Payment Verified',
+            `Your payment for booking #${booking._id} has been verified.`,
+            'success'
+        );
+        
+        res.json({ success: true, booking });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Host request advance withdrawal (35%)
+app.post('/api/bookings/:id/request-advance', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.hostId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (booking.paymentStatus !== 'confirmed') {
+            return res.status(400).json({ error: 'Payment not confirmed yet' });
+        }
+        if (booking.hostPaidAdvance) {
+            return res.status(400).json({ error: 'Advance already paid' });
+        }
+        
+        // Create withdrawal request
+        const withdrawal = new Withdrawal({
+            userId: req.user._id,
+            bookingId: booking._id,
+            amount: booking.advanceAmount,
+            type: 'advance',
+            status: 'pending',
+            phoneNumber: req.user.phone
+        });
+        await withdrawal.save();
+        
+        await createNotification(
+            req.user._id,
+            'Advance Withdrawal Requested',
+            `Advance withdrawal of ${formatPrice(booking.advanceAmount)} requested for booking #${booking._id}`,
+            'withdrawal'
+        );
+        
+        // Notify admin
+        const admin = await User.findOne({ entityType: 'admin' });
+        if (admin) {
+            await createNotification(
+                admin._id,
+                'Advance Withdrawal Request',
+                `Host ${req.user.name} requested advance withdrawal of ${formatPrice(booking.advanceAmount)}`,
+                'withdrawal'
+            );
+        }
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin approve advance withdrawal
+app.put('/api/withdrawals/:id/approve-advance', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const withdrawal = await Withdrawal.findById(req.params.id);
+        if (!withdrawal) {
+            return res.status(404).json({ error: 'Withdrawal not found' });
+        }
+        
+        withdrawal.status = 'approved';
+        withdrawal.approvedBy = req.user._id;
+        withdrawal.approvedAt = new Date();
+        await withdrawal.save();
+        
+        const booking = await Booking.findById(withdrawal.bookingId);
+        if (booking) {
+            booking.hostPaidAdvance = true;
+            await booking.save();
+        }
+        
+        await createNotification(
+            withdrawal.userId,
+            'Advance Withdrawal Approved',
+            `Advance withdrawal of ${formatPrice(withdrawal.amount)} has been approved`,
+            'success'
+        );
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Guest confirms tour completion
+app.put('/api/bookings/:id/confirm-completion', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        booking.guestConfirmedCompletion = true;
+        booking.tourCompleted = true;
+        booking.completedAt = new Date();
+        await booking.save();
+        
+        await createNotification(
+            booking.hostId,
+            'Tour Completed',
+            `Guest confirmed completion of tour for booking #${booking._id}`,
+            'success'
+        );
+        
+        res.json({ success: true, booking });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Host request remaining withdrawal (after tour completion)
+app.post('/api/bookings/:id/request-remaining', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.hostId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (!booking.guestConfirmedCompletion) {
+            return res.status(400).json({ error: 'Guest has not confirmed tour completion' });
+        }
+        if (booking.hostPaidRemaining) {
+            return res.status(400).json({ error: 'Remaining balance already paid' });
+        }
+        
+        const withdrawal = new Withdrawal({
+            userId: req.user._id,
+            bookingId: booking._id,
+            amount: booking.remainingAmount,
+            type: 'remaining',
+            status: 'pending',
+            phoneNumber: req.user.phone
+        });
+        await withdrawal.save();
+        
+        await createNotification(
+            req.user._id,
+            'Remaining Withdrawal Requested',
+            `Remaining withdrawal of ${formatPrice(booking.remainingAmount)} requested for booking #${booking._id}`,
+            'withdrawal'
+        );
+        
+        const admin = await User.findOne({ entityType: 'admin' });
+        if (admin) {
+            await createNotification(
+                admin._id,
+                'Remaining Withdrawal Request',
+                `Host ${req.user.name} requested remaining withdrawal of ${formatPrice(booking.remainingAmount)}`,
+                'withdrawal'
+            );
+        }
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin approve remaining withdrawal
+app.put('/api/withdrawals/:id/approve-remaining', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const withdrawal = await Withdrawal.findById(req.params.id);
+        if (!withdrawal) {
+            return res.status(404).json({ error: 'Withdrawal not found' });
+        }
+        
+        withdrawal.status = 'approved';
+        withdrawal.approvedBy = req.user._id;
+        withdrawal.approvedAt = new Date();
+        await withdrawal.save();
+        
+        const booking = await Booking.findById(withdrawal.bookingId);
+        if (booking) {
+            booking.hostPaidRemaining = true;
+            await booking.save();
+        }
+        
+        await createNotification(
+            withdrawal.userId,
+            'Remaining Withdrawal Approved',
+            `Remaining withdrawal of ${formatPrice(withdrawal.amount)} has been approved`,
+            'success'
+        );
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get host balance and withdrawals
+app.get('/api/host/balance', authenticate, async (req, res) => {
+    try {
+        if (req.user.entityType !== 'tour_company' && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const bookings = await Booking.find({ 
+            hostId: req.user._id,
+            paymentStatus: 'confirmed'
+        });
+        
+        const totalEarned = bookings.reduce((sum, b) => sum + (b.totalPrice - (b.commissionAmount || 0)), 0);
+        const advancePaid = bookings.filter(b => b.hostPaidAdvance).reduce((sum, b) => sum + (b.advanceAmount || 0), 0);
+        const remainingPaid = bookings.filter(b => b.hostPaidRemaining).reduce((sum, b) => sum + (b.remainingAmount || 0), 0);
+        const availableBalance = totalEarned - advancePaid - remainingPaid;
+        
+        const withdrawals = await Withdrawal.find({ userId: req.user._id }).sort({ createdAt: -1 });
+        
+        res.json({
+            balance: req.user.balance || 0,
+            totalEarned: req.user.totalEarned || 0,
+            availableBalance,
+            advancePaid,
+            remainingPaid,
+            withdrawals
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all bookings for admin
 app.get('/api/bookings', authenticate, authorize('admin'), async (req, res) => {
     try {
         const bookings = await Booking.find()
             .populate('tourId', 'name')
             .populate('userId', 'name email')
+            .populate('hostId', 'name companyName')
             .sort({ createdAt: -1 });
         res.json(bookings);
     } catch (error) {
@@ -863,6 +1241,7 @@ app.get('/api/bookings', authenticate, authorize('admin'), async (req, res) => {
     }
 });
 
+// Get user bookings
 app.get('/api/bookings/user/:userId', authenticate, async (req, res) => {
     try {
         if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
@@ -870,6 +1249,7 @@ app.get('/api/bookings/user/:userId', authenticate, async (req, res) => {
         }
         const bookings = await Booking.find({ userId: req.params.userId })
             .populate('tourId', 'name location image price duration')
+            .populate('hostId', 'name companyName')
             .sort({ createdAt: -1 });
         res.json(bookings);
     } catch (error) {
@@ -877,6 +1257,7 @@ app.get('/api/bookings/user/:userId', authenticate, async (req, res) => {
     }
 });
 
+// Get host bookings
 app.get('/api/bookings/host/:hostId', authenticate, async (req, res) => {
     try {
         if (req.params.hostId !== req.user._id.toString() && req.user.entityType !== 'admin') {
@@ -892,6 +1273,7 @@ app.get('/api/bookings/host/:hostId', authenticate, async (req, res) => {
     }
 });
 
+// Update booking status
 app.put('/api/bookings/:id/status', authenticate, async (req, res) => {
     try {
         const { status } = req.body;
@@ -911,54 +1293,7 @@ app.put('/api/bookings/:id/status', authenticate, async (req, res) => {
             `Your booking has been ${status}`,
             status === 'confirmed' ? 'success' : 'error'
         );
-        try {
-            await sendEmail(
-                booking.userEmail,
-                `Booking ${status}`,
-                `Hello ${booking.userName},\n\nYour booking has been ${status}.\n\nBest regards,\nEthiopia Travel Team`
-            );
-        } catch (emailError) {
-            console.log('Email not sent:', emailError.message);
-        }
         res.json({ success: true, status });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.put('/api/bookings/:id/receipt', authenticate, async (req, res) => {
-    try {
-        const booking = await Booking.findById(req.params.id);
-        if (!booking) {
-            return res.status(404).json({ error: 'Booking not found' });
-        }
-        if (booking.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-        if (req.body.receiptImage) {
-            const result = await cloudinary.uploader.upload(req.body.receiptImage, {
-                folder: 'ethiopia_travel/receipts'
-            });
-            booking.receiptImage = result.secure_url;
-            await booking.save();
-        }
-        res.json({ success: true, receiptImage: booking.receiptImage });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.delete('/api/bookings/:id', authenticate, async (req, res) => {
-    try {
-        const booking = await Booking.findById(req.params.id);
-        if (!booking) {
-            return res.status(404).json({ error: 'Booking not found' });
-        }
-        if (booking.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-        await booking.deleteOne();
-        res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -1414,67 +1749,7 @@ app.delete('/api/vehicles/:id', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 17. PAYMENT ROUTES
-// ============================================================
-app.post('/api/payments/initialize', authenticate, async (req, res) => {
-    try {
-        const { bookingId, amount, phone, email, name } = req.body;
-        const booking = await Booking.findById(bookingId);
-        if (!booking) {
-            return res.status(404).json({ error: 'Booking not found' });
-        }
-        const tx_ref = 'TX-' + Date.now() + '-' + Math.random().toString(36).substring(2, 8);
-        const payment = new Payment({
-            userId: req.user._id,
-            bookingId: booking._id,
-            amount: amount || booking.totalPrice,
-            currency: 'ETB',
-            method: 'chapa',
-            transactionId: tx_ref,
-            status: 'pending'
-        });
-        await payment.save();
-        
-        setTimeout(async () => {
-            payment.status = 'completed';
-            await payment.save();
-            booking.paymentStatus = 'paid';
-            booking.status = 'confirmed';
-            booking.transactionId = tx_ref;
-            await booking.save();
-            await createNotification(
-                booking.userId,
-                'Payment Successful',
-                `Your payment of ${payment.amount} ETB has been confirmed`,
-                'success'
-            );
-        }, 2000);
-        
-        res.json({
-            success: true,
-            checkout_url: `${req.headers.origin}/payment/success?tx_ref=${tx_ref}`,
-            tx_ref: tx_ref
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/payments/user/:userId', authenticate, async (req, res) => {
-    try {
-        if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-        const payments = await Payment.find({ userId: req.params.userId })
-            .sort({ createdAt: -1 });
-        res.json(payments);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// ============================================================
-// 18. EMAIL SERVICE
+// 17. EMAIL SERVICE
 // ============================================================
 async function sendEmail(to, subject, message) {
     try {
@@ -1507,7 +1782,7 @@ async function sendEmail(to, subject, message) {
 }
 
 // ============================================================
-// 19. ANALYTICS ROUTES
+// 18. ANALYTICS ROUTES
 // ============================================================
 app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -1517,18 +1792,24 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
         const totalVehicles = await Vehicle.countDocuments();
         const totalBookings = await Booking.countDocuments();
         const totalRevenue = await Booking.aggregate([
-            { $match: { status: { $in: ['confirmed', 'completed'] } } },
+            { $match: { paymentStatus: 'confirmed' } },
             { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        ]);
+        const totalCommission = await Booking.aggregate([
+            { $match: { paymentStatus: 'confirmed' } },
+            { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
         ]);
         const recentBookings = await Booking.find()
             .sort({ createdAt: -1 })
             .limit(10)
             .populate('tourId', 'name')
-            .populate('userId', 'name email');
+            .populate('userId', 'name email')
+            .populate('hostId', 'name companyName');
         const popularTours = await Tour.find()
             .sort({ bookings: -1, rating: -1 })
             .limit(5)
             .select('name rating reviews price');
+        const pendingWithdrawals = await Withdrawal.find({ status: 'pending' }).countDocuments();
         res.json({
             totalUsers,
             totalTours,
@@ -1536,6 +1817,8 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
             totalVehicles,
             totalBookings,
             totalRevenue: totalRevenue[0]?.total || 0,
+            totalCommission: totalCommission[0]?.total || 0,
+            pendingWithdrawals,
             recentBookings,
             popularTours
         });
@@ -1543,6 +1826,13 @@ app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => 
         res.status(500).json({ error: error.message });
     }
 });
+
+// ============================================================
+// 19. HELPER: FORMAT PRICE
+// ============================================================
+function formatPrice(amount) {
+    return `Br ${Math.round(amount || 0).toLocaleString()}`;
+}
 
 // ============================================================
 // 20. HEALTH CHECK
