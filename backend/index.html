@@ -216,6 +216,11 @@
         
         .withdrawal-card { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); border-radius: 12px; padding: 16px; margin: 8px 0; border: 1px solid #81c784; }
         .payment-card { background: linear-gradient(135deg, #e3f2fd, #bbdefb); border-radius: 12px; padding: 16px; margin: 8px 0; border: 1px solid #64b5f6; }
+        .forgot-password-link { text-align: center; margin-top: 8px; color: #6c757d; cursor: pointer; font-size: 0.8rem; }
+        .forgot-password-link:hover { text-decoration: underline; }
+        .verification-badge { background: #d4edda; color: #155724; padding: 2px 10px; border-radius: 20px; font-size: 0.6rem; font-weight: 600; margin-left: 4px; }
+        .btn-warning { background: #f59e0b; color: white; border: none; padding: 4px 10px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.7rem; }
+        .btn-warning:hover { background: #d97706; }
     </style>
 </head>
 <body>
@@ -288,7 +293,7 @@
 
 <script>
 // ===========================================================
-// COMPLETE JAVASCRIPT - ALL FEATURES INCLUDED
+// COMPLETE JAVASCRIPT - ALL FIXES INCLUDED
 // ============================================================
 
 // CONFIGURATION
@@ -322,6 +327,10 @@ let calendarData = {};
 let tempOTP = null;
 let tempUserData = null;
 let currentBookingId = null;
+let calcPeople = 1;
+let calcInfants = 0;
+let calcEthiopian = false;
+let currentTourPrice = 0;
 
 // ============================================================
 // TRANSLATIONS
@@ -1088,30 +1097,35 @@ async function setupApp() {
         ];
     }
     nav.innerHTML = navButtons.map(b => `
-        <button class="nav-tab active" data-page="${b.page}" onclick="navigateTo('${b.page}')">
+        <button class="nav-tab ${currentPage === b.page ? 'active' : ''}" data-page="${b.page}" onclick="navigateTo('${b.page}')">
             <i class="fas ${b.icon}"></i> ${b.label}
         </button>
     `).join('');
     navigateTo('home');
 }
+
 // ============================================================
 // SOCKET SETUP
 // ============================================================
 function setupSocket() {
     if (socket) return;
-    socket = io(SOCKET_URL || undefined);
-    socket.on('connect', () => {
-        console.log('🔌 Socket connected');
-        if (currentUser) socket.emit('join_room', currentUser._id);
-    });
-    socket.on('new_message', (data) => {
-        if (currentPage === 'chat') loadChatConversations();
-        showToast(`💬 New message from ${data.from}`);
-    });
-    socket.on('new_notification', (data) => {
-        showToast(`🔔 ${data.title}: ${data.message}`);
-        if (currentPage === 'notifications') showNotifications();
-    });
+    try {
+        socket = io(SOCKET_URL || window.location.origin);
+        socket.on('connect', () => {
+            console.log('🔌 Socket connected');
+            if (currentUser) socket.emit('join_room', currentUser._id);
+        });
+        socket.on('new_message', (data) => {
+            if (currentPage === 'chat') loadChatConversations();
+            showToast(`💬 New message from ${data.from}`);
+        });
+        socket.on('new_notification', (data) => {
+            showToast(`🔔 ${data.title}: ${data.message}`);
+            if (currentPage === 'notifications') showNotifications();
+        });
+    } catch (e) {
+        console.log('Socket setup error (non-critical):', e);
+    }
 }
 
 // ============================================================
@@ -1122,6 +1136,7 @@ async function showHome() {
     try {
         const tours = await apiCall('/tours');
         const featured = tours.filter(t => t.featured && t.status === 'approved');
+        const approvedTours = tours.filter(t => t.status === 'approved');
         c.innerHTML = `
             <div style="background:linear-gradient(135deg,#0a3a0e,#1f5e28);border-radius:24px;padding:24px 20px;margin-bottom:24px;color:white;text-align:center;box-shadow:0 8px 32px rgba(27,94,32,0.3);">
                 <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin-bottom:8px;">
@@ -1154,7 +1169,7 @@ async function showHome() {
             </div>
             <h2 class="section-title" style="margin-top:32px;">🔥 ${t('popular')}</h2>
             <div class="grid-3">
-                ${tours.filter(t => !t.featured && t.status === 'approved').slice(0, 6).map(t => renderTourCard(t)).join('')}
+                ${approvedTours.filter(t => !t.featured).slice(0, 6).map(t => renderTourCard(t)).join('')}
             </div>
         `;
     } catch (e) {
@@ -1321,13 +1336,14 @@ async function downloadPDF(tourId) {
 }
 
 // ============================================================
-// PAGE: TOUR DETAIL
+// PAGE: TOUR DETAIL - FIXED
 // ============================================================
 async function showTourDetail(tourId) {
     try {
         const tour = await apiCall('/tours/' + tourId);
         const reviews = await apiCall('/reviews/tour/' + tourId);
         const imageUrl = tour.image || (tour.gallery && tour.gallery.length ? tour.gallery[0] : null);
+        currentTourPrice = tour.price;
         
         const galleryHtml = tour.gallery && tour.gallery.length > 0 ? `
             <div class="gallery-grid">
@@ -1372,17 +1388,17 @@ async function showTourDetail(tourId) {
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     <div>
                         <label style="font-size:0.75rem;font-weight:600;">👥 Number of People</label>
-                        <input type="number" id="calcPeople" value="1" min="1" max="50" onchange="updatePriceCalc(${tour.price})" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
+                        <input type="number" id="calcPeople" value="1" min="1" max="50" onchange="updatePriceCalc()" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
                     </div>
                     <div>
                         <label style="font-size:0.75rem;font-weight:600;">👶 Infants (Free)</label>
-                        <input type="number" id="calcInfants" value="0" min="0" max="10" onchange="updatePriceCalc(${tour.price})" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
+                        <input type="number" id="calcInfants" value="0" min="0" max="10" onchange="updatePriceCalc()" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
                     </div>
                 </div>
                 <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
                     <div>
                         <label style="font-size:0.75rem;font-weight:600;">✈️ Ethiopian Airlines Passenger</label>
-                        <select id="calcEthiopian" onchange="updatePriceCalc(${tour.price})" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
+                        <select id="calcEthiopian" onchange="updatePriceCalc()" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;">
                             <option value="no">No</option>
                             <option value="yes">Yes (4% off)</option>
                         </select>
@@ -1418,7 +1434,7 @@ async function showTourDetail(tourId) {
                 <span style="color:#6c757d;">/ person</span>
             </div>
             ${tour.status === 'approved' ? `
-                <button class="btn btn-primary btn-block" onclick="openBookingWithProfile('${tour._id}', ${tour.price})">📅 ${t('bookNow')}</button>
+                <button class="btn btn-primary btn-block" onclick="closeModal();openBookingWithProfile('${tour._id}', ${tour.price})">📅 ${t('bookNow')}</button>
             ` : '<div style="padding:10px;background:#fff3cd;border-radius:12px;text-align:center;color:#856404;">⏳ Pending approval</div>'}
             <button class="btn ${liked ? 'btn-danger' : 'btn-outline'} btn-block" onclick="toggleWishlist('${tour._id}');closeModal();" style="margin-top:8px;">
                 <i class="fas fa-heart"></i> ${liked ? 'Remove' : 'Add'} to Wishlist
@@ -1426,17 +1442,18 @@ async function showTourDetail(tourId) {
             <button class="btn btn-outline btn-block" onclick="closeModal();showAddReview('${tour._id}')" style="margin-top:8px;">⭐ Write Review</button>
         `);
         
-        setTimeout(() => updatePriceCalc(tour.price), 100);
+        setTimeout(() => updatePriceCalc(), 100);
     } catch (e) { showToast('❌ ' + e.message); }
 }
 
 // ============================================================
-// PRICE CALCULATOR
+// PRICE CALCULATOR - FIXED
 // ============================================================
-function updatePriceCalc(basePrice) {
+function updatePriceCalc() {
     const people = parseInt(document.getElementById('calcPeople')?.value) || 1;
     const infants = parseInt(document.getElementById('calcInfants')?.value) || 0;
     const isEthiopian = document.getElementById('calcEthiopian')?.value === 'yes';
+    const basePrice = currentTourPrice || 0;
     
     let total = basePrice * people;
     let breakdown = `Base: ${formatPrice(basePrice)} × ${people} person${people > 1 ? 's' : ''}`;
@@ -1541,6 +1558,7 @@ async function submitReview(tourId) {
         viewTourDetail(tourId);
     } catch (e) { showToast('❌ ' + e.message); }
 }
+
 // ============================================================
 // PAGE: TOURS
 // ============================================================
@@ -1548,6 +1566,7 @@ async function showTours() {
     const c = document.getElementById('mainContent');
     try {
         const tours = await apiCall('/tours');
+        const approvedTours = tours.filter(t => t.status === 'approved');
         c.innerHTML = `
             <h2 class="section-title">🏛️ All Tours</h2>
             <p class="section-subtitle">Discover amazing experiences across Ethiopia</p>
@@ -1565,7 +1584,7 @@ async function showTours() {
                 <button class="btn btn-primary" onclick="filterTours()" style="border-radius:30px;padding:12px 28px;">${t('search')}</button>
             </div>
             <div id="tourResults" class="grid-3">
-                ${tours.filter(t => t.status === 'approved').map(t => renderTourCard(t)).join('')}
+                ${approvedTours.map(t => renderTourCard(t)).join('')}
             </div>
             <button class="btn btn-outline" onclick="navigateTo('home')" style="margin-top:16px;">← Back</button>
         `;
@@ -1823,7 +1842,7 @@ async function showWishlist() {
     const c = document.getElementById('mainContent');
     try {
         const tours = await apiCall('/tours');
-        const items = tours.filter(t => wishlistItems.includes(t._id));
+        const items = tours.filter(t => wishlistItems.includes(t._id) && t.status === 'approved');
         c.innerHTML = `
             <h2 class="section-title">❤️ ${t('wishlist')}</h2>
             <p class="section-subtitle">${items.length} tours saved</p>
@@ -1920,7 +1939,7 @@ async function confirmTourCompletion(bookingId) {
 }
 
 // ============================================================
-// BOOKING WITH GUEST PROFILE AND TELEBIRR PAYMENT
+// BOOKING WITH GUEST PROFILE AND TELEBIRR PAYMENT - FIXED
 // ============================================================
 function openBookingWithProfile(tourId, basePrice) {
     const people = parseInt(document.getElementById('calcPeople')?.value) || 1;
@@ -1931,6 +1950,7 @@ function openBookingWithProfile(tourId, basePrice) {
     if (isEthiopian) total = total * 0.96;
     
     currentBookingId = tourId;
+    currentTourPrice = basePrice;
     
     showModal(`
         <div class="modal-header">
@@ -2094,6 +2114,7 @@ async function submitPaymentScreenshot(bookingId) {
         showToast('❌ ' + e.message);
     }
 }
+
 // ============================================================
 // HOST: BALANCE AND WITHDRAWALS
 // ============================================================
@@ -2597,6 +2618,7 @@ async function resendVerificationEmail() {
         showOTPVerification(currentUser.email, otp);
     } catch (e) { showToast('❌ ' + e.message); }
 }
+
 // ============================================================
 // HOST: DASHBOARD
 // ============================================================
@@ -3102,6 +3124,7 @@ async function addVehicle() {
         navigateTo('vehicleDashboard');
     } catch (e) { showToast('❌ ' + e.message); }
 }
+
 // ============================================================
 // ADMIN DASHBOARD
 // ============================================================
@@ -3369,6 +3392,7 @@ console.log('   - Guest Completion Confirmation');
 console.log('   - Remaining Balance Withdrawal');
 console.log('   - OTP displayed on screen for easy access');
 console.log('   - All 16+ features working');
+console.log('   - BOOKING SYSTEM FIXED!');
 </script>
 </body>
 </html>
