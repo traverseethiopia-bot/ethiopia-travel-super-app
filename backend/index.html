@@ -227,6 +227,11 @@
         .booking-card .booking-title { font-weight: 700; font-size: 1rem; }
         .booking-card .booking-details { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; font-size: 0.8rem; color: #6c757d; }
         .booking-card .booking-price { font-weight: 700; color: #1b5e20; font-size: 1.1rem; }
+        
+        /* Booking button styles */
+        .btn-book-now { background: #28a745; color: white; border: none; padding: 8px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+        .btn-book-now:hover { background: #218838; }
+        .btn-unavailable { background: #6c757d; color: white; border: none; padding: 8px; border-radius: 12px; font-size: 0.8rem; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -299,7 +304,7 @@
 
 <script>
 // ===========================================================
-// COMPLETE JAVASCRIPT - ALL FIXES INCLUDED
+// COMPLETE JAVASCRIPT - FIXED VERSION
 // ============================================================
 
 // CONFIGURATION
@@ -1180,27 +1185,28 @@ async function showHome() {
 }
 
 // ============================================================
-// RENDER TOUR CARD
+// RENDER TOUR CARD - FIXED WITH BOOK NOW BUTTON
 // ============================================================
 function renderTourCard(tour) {
     const imageUrl = tour.image || (tour.gallery && tour.gallery.length ? tour.gallery[0] : null);
     const liked = wishlistItems.some(w => w === tour._id);
     const inCompare = compareList.some(c => c === tour._id);
     const galleryImages = tour.gallery && tour.gallery.length > 1 ? tour.gallery.slice(1, 4) : [];
+    const isBookable = tour.status === 'approved';
     
     return `
         <div class="card" style="border-radius:20px;">
             <div class="card-img" style="height:200px;position:relative;">
-                ${imageUrl ? `<img src="${imageUrl}" alt="${tour.name}">` : `<span style="font-size:4rem;">🏛️</span>`}
+                ${imageUrl ? `<img src="${imageUrl}" alt="${tour.name}" onerror="this.style.display='none';this.parentElement.innerHTML='<span style=\\'font-size:4rem;\\'>🏛️</span>'">` : `<span style="font-size:4rem;">🏛️</span>`}
                 <button class="wishlist-btn ${liked ? 'liked' : ''}" onclick="event.stopPropagation();toggleWishlist('${tour._id}')"><i class="fas fa-heart"></i></button>
                 ${tour.featured ? '<span style="position:absolute;top:8px;left:8px;background:#fbbf24;color:#1e1e2f;padding:2px 14px;border-radius:20px;font-size:0.6rem;font-weight:700;">⭐ FEATURED</span>' : ''}
                 ${inCompare ? '<span style="position:absolute;top:8px;right:50px;background:#6c5ce7;color:white;padding:2px 12px;border-radius:20px;font-size:0.5rem;">COMPARE</span>' : ''}
                 ${tour.status === 'pending' ? '<span style="position:absolute;bottom:8px;left:8px;background:#f59e0b;color:white;padding:2px 12px;border-radius:20px;font-size:0.6rem;font-weight:600;">⏳ Pending</span>' : ''}
-                ${tour.status === 'approved' ? '<span style="position:absolute;bottom:8px;left:8px;background:#22c55e;color:white;padding:2px 12px;border-radius:20px;font-size:0.6rem;font-weight:600;">✅ Approved</span>' : ''}
+                ${tour.status === 'approved' ? '<span style="position:absolute;bottom:8px;left:8px;background:#22c55e;color:white;padding:2px 12px;border-radius:20px;font-size:0.6rem;font-weight:600;">✅ Available</span>' : ''}
             </div>
             ${galleryImages.length > 0 ? `
                 <div style="display:flex;gap:4px;padding:8px 14px 0 14px;overflow-x:auto;">
-                    ${galleryImages.map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;" onclick="showToast('📸 Gallery image')">`).join('')}
+                    ${galleryImages.map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;cursor:pointer;" onclick="showToast('📸 Gallery image')" onerror="this.style.display='none'">`).join('')}
                 </div>
             ` : ''}
             <div class="card-body">
@@ -1209,6 +1215,15 @@ function renderTourCard(tour) {
                 <div class="rating">${getStarRating(tour.rating || 0)} ${tour.rating || 0} (${tour.reviews || 0} reviews)</div>
                 <div class="price">${formatPrice(tour.price)} <span>/ person</span></div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+                    ${isBookable ? `
+                        <button class="btn btn-book-now" onclick="event.stopPropagation();openBookingWithProfile('${tour._id}')" style="flex:1;">
+                            📅 ${t('bookNow')}
+                        </button>
+                    ` : `
+                        <button class="btn btn-unavailable" style="flex:1;" disabled>
+                            ⏳ Unavailable
+                        </button>
+                    `}
                     <button class="btn btn-primary" onclick="viewTourDetail('${tour._id}')" style="flex:1;">${t('viewDetails')}</button>
                     <button class="btn btn-outline btn-sm" onclick="toggleCompare('${tour._id}')" style="flex:0;width:auto;padding:6px 12px;">
                         <i class="fas fa-balance-scale"></i>
@@ -1349,7 +1364,7 @@ async function showTourDetail(tourId) {
         
         const galleryHtml = tour.gallery && tour.gallery.length > 0 ? `
             <div class="gallery-grid">
-                ${tour.gallery.map(img => `<img src="${img}" alt="Gallery" onclick="showToast('📸 Gallery image')" style="cursor:pointer;">`).join('')}
+                ${tour.gallery.map(img => `<img src="${img}" alt="Gallery" onclick="showToast('📸 Gallery image')" style="cursor:pointer;" onerror="this.style.display='none'">`).join('')}
             </div>
         ` : '';
         
@@ -1359,7 +1374,7 @@ async function showTourDetail(tourId) {
                 <div class="itinerary-day">
                     <h4>${day.day || `Day ${index + 1}`}: ${day.title || 'Activity'}</h4>
                     <p>${day.description || 'No description provided'}</p>
-                    ${day.image ? `<img src="${day.image}" alt="Day ${index + 1}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:6px;">` : ''}
+                    ${day.image ? `<img src="${day.image}" alt="Day ${index + 1}" style="width:100%;max-height:200px;object-fit:cover;border-radius:8px;margin-top:6px;" onerror="this.style.display='none'">` : ''}
                 </div>
             `).join('')}
         ` : '';
@@ -1367,7 +1382,7 @@ async function showTourDetail(tourId) {
         
         showModal(`
             <div class="modal-header">
-                <h2>${imageUrl ? `<img src="${imageUrl}" style="height:40px;width:40px;object-fit:cover;border-radius:8px;vertical-align:middle;margin-right:10px;">` : '🏛️'} ${tour.name}</h2>
+                <h2>${imageUrl ? `<img src="${imageUrl}" style="height:40px;width:40px;object-fit:cover;border-radius:8px;vertical-align:middle;margin-right:10px;" onerror="this.style.display='none'">` : '🏛️'} ${tour.name}</h2>
                 <button class="modal-close" onclick="closeModal()">✕</button>
             </div>
             <div style="margin-bottom:12px;">
@@ -1380,7 +1395,7 @@ async function showTourDetail(tourId) {
                     <strong>Status:</strong> <span class="status-badge ${tour.status}">${tour.status}</span>
                 </div>
             </div>
-            ${tour.image ? `<img src="${tour.image}" style="width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin-bottom:12px;">` : ''}
+            ${tour.image ? `<img src="${tour.image}" style="width:100%;max-height:300px;object-fit:cover;border-radius:12px;margin-bottom:12px;" onerror="this.style.display='none'">` : ''}
             ${galleryHtml}
             <p style="margin:10px 0;">${tour.description}</p>
             ${itineraryHtml}
@@ -1427,7 +1442,7 @@ async function showTourDetail(tourId) {
                 <div style="border-bottom:1px solid #e2e8f0;padding:8px 0;">
                     <div><strong>${r.userName}</strong> ${getStarRating(r.rating)}</div>
                     <p style="font-size:0.85rem;">${r.comment}</p>
-                    ${r.images && r.images.length ? r.images.map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;margin:4px;">`).join('') : ''}
+                    ${r.images && r.images.length ? r.images.map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;margin:4px;" onerror="this.style.display='none'">`).join('') : ''}
                 </div>
             `).join('') || '<p style="color:#6c757d;">No reviews yet.</p>'}
             
@@ -1620,7 +1635,7 @@ async function showHotels() {
                 ${hotels.map(h => `
                     <div class="card">
                         <div class="card-img" style="height:180px;">
-                            ${h.gallery && h.gallery.length ? `<img src="${h.gallery[0]}" alt="${h.name}">` : `<span style="font-size:3rem;">${h.icon || '🏨'}</span>`}
+                            ${h.gallery && h.gallery.length ? `<img src="${h.gallery[0]}" alt="${h.name}" onerror="this.style.display='none'">` : `<span style="font-size:3rem;">${h.icon || '🏨'}</span>`}
                         </div>
                         <div class="card-body">
                             <h3>${h.name}</h3>
@@ -1630,7 +1645,7 @@ async function showHotels() {
                             <div style="font-size:0.75rem;color:#6c757d;">${h.amenities}</div>
                             ${h.gallery && h.gallery.length > 1 ? `
                                 <div style="display:flex;gap:4px;margin-top:6px;overflow-x:auto;">
-                                    ${h.gallery.slice(1, 4).map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">`).join('')}
+                                    ${h.gallery.slice(1, 4).map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">`).join('')}
                                 </div>
                             ` : ''}
                             <button class="btn btn-primary" onclick="bookHotel('${h._id}')">Book Now</button>
@@ -1698,7 +1713,7 @@ async function showGuides() {
                 ${guides.map(g => `
                     <div class="card">
                         <div class="card-img" style="background:linear-gradient(145deg,#6c5ce7,#a29bfe);height:160px;">
-                            ${g.profileImage ? `<img src="${g.profileImage}" alt="${g.name}">` : `<span style="font-size:3rem;">👨‍🏫</span>`}
+                            ${g.profileImage ? `<img src="${g.profileImage}" alt="${g.name}" onerror="this.style.display='none'">` : `<span style="font-size:3rem;">👨‍🏫</span>`}
                         </div>
                         <div class="card-body">
                             <h3>${g.name}</h3>
@@ -1769,7 +1784,7 @@ async function showVehicles() {
                 ${vehicles.map(v => `
                     <div class="card">
                         <div class="card-img" style="background:linear-gradient(145deg,#e74c3c,#f39c12);height:160px;">
-                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" alt="${v.type}">` : `<span style="font-size:3rem;">${v.icon || '🚙'}</span>`}
+                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" alt="${v.type}" onerror="this.style.display='none'">` : `<span style="font-size:3rem;">${v.icon || '🚙'}</span>`}
                         </div>
                         <div class="card-body">
                             <h3>${v.type}</h3>
@@ -1779,7 +1794,7 @@ async function showVehicles() {
                             <div style="font-size:0.75rem;color:#6c757d;">✨ ${v.features}</div>
                             ${v.gallery && v.gallery.length > 1 ? `
                                 <div style="display:flex;gap:4px;margin-top:6px;overflow-x:auto;">
-                                    ${v.gallery.slice(1, 4).map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;">`).join('')}
+                                    ${v.gallery.slice(1, 4).map(img => `<img src="${img}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">`).join('')}
                                 </div>
                             ` : ''}
                             <button class="btn btn-primary" onclick="bookVehicle('${v._id}')">Rent Now</button>
@@ -1855,12 +1870,11 @@ async function showWishlist() {
 }
 
 // ============================================================
-// PAGE: MY BOOKINGS - FIXED FOR GUESTS
+// PAGE: MY BOOKINGS - FIXED
 // ============================================================
 async function showMyBookings() {
     const c = document.getElementById('mainContent');
     try {
-        // Get bookings for the current user
         const bookings = await apiCall('/bookings/user/' + currentUser._id);
         
         console.log('📋 Bookings loaded:', bookings);
@@ -2288,7 +2302,7 @@ async function requestRemaining(bookingId) {
 }
 
 // ============================================================
-// ADMIN FUNCTIONS (abbreviated for space)
+// ADMIN FUNCTIONS
 // ============================================================
 async function showAdminDashboard() {
     const c = document.getElementById('mainContent');
@@ -2347,7 +2361,7 @@ async function showAdminVerifications() {
                                 ${u.companyName ? `<div style="font-size:0.75rem;font-weight:600;">🏢 ${u.companyName}</div>` : ''}
                                 ${u.licenses && u.licenses.length ? `
                                     <div style="display:flex;gap:4px;margin-top:4px;">
-                                        ${u.licenses.map(lic => `<img src="${lic}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;">`).join('')}
+                                        ${u.licenses.map(lic => `<img src="${lic}" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;" onerror="this.style.display='none'">`).join('')}
                                     </div>
                                 ` : ''}
                             </div>
@@ -2379,7 +2393,7 @@ async function showAdminTours() {
             <div class="grid-2">${tours.map(t => `
                 <div class="card">
                     <div class="card-img" style="height:120px;">
-                        ${t.image ? `<img src="${t.image}" alt="${t.name}">` : `<span style="font-size:3rem;">🏛️</span>`}
+                        ${t.image ? `<img src="${t.image}" alt="${t.name}" onerror="this.style.display='none'">` : `<span style="font-size:3rem;">🏛️</span>`}
                     </div>
                     <div class="card-body">
                         <div style="display:flex;justify-content:space-between;">
@@ -2650,7 +2664,7 @@ async function showHostDashboard() {
                 ${hostTours.map(t => `
                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
                         <div style="display:flex;align-items:center;gap:8px;">
-                            ${t.image ? `<img src="${t.image}" style="width:30px;height:30px;object-fit:cover;border-radius:6px;">` : '🏛️'}
+                            ${t.image ? `<img src="${t.image}" style="width:30px;height:30px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">` : '🏛️'}
                             <span>${t.name}</span>
                         </div>
                         <span class="status-badge ${t.status}">${t.status}</span>
@@ -2680,7 +2694,7 @@ async function showHostListings() {
                 ${hostTours.map(t => `
                     <div class="card">
                         <div class="card-img" style="height:150px;position:relative;">
-                            ${t.image ? `<img src="${t.image}" alt="${t.name}">` : `<span style="font-size:3rem;">🏛️</span>`}
+                            ${t.image ? `<img src="${t.image}" alt="${t.name}" onerror="this.style.display='none'">` : `<span style="font-size:3rem;">🏛️</span>`}
                             <span style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);color:white;padding:2px 12px;border-radius:20px;font-size:0.6rem;font-weight:600;">${t.status}</span>
                             ${t.status === 'pending' ? '<span style="position:absolute;top:8px;right:8px;background:#f59e0b;color:white;padding:2px 12px;border-radius:20px;font-size:0.6rem;font-weight:600;">⏳ Pending</span>' : ''}
                         </div>
@@ -2835,7 +2849,7 @@ async function showHotelDashboard() {
                 ${rooms.map(r => `
                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
                         <div style="display:flex;align-items:center;gap:8px;">
-                            ${r.gallery && r.gallery.length ? `<img src="${r.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '🏨'}
+                            ${r.gallery && r.gallery.length ? `<img src="${r.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">` : '🏨'}
                             <span>${r.name}</span>
                         </div>
                         <span>${formatPrice(r.price)}/night</span>
@@ -2922,7 +2936,7 @@ async function showGuideDashboard() {
                 ${services.map(t => `
                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
                         <div style="display:flex;align-items:center;gap:8px;">
-                            ${t.image ? `<img src="${t.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '👨‍🏫'}
+                            ${t.image ? `<img src="${t.image}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">` : '👨‍🏫'}
                             <span>${t.name}</span>
                         </div>
                         <span class="status-badge ${t.status}">${t.status}</span>
@@ -3008,7 +3022,7 @@ function showGuideListings() {
             document.getElementById('guideServicesList').innerHTML = services.map(t => `
                 <div class="card">
                     <div class="card-img" style="height:120px;">
-                        ${t.image ? `<img src="${t.image}" alt="${t.name}">` : `<span style="font-size:3rem;">👨‍🏫</span>`}
+                        ${t.image ? `<img src="${t.image}" alt="${t.name}" onerror="this.style.display='none'">` : `<span style="font-size:3rem;">👨‍🏫</span>`}
                     </div>
                     <div class="card-body">
                         <div style="display:flex;justify-content:space-between;">
@@ -3043,7 +3057,7 @@ async function showVehicleDashboard() {
                 ${userVehicles.map(v => `
                     <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
                         <div style="display:flex;align-items:center;gap:8px;">
-                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">` : '🚗'}
+                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">` : '🚗'}
                             <span>${v.type}</span>
                         </div>
                         <span>${formatPrice(v.price)}/day</span>
@@ -3384,7 +3398,8 @@ console.log('   - Guest Completion Confirmation');
 console.log('   - Remaining Balance Withdrawal');
 console.log('   - OTP displayed on screen for easy access');
 console.log('   - All 16+ features working');
-console.log('   - BOOKING SYSTEM FIXED!');
+console.log('   - BOOKING SYSTEM FIXED with Book Now button on cards!');
+console.log('   - IMAGES FIXED with onerror fallback!');
 </script>
 </body>
 </html>
