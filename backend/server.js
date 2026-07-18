@@ -155,14 +155,11 @@ const UserSchema = new mongoose.Schema({
     companyName: String,
     companyDesc: String,
     licenses: [String],
-    // Balance fields for hosts
     balance: { type: Number, default: 0 },
     pendingBalance: { type: Number, default: 0 },
     totalEarned: { type: Number, default: 0 },
-    // Withdrawal tracking
     advanceWithdrawn: { type: Boolean, default: false },
     remainingWithdrawn: { type: Boolean, default: false },
-    // Profile fields
     hotelName: String,
     hotelCity: String,
     hotelAmenities: String,
@@ -729,25 +726,20 @@ app.get('/api/tours', async (req, res) => {
         if (location) {
             query.location = { $regex: location, $options: 'i' };
         }
-        // If status not specified, show all (for admin/host)
         if (status) {
             query.status = status;
         } else if (!req.user) {
-            // For guests, only show approved tours
             query.status = 'approved';
         }
-        // If user is not admin, filter based on role
         if (req.user) {
             if (req.user.entityType === 'admin') {
                 // Admin sees all
             } else if (req.user.entityType === 'tour_company') {
-                // Tour company sees their own tours + approved tours
                 query.$or = [
                     { hostId: req.user._id },
                     { status: 'approved' }
                 ];
             } else {
-                // Guests and other roles only see approved
                 query.status = 'approved';
             }
         } else {
