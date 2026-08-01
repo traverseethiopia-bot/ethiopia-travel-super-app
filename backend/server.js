@@ -703,7 +703,7 @@ app.put('/api/users/:userId', authenticate, async (req, res) => {
 });
 
 // ============================================================
-// 10. TOUR ROUTES
+// 10. TOUR ROUTES - COMPLETE WITH IMAGE UPLOAD
 // ============================================================
 app.get('/api/tours', async (req, res) => {
     try {
@@ -768,8 +768,14 @@ app.get('/api/tours/:id', async (req, res) => {
     }
 });
 
+// CREATE TOUR - WITH IMAGE UPLOAD
 app.post('/api/tours', authenticate, upload.single('image'), async (req, res) => {
     try {
+        // Check if user is allowed to create tours (tour_company only, NOT guest)
+        if (req.user.entityType === 'guest') {
+            return res.status(403).json({ error: 'Guests cannot create tours. Please register as a tour company.' });
+        }
+        
         let imageUrl = null;
         if (req.file) {
             const result = await cloudinary.uploader.upload(
@@ -798,25 +804,39 @@ app.post('/api/tours', authenticate, upload.single('image'), async (req, res) =>
             hostId: req.user._id,
             company: req.user.companyName || req.user.name,
             image: imageUrl,
-            gallery: galleryUrls
+            gallery: galleryUrls,
+            status: 'pending' // All new tours need admin approval
         };
         const tour = new Tour(tourData);
         await tour.save();
+        
+        // Notify admin
         const admin = await User.findOne({ entityType: 'admin' });
         if (admin) {
             await createNotification(
                 admin._id,
                 'New Tour Submitted',
-                `${tour.name} has been submitted for approval`,
+                `${tour.name} has been submitted for approval by ${req.user.name}`,
                 'info'
             );
         }
+        
+        // Notify host
+        await createNotification(
+            req.user._id,
+            'Tour Submitted',
+            `Your tour "${tour.name}" has been submitted for admin approval.`,
+            'info'
+        );
+        
         res.status(201).json(tour);
     } catch (error) {
+        console.error('Tour creation error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
+// UPDATE TOUR - WITH IMAGE
 app.put('/api/tours/:id', authenticate, upload.single('image'), async (req, res) => {
     try {
         const tour = await Tour.findById(req.params.id);
@@ -842,6 +862,7 @@ app.put('/api/tours/:id', authenticate, upload.single('image'), async (req, res)
     }
 });
 
+// ADMIN: Update tour status
 app.put('/api/tours/:id/status', authenticate, authorize('admin'), async (req, res) => {
     try {
         const { status } = req.body;
@@ -863,6 +884,7 @@ app.put('/api/tours/:id/status', authenticate, authorize('admin'), async (req, r
     }
 });
 
+// DELETE TOUR
 app.delete('/api/tours/:id', authenticate, async (req, res) => {
     try {
         const tour = await Tour.findById(req.params.id);
@@ -888,6 +910,11 @@ app.delete('/api/tours/:id', authenticate, async (req, res) => {
 // ============================================================
 app.post('/api/bookings', authenticate, async (req, res) => {
     try {
+        // Only guests can book
+        if (req.user.entityType !== 'guest') {
+            return res.status(403).json({ error: 'Only guests can book tours' });
+        }
+        
         const tour = await Tour.findById(req.body.tourId);
         if (!tour) {
             return res.status(404).json({ error: 'Tour not found' });
@@ -928,6 +955,7 @@ app.post('/api/bookings', authenticate, async (req, res) => {
         
         res.status(201).json(booking);
     } catch (error) {
+        console.error('Booking creation error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -1506,14 +1534,18 @@ app.put('/api/chats/read/:chatId', authenticate, async (req, res) => {
 // 14. NOTIFICATION ROUTES
 // ============================================================
 async function createNotification(userId, title, message, type = 'info') {
-    const notification = new Notification({
-        userId,
-        title,
-        message,
-        type
-    });
-    await notification.save();
-    io.to(userId.toString()).emit('new_notification', notification);
+    try {
+        const notification = new Notification({
+            userId,
+            title,
+            message,
+            type
+        });
+        await notification.save();
+        io.to(userId.toString()).emit('new_notification', notification);
+    } catch (error) {
+        console.error('Notification error:', error);
+    }
 }
 
 app.get('/api/notifications/user/:userId', authenticate, async (req, res) => {
