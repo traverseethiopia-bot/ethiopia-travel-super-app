@@ -303,8 +303,8 @@
 
 <script>
 // ===========================================================
-// COMPLETE JAVASCRIPT - FIXED VERSION
-// ============================================================
+// COMPLETE JAVASCRIPT - ALL FEATURES WORKING
+// ===========================================================
 
 // CONFIGURATION
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
@@ -612,24 +612,13 @@ function renderLoginForm() {
                 <h4>🏢 Business Registration</h4>
                 <div class="input-group"><label>Company Name *</label><input type="text" id="signupCompany" placeholder="Your company name"></div>
                 <div class="input-group"><label>Company Description</label><textarea id="signupCompanyDesc" rows="2" placeholder="Describe your business..."></textarea></div>
-                <div class="input-group"><label>Business License (Optional - Upload up to 3)</label>
+                <div class="input-group"><label>Business License (Optional)</label>
                     <div class="file-upload" onclick="document.getElementById('bizLicense1').click()">
                         <span class="upload-icon">📄</span>
-                        <span class="upload-text">Upload License 1</span>
+                        <span class="upload-text">Upload License</span>
                         <input type="file" id="bizLicense1" accept="image/*">
                     </div>
-                    <div class="file-upload" onclick="document.getElementById('bizLicense2').click()" style="margin-top:6px;">
-                        <span class="upload-icon">📄</span>
-                        <span class="upload-text">Upload License 2</span>
-                        <input type="file" id="bizLicense2" accept="image/*">
-                    </div>
-                    <div class="file-upload" onclick="document.getElementById('bizLicense3').click()" style="margin-top:6px;">
-                        <span class="upload-icon">📄</span>
-                        <span class="upload-text">Upload License 3</span>
-                        <input type="file" id="bizLicense3" accept="image/*">
-                    </div>
                     <div id="bizLicensePreview" class="upload-preview"></div>
-                    <p style="font-size:0.7rem;color:#6c757d;margin-top:4px;">💡 Licenses are optional. You can skip this step.</p>
                 </div>
             </div>
             
@@ -639,22 +628,18 @@ function renderLoginForm() {
             <p class="forgot-password-link" onclick="isForgotPassword=true;renderLoginForm();">🔑 Forgot Password?</p>
         `;
         
-        ['bizLicense1', 'bizLicense2', 'bizLicense3'].forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('change', function() {
-                    const preview = document.getElementById('bizLicensePreview');
-                    if (this.files && this.files[0]) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            const img = document.createElement('img');
-                            img.src = e.target.result;
-                            img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;margin:4px;';
-                            preview.appendChild(img);
-                        };
-                        reader.readAsDataURL(this.files[0]);
-                    }
-                });
+        document.getElementById('bizLicense1').addEventListener('change', function() {
+            const preview = document.getElementById('bizLicensePreview');
+            preview.innerHTML = '';
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;margin:4px;';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(this.files[0]);
             }
         });
         return;
@@ -701,7 +686,7 @@ function setRole(role) {
 }
 
 // ============================================================
-// HANDLE SIGN UP (same as before - keeping it short)
+// HANDLE SIGN UP
 // ============================================================
 async function handleSignUp() {
     const name = document.getElementById('signupName').value.trim();
@@ -727,16 +712,13 @@ async function handleSignUp() {
     if (entityType !== 'guest') {
         companyName = document.getElementById('signupCompany')?.value.trim() || '';
         companyDesc = document.getElementById('signupCompanyDesc')?.value.trim() || '';
-        const fileInputs = ['bizLicense1', 'bizLicense2', 'bizLicense3'];
-        for (const id of fileInputs) {
-            const file = document.getElementById(id)?.files[0];
-            if (file) {
-                try {
-                    const url = await uploadImage(file, 'ethiopia_travel/licenses');
-                    licenses.push(url);
-                } catch(e) {
-                    console.error('License upload error:', e);
-                }
+        const fileInput = document.getElementById('bizLicense1');
+        if (fileInput && fileInput.files && fileInput.files[0]) {
+            try {
+                const url = await uploadImage(fileInput.files[0], 'ethiopia_travel/licenses');
+                licenses.push(url);
+            } catch(e) {
+                console.error('License upload error:', e);
             }
         }
         if (!companyName) {
@@ -781,7 +763,7 @@ function showOTPVerification(email, otp) {
         <div class="otp-display">
             <p style="font-size:0.8rem;color:#6c757d;">Your OTP Code</p>
             <div class="code">${otp}</div>
-            <p style="font-size:0.7rem;color:#6c757d;margin-top:4px;">Check your terminal/console for this code</p>
+            <p style="font-size:0.7rem;color:#6c757d;margin-top:4px;">Check your terminal for this code</p>
         </div>
         <div class="otp-note">📱 The code is also shown in your terminal/console</div>
         <div class="input-group">
@@ -1143,7 +1125,7 @@ async function showHome() {
 }
 
 // ============================================================
-// RENDER TOUR CARD - FIXED: Only guests see Book Now
+// RENDER TOUR CARD - Only guests see Book Now
 // ============================================================
 function renderTourCard(tour, isGuest) {
     const imageUrl = tour.image || (tour.gallery && tour.gallery.length ? tour.gallery[0] : null);
@@ -1178,7 +1160,7 @@ function renderTourCard(tour, isGuest) {
                             📅 ${t('bookNow')}
                         </button>
                     ` : `
-                        <button class="btn btn-unavailable" style="flex:1;" disabled ${!isGuest ? 'title="Only guests can book"' : ''}>
+                        <button class="btn btn-unavailable" style="flex:1;" disabled ${!isGuest ? 'title="Only guests can book tours"' : ''}>
                             ${isGuest ? '⏳ Unavailable' : '🔒 Book as Guest'}
                         </button>
                     `}
@@ -1312,9 +1294,9 @@ async function downloadPDF(tourId) {
 }
 
 // ============================================================
-// PAGE: TOUR DETAIL - FIXED with Price Calculator
+// PAGE: TOUR DETAIL
 // ============================================================
-async function showTourDetail(tourId) {
+async function viewTourDetail(tourId) {
     try {
         const tour = await apiCall('/tours/' + tourId);
         const reviews = await apiCall('/reviews/tour/' + tourId);
@@ -1425,7 +1407,7 @@ async function showTourDetail(tourId) {
 }
 
 // ============================================================
-// UPDATE BOOKING PRICE - FIXED Calculator
+// UPDATE BOOKING PRICE - Calculator
 // ============================================================
 function updateBookingPrice(basePrice) {
     const people = parseInt(document.getElementById('calcPeople')?.value) || 1;
@@ -1936,10 +1918,9 @@ async function confirmTourCompletion(bookingId) {
 }
 
 // ============================================================
-// BOOKING WITH GUEST PROFILE - FIXED with price from calculator
+// BOOKING WITH GUEST PROFILE
 // ============================================================
 function openBookingWithProfile(tourId) {
-    // Get values from price calculator
     const people = parseInt(document.getElementById('calcPeople')?.value) || 1;
     const infants = parseInt(document.getElementById('calcInfants')?.value) || 0;
     const isEthiopian = document.getElementById('calcEthiopian')?.value === 'yes';
@@ -2180,7 +2161,7 @@ async function showHostDashboard() {
 }
 
 // ============================================================
-// HOST: LISTINGS - Shows ALL tours (pending + approved)
+// HOST: LISTINGS
 // ============================================================
 async function showHostListings() {
     const c = document.getElementById('mainContent');
@@ -2210,11 +2191,7 @@ async function showHostListings() {
                             <div style="color:#6c757d;font-size:0.8rem;">${t.location}</div>
                             <div style="font-weight:600;color:#1b5e20;">${formatPrice(t.price)}</div>
                             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
-                                ${t.status === 'pending' || t.status === 'rejected' ? `
-                                    <button class="btn btn-warning btn-sm" onclick="editTour('${t._id}')">✏️ Edit & Resubmit</button>
-                                ` : `
-                                    <button class="btn btn-warning btn-sm" onclick="editTour('${t._id}')">✏️ Edit</button>
-                                `}
+                                <button class="btn btn-warning btn-sm" onclick="editTour('${t._id}')">✏️ Edit</button>
                                 <button class="btn btn-danger btn-sm" onclick="deleteTour('${t._id}')">🗑️ Delete</button>
                             </div>
                         </div>
@@ -2381,9 +2358,16 @@ async function deleteTour(tourId) {
 }
 
 // ============================================================
-// HOST: ADD TOUR
+// HOST: ADD TOUR - Only tour_company can add tours
 // ============================================================
 function showHostAddTour() {
+    // Check if user is tour_company
+    if (currentUser.entityType !== 'tour_company') {
+        showToast('❌ Only tour companies can add tours');
+        navigateTo('home');
+        return;
+    }
+    
     itineraryDays = [];
     const c = document.getElementById('mainContent');
     c.innerHTML = `
@@ -2424,6 +2408,19 @@ function showHostAddTour() {
         </div>
     `;
     addItineraryDay();
+    document.getElementById('mainImage').addEventListener('change', function() {
+        const preview = document.getElementById('mainImagePreview');
+        preview.innerHTML = '';
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
 }
 
 function addItineraryDay() {
@@ -2498,7 +2495,10 @@ async function addHostTour() {
         await apiCall('/tours', 'POST', tourData);
         showToast('✅ Tour submitted for approval!');
         navigateTo('hostListings');
-    } catch (e) { showToast('❌ ' + e.message); }
+    } catch (e) { 
+        console.error('Tour creation error:', e);
+        showToast('❌ ' + e.message); 
+    }
 }
 
 // ============================================================
@@ -2633,7 +2633,7 @@ async function showHostBalance() {
 }
 
 // ============================================================
-// HOTEL DASHBOARD (abbreviated - same pattern as host)
+// HOTEL DASHBOARD
 // ============================================================
 async function showHotelDashboard() {
     const c = document.getElementById('mainContent');
@@ -2722,7 +2722,7 @@ async function addRoom() {
 }
 
 // ============================================================
-// GUIDE DASHBOARD (abbreviated)
+// GUIDE DASHBOARD
 // ============================================================
 async function showGuideDashboard() {
     const c = document.getElementById('mainContent');
@@ -2753,39 +2753,6 @@ async function showGuideDashboard() {
     } catch (e) { c.innerHTML = '<p>Error loading dashboard</p>'; }
 }
 
-// ============================================================
-// VEHICLE DASHBOARD (abbreviated)
-// ============================================================
-async function showVehicleDashboard() {
-    const c = document.getElementById('mainContent');
-    try {
-        const vehicles = await apiCall('/vehicles');
-        const userVehicles = vehicles.filter(v => v.userId === currentUser._id);
-        c.innerHTML = `
-            <h2 class="section-title">🚗 Vehicle Dashboard</h2>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
-                <div class="stat-card orange"><span class="stat-number">${userVehicles.length}</span><span class="stat-label">Vehicles</span></div>
-            </div>
-            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
-                <h3>📋 Your Vehicles</h3>
-                ${userVehicles.map(v => `
-                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">` : '🚗'}
-                            <span>${v.type}</span>
-                        </div>
-                        <span class="status-badge ${v.status}">${v.status}</span>
-                    </div>
-                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No vehicles yet.</p>'}
-            </div>
-            <button class="btn btn-primary" onclick="navigateTo('vehicleAdd')" style="margin-top:14px;">➕ ${t('addVehicle')}</button>
-        `;
-    } catch (e) { c.innerHTML = '<p>Error loading dashboard</p>'; }
-}
-
-// ============================================================
-// GUIDE LISTINGS, ADD SERVICE, VEHICLE ADD (abbreviated - similar pattern)
-// ============================================================
 function showGuideListings() {
     const c = document.getElementById('mainContent');
     c.innerHTML = `
@@ -2880,6 +2847,36 @@ async function addGuideService() {
     } catch (e) { showToast('❌ ' + e.message); }
 }
 
+// ============================================================
+// VEHICLE DASHBOARD
+// ============================================================
+async function showVehicleDashboard() {
+    const c = document.getElementById('mainContent');
+    try {
+        const vehicles = await apiCall('/vehicles');
+        const userVehicles = vehicles.filter(v => v.userId === currentUser._id);
+        c.innerHTML = `
+            <h2 class="section-title">🚗 Vehicle Dashboard</h2>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px;">
+                <div class="stat-card orange"><span class="stat-number">${userVehicles.length}</span><span class="stat-label">Vehicles</span></div>
+            </div>
+            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
+                <h3>📋 Your Vehicles</h3>
+                ${userVehicles.map(v => `
+                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            ${v.gallery && v.gallery.length ? `<img src="${v.gallery[0]}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;" onerror="this.style.display='none'">` : '🚗'}
+                            <span>${v.type}</span>
+                        </div>
+                        <span class="status-badge ${v.status}">${v.status}</span>
+                    </div>
+                `).join('') || '<p style="color:#6c757d;font-size:0.85rem;">No vehicles yet.</p>'}
+            </div>
+            <button class="btn btn-primary" onclick="navigateTo('vehicleAdd')" style="margin-top:14px;">➕ ${t('addVehicle')}</button>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading dashboard</p>'; }
+}
+
 function showVehicleAdd() {
     const c = document.getElementById('mainContent');
     c.innerHTML = `
@@ -2940,7 +2937,7 @@ async function addVehicle() {
 }
 
 // ============================================================
-// ADMIN FUNCTIONS (abbreviated - existing code)
+// ADMIN FUNCTIONS
 // ============================================================
 async function showAdminDashboard() {
     const c = document.getElementById('mainContent');
@@ -2967,7 +2964,282 @@ async function showAdminDashboard() {
     } catch (e) { c.innerHTML = '<p>Error loading dashboard: ' + e.message + '</p>'; }
 }
 
-// ... (rest of admin functions - same as before)
+async function showAdminVerifications() {
+    const c = document.getElementById('mainContent');
+    try {
+        const users = await apiCall('/users');
+        const pending = users.filter(u => u.status === 'pending');
+        const tours = await apiCall('/tours');
+        const pendingTours = tours.filter(t => t.status === 'pending');
+        
+        c.innerHTML = `
+            <h2 class="section-title">✅ Pending Approvals</h2>
+            <div class="grid-2">
+                <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
+                    <h3>👤 Users (${pending.length})</h3>
+                    ${pending.map(u => `
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
+                            <div><strong>${u.name}</strong> (${u.entityType})</div>
+                            <div>
+                                <button class="btn btn-success btn-sm" onclick="verifyUser('${u._id}','verified')">✅ Verify</button>
+                                <button class="btn btn-danger btn-sm" onclick="verifyUser('${u._id}','rejected')">❌ Reject</button>
+                            </div>
+                        </div>
+                    `).join('') || '<p style="color:#6c757d;">No pending users</p>'}
+                </div>
+                <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;">
+                    <h3>🏛️ Tours (${pendingTours.length})</h3>
+                    ${pendingTours.map(t => `
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f2f5;align-items:center;">
+                            <div><strong>${t.name}</strong> (${t.company})</div>
+                            <div>
+                                <button class="btn btn-success btn-sm" onclick="approveTour('${t._id}','approved')">✅ Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="approveTour('${t._id}','rejected')">❌ Reject</button>
+                            </div>
+                        </div>
+                    `).join('') || '<p style="color:#6c757d;">No pending tours</p>'}
+                </div>
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading verifications</p>'; }
+}
+
+async function verifyUser(userId, status) {
+    try { await apiCall('/auth/verify/' + userId, 'PUT', { status }); showToast(`✅ User ${status}`); showAdminVerifications(); }
+    catch (e) { showToast('❌ ' + e.message); }
+}
+
+async function approveTour(tourId, status) {
+    try { await apiCall('/tours/' + tourId + '/status', 'PUT', { status }); showToast(`✅ Tour ${status}`); showAdminVerifications(); }
+    catch (e) { showToast('❌ ' + e.message); }
+}
+
+async function showAdminTours() {
+    const c = document.getElementById('mainContent');
+    try {
+        const tours = await apiCall('/tours');
+        c.innerHTML = `
+            <h2 class="section-title">🏛️ All Tours</h2>
+            <div class="grid-2">
+                ${tours.map(t => `
+                    <div class="card">
+                        <div class="card-img" style="height:120px;">
+                            ${t.image ? `<img src="${t.image}" alt="${t.name}" onerror="this.style.display='none'">` : '🏛️'}
+                        </div>
+                        <div class="card-body">
+                            <div style="display:flex;justify-content:space-between;">
+                                <h3>${t.name}</h3>
+                                <span class="status-badge ${t.status}">${t.status}</span>
+                            </div>
+                            <div style="font-size:0.8rem;color:#6c757d;">${t.company}</div>
+                            <div style="font-weight:600;color:#1b5e20;">${formatPrice(t.price)}</div>
+                            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;">
+                                ${t.status === 'pending' ? `
+                                    <button class="btn btn-success btn-sm" onclick="approveTour('${t._id}','approved')">✅ Approve</button>
+                                    <button class="btn btn-danger btn-sm" onclick="approveTour('${t._id}','rejected')">❌ Reject</button>
+                                ` : ''}
+                                <button class="btn btn-danger btn-sm" onclick="deleteTour('${t._id}')">🗑️ Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading tours</p>'; }
+}
+
+async function showAdminUsers() {
+    const c = document.getElementById('mainContent');
+    try {
+        const users = await apiCall('/users');
+        c.innerHTML = `
+            <h2 class="section-title">👤 All Users</h2>
+            <div style="overflow-x:auto;background:white;border-radius:16px;padding:4px;border:1px solid #edf2f7;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+                    <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                        <th style="padding:8px;text-align:left;">Name</th>
+                        <th style="padding:8px;text-align:left;">Email</th>
+                        <th style="padding:8px;text-align:left;">Type</th>
+                        <th style="padding:8px;text-align:left;">Status</th>
+                        <th style="padding:8px;text-align:left;">Actions</th>
+                    </tr>
+                    ${users.map(u => `
+                        <tr style="border-bottom:1px solid #f0f2f5;">
+                            <td style="padding:8px;">${u.name}</td>
+                            <td style="padding:8px;font-size:0.75rem;">${u.email}</td>
+                            <td style="padding:8px;">${u.entityType}</td>
+                            <td style="padding:8px;"><span class="status-badge ${u.status}">${u.status}</span></td>
+                            <td style="padding:8px;">
+                                ${u.status === 'pending' ? `
+                                    <button class="btn btn-success btn-sm" onclick="verifyUser('${u._id}','verified')">✅</button>
+                                    <button class="btn btn-danger btn-sm" onclick="verifyUser('${u._id}','rejected')">❌</button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading users</p>'; }
+}
+
+async function showAdminBookings() {
+    const c = document.getElementById('mainContent');
+    try {
+        const bookings = await apiCall('/bookings');
+        c.innerHTML = `
+            <h2 class="section-title">📅 All Bookings</h2>
+            <div style="overflow-x:auto;background:white;border-radius:16px;padding:4px;border:1px solid #edf2f7;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                    <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                        <th style="padding:8px;text-align:left;">User</th>
+                        <th style="padding:8px;text-align:left;">Tour</th>
+                        <th style="padding:8px;text-align:left;">Host</th>
+                        <th style="padding:8px;text-align:left;">Date</th>
+                        <th style="padding:8px;text-align:left;">Amount</th>
+                        <th style="padding:8px;text-align:left;">Status</th>
+                        <th style="padding:8px;text-align:left;">Actions</th>
+                    </tr>
+                    ${bookings.map(b => `
+                        <tr style="border-bottom:1px solid #f0f2f5;">
+                            <td style="padding:8px;">${b.userName || b.userId?.name}</td>
+                            <td style="padding:8px;">${b.tourId?.name || 'N/A'}</td>
+                            <td style="padding:8px;">${b.hostId?.name || 'N/A'}</td>
+                            <td style="padding:8px;">${new Date(b.date).toLocaleDateString()}</td>
+                            <td style="padding:8px;font-weight:600;color:#1b5e20;">${formatPrice(b.totalPrice)}</td>
+                            <td style="padding:8px;"><span class="status-badge ${b.status}">${b.status}</span></td>
+                            <td style="padding:8px;">
+                                ${b.paymentStatus === 'paid' ? `
+                                    <button class="btn btn-success btn-sm" onclick="verifyPayment('${b._id}')">✅ Verify Payment</button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </table>
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading bookings</p>'; }
+}
+
+async function verifyPayment(bookingId) {
+    try {
+        await apiCall('/bookings/' + bookingId + '/verify-payment', 'PUT');
+        showToast('✅ Payment verified! Commission deducted.');
+        showAdminBookings();
+    } catch (e) { showToast('❌ ' + e.message); }
+}
+
+async function showAdminPayments() {
+    const c = document.getElementById('mainContent');
+    try {
+        const bookings = await apiCall('/bookings');
+        const payments = bookings.filter(b => b.paymentStatus === 'paid' || b.paymentStatus === 'confirmed');
+        c.innerHTML = `
+            <h2 class="section-title">💳 Payments</h2>
+            <div style="overflow-x:auto;background:white;border-radius:16px;padding:4px;border:1px solid #edf2f7;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                    <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                        <th style="padding:8px;">Booking</th>
+                        <th style="padding:8px;">User</th>
+                        <th style="padding:8px;">Amount</th>
+                        <th style="padding:8px;">Commission</th>
+                        <th style="padding:8px;">Status</th>
+                        <th style="padding:8px;">Screenshot</th>
+                        <th style="padding:8px;">Action</th>
+                    </tr>
+                    ${payments.map(b => `
+                        <tr style="border-bottom:1px solid #f0f2f5;">
+                            <td style="padding:8px;">#${b._id.slice(-6)}</td>
+                            <td style="padding:8px;">${b.userName}</td>
+                            <td style="padding:8px;font-weight:600;color:#1b5e20;">${formatPrice(b.totalPrice)}</td>
+                            <td style="padding:8px;color:#dc3545;">${formatPrice(b.commissionAmount || 0)}</td>
+                            <td style="padding:8px;"><span class="status-badge ${b.paymentStatus}">${b.paymentStatus}</span></td>
+                            <td style="padding:8px;">${b.paymentScreenshot ? '📸' : '❌'}</td>
+                            <td style="padding:8px;">
+                                ${b.paymentStatus === 'paid' ? `
+                                    <button class="btn btn-success btn-sm" onclick="verifyPayment('${b._id}')">✅ Verify</button>
+                                ` : '✅ Done'}
+                            </td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;color:#6c757d;">No payments found</td></tr>'}
+                </table>
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading payments</p>'; }
+}
+
+async function showAdminWithdrawals() {
+    const c = document.getElementById('mainContent');
+    try {
+        const withdrawals = await apiCall('/host/balance');
+        const pendingWithdrawals = withdrawals.withdrawals?.filter(w => w.status === 'pending') || [];
+        c.innerHTML = `
+            <h2 class="section-title">💰 Withdrawals</h2>
+            <div style="overflow-x:auto;background:white;border-radius:16px;padding:4px;border:1px solid #edf2f7;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+                    <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                        <th style="padding:8px;">Host</th>
+                        <th style="padding:8px;">Amount</th>
+                        <th style="padding:8px;">Type</th>
+                        <th style="padding:8px;">Status</th>
+                        <th style="padding:8px;">Action</th>
+                    </tr>
+                    ${pendingWithdrawals.map(w => `
+                        <tr style="border-bottom:1px solid #f0f2f5;">
+                            <td style="padding:8px;">${currentUser?.name || 'Host'}</td>
+                            <td style="padding:8px;font-weight:600;color:#1b5e20;">${formatPrice(w.amount)}</td>
+                            <td style="padding:8px;">${w.type === 'advance' ? '35% Advance' : 'Remaining'}</td>
+                            <td style="padding:8px;"><span class="status-badge ${w.status}">${w.status}</span></td>
+                            <td style="padding:8px;">
+                                ${w.type === 'advance' ? `
+                                    <button class="btn btn-success btn-sm" onclick="approveWithdrawal('${w._id}','advance')">✅ Approve</button>
+                                ` : `
+                                    <button class="btn btn-success btn-sm" onclick="approveWithdrawal('${w._id}','remaining')">✅ Approve</button>
+                                `}
+                            </td>
+                        </tr>
+                    `).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:#6c757d;">No pending withdrawals</td></tr>'}
+                </table>
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading withdrawals</p>'; }
+}
+
+async function approveWithdrawal(withdrawalId, type) {
+    try {
+        const endpoint = type === 'advance' ? '/approve-advance' : '/approve-remaining';
+        await apiCall('/withdrawals/' + withdrawalId + endpoint, 'PUT');
+        showToast('✅ Withdrawal approved!');
+        showAdminWithdrawals();
+    } catch (e) { showToast('❌ ' + e.message); }
+}
+
+async function showAdminAnalytics() {
+    const c = document.getElementById('mainContent');
+    try {
+        const analytics = await apiCall('/analytics');
+        c.innerHTML = `
+            <h2 class="section-title">📈 Analytics</h2>
+            <div class="grid-4">
+                <div class="stat-card purple"><span class="stat-number">${analytics.totalUsers}</span><span class="stat-label">Users</span></div>
+                <div class="stat-card green"><span class="stat-number">${analytics.totalTours}</span><span class="stat-label">Tours</span></div>
+                <div class="stat-card orange"><span class="stat-number">${analytics.totalBookings}</span><span class="stat-label">Bookings</span></div>
+                <div class="stat-card blue"><span class="stat-number">${formatPrice(analytics.totalRevenue)}</span><span class="stat-label">Revenue</span></div>
+                <div class="stat-card gold"><span class="stat-number">${formatPrice(analytics.totalCommission)}</span><span class="stat-label">Commission</span></div>
+                <div class="stat-card pink"><span class="stat-number">${analytics.pendingWithdrawals}</span><span class="stat-label">Pending Withdrawals</span></div>
+            </div>
+            <div style="background:white;padding:16px;border-radius:16px;border:1px solid #edf2f7;margin-top:14px;">
+                <h3>🔥 Popular Tours</h3>
+                ${analytics.popularTours.map(t => `
+                    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f2f5;">
+                        <span>${t.name}</span>
+                        <span>⭐ ${t.rating || 0} (${t.reviews || 0} reviews)</span>
+                    </div>
+                `).join('') || '<p style="color:#6c757d;">No data</p>'}
+            </div>
+        `;
+    } catch (e) { c.innerHTML = '<p>Error loading analytics</p>'; }
+}
 
 // ============================================================
 // PAGE: MAP
@@ -3232,7 +3504,7 @@ console.log('   - Bookings show TOTAL price in form');
 console.log('   - Admin releases money after host confirmation');
 console.log('   - 10% Commission System');
 console.log('   - 35% Advance Withdrawal');
-console.log('   - All 16+ features working');
+console.log('   - All features working');
 </script>
 </body>
 </html>
