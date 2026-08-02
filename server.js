@@ -1,0 +1,1899 @@
+// ============================================================
+// FILE: server.js - COMPLETE BACKEND WITH PAYMENT SYSTEM
+// ============================================================
+
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+const { Server } = require('socket.io');
+const http = require('http');
+const nodemailer = require('nodemailer');
+const path = require('path');
+require('dotenv').config();
+
+// ============================================================
+// 1. CONFIGURATION
+// ============================================================
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE"]
+    },
+    transports: ['websocket', 'polling']
+});
+
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://Kurabachew:185582Kura@cluster0.hh2ap3v.mongodb.net/?appName=Cluster0';
+const JWT_SECRET = process.env.JWT_SECRET || 'ethiopia_travel_super_secret_key_2024';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'ethiopia_travel_refresh_secret_key_2024';
+
+// Cloudinary Config
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5',
+    api_key: process.env.CLOUDINARY_API_KEY || '296256252878274',
+    api_secret: process.env.CLOUDINARY_API_SECRET || 'DkwEBIKRWBa_6QXmmMOHVeuH-4U'
+});
+
+// Email transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+        user: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
+        pass: process.env.EMAIL_PASSWORD || 'bytczgmvtytjvij'
+    },
+    tls: {
+        rejectUnauthorized: false
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 30000
+});
+
+// Multer
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+// ============================================================
+// 2. MIDDLEWARE
+// ============================================================
+app.use(cors({
+    origin: '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// ============================================================
+// 3. SERVE FRONTEND
+// ============================================================
+app.use(express.static(__dirname));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ============================================================
+// 4. AUTH MIDDLEWARE
+// ============================================================
+const authenticate = async (req, res, next) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        req.user = user;
+        next();
+    } catch (error) {
+        return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+};
+
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!roles.includes(req.user.entityType)) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        next();
+    };
+};
+
+// ============================================================
+// 5. DATABASE MODELS
+// ============================================================
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000
+}).then(() => console.log('✅ MongoDB Connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// OTP Schema
+const OTPSchema = new mongoose.Schema({
+    email: { type: String, required: true },
+    otp: { type: String, required: true },
+    type: { type: String, default: 'verify' },
+    createdAt: { type: Date, default: Date.now, expires: 300 }
+});
+const OTP = mongoose.model('OTP', OTPSchema);
+
+// User Schema
+const UserSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    phone: { type: String, required: true },
+    entityType: {
+        type: String,
+        enum: ['guest', 'tour_company', 'hotel', 'guide', 'vehicle', 'admin'],
+        default: 'guest'
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'verified', 'rejected', 'active'],
+        default: 'pending'
+    },
+    emailVerified: { type: Boolean, default: false },
+    companyName: String,
+    companyDesc: String,
+    licenses: [String],
+    balance: { type: Number, default: 0 },
+    pendingBalance: { type: Number, default: 0 },
+    totalEarned: { type: Number, default: 0 },
+    advanceWithdrawn: { type: Boolean, default: false },
+    remainingWithdrawn: { type: Boolean, default: false },
+    hotelName: String,
+    hotelCity: String,
+    hotelAmenities: String,
+    specialty: String,
+    languages: String,
+    diploma: String,
+    experience: String,
+    pricePerHour: Number,
+    rating: { type: Number, default: 0 },
+    vehicleType: String,
+    vehiclePlate: String,
+    vehicleCapacity: String,
+    vehicleFeatures: String,
+    profileImage: String,
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+// Tour Schema
+const TourSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    location: { type: String, required: true },
+    duration: { type: String, required: true },
+    price: { type: Number, required: true },
+    guide: { type: String, required: true },
+    category: {
+        type: String,
+        enum: ['historical', 'cultural', 'adventure', 'nature', 'city', 'food'],
+        required: true
+    },
+    description: { type: String, required: true },
+    image: String,
+    gallery: [String],
+    company: String,
+    hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected', 'draft'],
+        default: 'pending'
+    },
+    featured: { type: Boolean, default: false },
+    rating: { type: Number, default: 0 },
+    reviews: { type: Number, default: 0 },
+    itinerary: [{
+        day: String,
+        title: String,
+        description: String,
+        image: String
+    }],
+    availability: [Date],
+    locationCoords: {
+        lat: Number,
+        lng: Number
+    },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Booking Schema
+const BookingSchema = new mongoose.Schema({
+    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour' },
+    hotelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hotel' },
+    vehicleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle' },
+    guideId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userName: String,
+    userEmail: String,
+    userPhone: String,
+    date: { type: Date, required: true },
+    people: { type: Number, required: true, min: 1 },
+    totalPrice: { type: Number, required: true },
+    paymentMethod: {
+        type: String,
+        enum: ['telebirr', 'card', 'cash', 'chapa'],
+        default: 'telebirr'
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'paid', 'confirmed', 'failed', 'refunded'],
+        default: 'pending'
+    },
+    paymentScreenshot: String,
+    transactionId: String,
+    status: {
+        type: String,
+        enum: ['pending', 'confirmed', 'completed', 'cancelled'],
+        default: 'pending'
+    },
+    guestProfile: {
+        age: Number,
+        sex: String,
+        passport: String,
+        infants: { type: Number, default: 0 }
+    },
+    discountApplied: String,
+    receiptImage: String,
+    specialRequests: String,
+    paymentVerifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    paymentVerifiedAt: Date,
+    hostPaidAdvance: { type: Boolean, default: false },
+    hostPaidRemaining: { type: Boolean, default: false },
+    advanceAmount: { type: Number, default: 0 },
+    remainingAmount: { type: Number, default: 0 },
+    commissionAmount: { type: Number, default: 0 },
+    tourCompleted: { type: Boolean, default: false },
+    guestConfirmedCompletion: { type: Boolean, default: false },
+    completedAt: Date,
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now }
+});
+
+// Review Schema
+const ReviewSchema = new mongoose.Schema({
+    tourId: { type: mongoose.Schema.Types.ObjectId, ref: 'Tour', required: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    userName: { type: String, required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true },
+    images: [String],
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending'
+    },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Chat Schema
+const ChatSchema = new mongoose.Schema({
+    from: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    to: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    message: { type: String, required: true },
+    read: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Notification Schema
+const NotificationSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    type: {
+        type: String,
+        enum: ['info', 'success', 'warning', 'error', 'booking', 'payment', 'withdrawal'],
+        default: 'info'
+    },
+    read: { type: Boolean, default: false },
+    link: String,
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Payment Schema
+const PaymentSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    amount: { type: Number, required: true },
+    currency: { type: String, default: 'ETB' },
+    method: {
+        type: String,
+        enum: ['telebirr', 'card', 'chapa'],
+        required: true
+    },
+    transactionId: String,
+    status: {
+        type: String,
+        enum: ['pending', 'completed', 'failed', 'refunded'],
+        default: 'pending'
+    },
+    screenshot: String,
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    verifiedAt: Date,
+    metadata: mongoose.Schema.Types.Mixed,
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Withdrawal Schema
+const WithdrawalSchema = new mongoose.Schema({
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
+    amount: { type: Number, required: true },
+    type: {
+        type: String,
+        enum: ['advance', 'remaining'],
+        default: 'advance'
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'approved', 'completed', 'rejected'],
+        default: 'pending'
+    },
+    phoneNumber: String,
+    transactionId: String,
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    approvedAt: Date,
+    completedAt: Date,
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Hotel Schema
+const HotelSchema = new mongoose.Schema({
+    name: { type: String, required: true },
+    city: { type: String, required: true },
+    price: { type: Number, required: true },
+    amenities: String,
+    icon: String,
+    gallery: [String],
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    status: {
+        type: String,
+        enum: ['pending', 'active', 'inactive'],
+        default: 'pending'
+    },
+    rating: { type: Number, default: 0 },
+    location: {
+        lat: Number,
+        lng: Number
+    },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// Vehicle Schema
+const VehicleSchema = new mongoose.Schema({
+    type: { type: String, required: true },
+    plate: { type: String, required: true, unique: true },
+    capacity: String,
+    price: { type: Number, required: true },
+    features: String,
+    icon: String,
+    gallery: [String],
+    company: String,
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    status: {
+        type: String,
+        enum: ['pending', 'active', 'inactive'],
+        default: 'pending'
+    },
+    createdAt: { type: Date, default: Date.now }
+});
+
+// ============================================================
+// 6. CREATE MODELS
+// ============================================================
+const User = mongoose.model('User', UserSchema);
+const Tour = mongoose.model('Tour', TourSchema);
+const Booking = mongoose.model('Booking', BookingSchema);
+const Review = mongoose.model('Review', ReviewSchema);
+const Chat = mongoose.model('Chat', ChatSchema);
+const Notification = mongoose.model('Notification', NotificationSchema);
+const Payment = mongoose.model('Payment', PaymentSchema);
+const Withdrawal = mongoose.model('Withdrawal', WithdrawalSchema);
+const Hotel = mongoose.model('Hotel', HotelSchema);
+const Vehicle = mongoose.model('Vehicle', VehicleSchema);
+
+// ============================================================
+// 7. UPLOAD ROUTES
+// ============================================================
+app.post('/api/upload', authenticate, upload.single('image'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image provided' });
+        }
+        const folder = req.body.folder || 'ethiopia_travel';
+        const result = await cloudinary.uploader.upload(
+            `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+            { folder: folder }
+        );
+        res.json({ success: true, url: result.secure_url });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/upload/base64', authenticate, async (req, res) => {
+    try {
+        const { image, folder } = req.body;
+        if (!image) {
+            return res.status(400).json({ error: 'No image provided' });
+        }
+        const result = await cloudinary.uploader.upload(image, {
+            folder: folder || 'ethiopia_travel'
+        });
+        res.json({ success: true, url: result.secure_url });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 8. AUTH ROUTES
+// ============================================================
+
+// SEND OTP
+app.post('/api/auth/send-otp', async (req, res) => {
+    try {
+        const { email, otp, type = 'verify' } = req.body;
+        
+        await OTP.deleteMany({ email, type });
+        await OTP.create({ email, otp, type });
+        
+        console.log('========================================');
+        console.log(`📧 OTP FOR ${email}: ${otp}`);
+        console.log(`🔑 Verification code: ${otp}`);
+        console.log(`⏰ Expires in 5 minutes`);
+        console.log('========================================');
+        
+        try {
+            await transporter.sendMail({
+                from: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
+                to: email,
+                subject: type === 'reset' ? 'Password Reset Code' : 'Email Verification Code',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f5f7fa; border-radius: 12px;">
+                        <h2 style="color: #1b5e20;">🇪🇹 Ethiopia Travel</h2>
+                        <p>Your verification code is:</p>
+                        <div style="font-size: 32px; font-weight: 700; color: #1b5e20; background: white; padding: 16px; border-radius: 8px; text-align: center; letter-spacing: 8px;">${otp}</div>
+                        <p style="color: #6c757d; font-size: 14px;">This code expires in 5 minutes.</p>
+                        ${type === 'reset' ? '<p>Use this code to reset your password.</p>' : '<p>Use this code to verify your email address.</p>'}
+                    </div>
+                `
+            });
+            console.log(`📧 Email sent to ${email}`);
+        } catch (emailError) {
+            console.log(`⚠️ Email not sent, but OTP is logged above`);
+        }
+        
+        res.json({ success: true, message: 'OTP sent successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// REGISTER
+app.post('/api/auth/register', async (req, res) => {
+    try {
+        const { name, email, password, phone, entityType, companyName, companyDesc, licenses, emailVerified, ...extra } = req.body;
+        
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(400).json({ error: 'Email already registered' });
+        }
+        
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = new User({
+            name,
+            email,
+            password: hashedPassword,
+            phone,
+            entityType: entityType || 'guest',
+            status: entityType === 'guest' ? 'active' : 'pending',
+            emailVerified: emailVerified || false,
+            companyName,
+            companyDesc,
+            licenses: licenses || [],
+            ...extra
+        });
+        await user.save();
+        
+        try {
+            await sendEmail(
+                email,
+                'Welcome to Ethiopia Travel!',
+                `Hello ${name},\n\nYour account has been created successfully.\n\nBest regards,\nEthiopia Travel Team`
+            );
+        } catch (emailError) {
+            console.log('Email not sent:', emailError.message);
+        }
+        
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            user: { id: user._id, name: user.name, email: user.email }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// LOGIN
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
+        if (user.status === 'pending') {
+            return res.status(403).json({ error: 'Account pending approval' });
+        }
+        if (user.status === 'rejected') {
+            return res.status(403).json({ error: 'Account rejected' });
+        }
+        
+        const token = jwt.sign(
+            { userId: user._id, email: user.email, entityType: user.entityType },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        const refreshToken = jwt.sign(
+            { userId: user._id },
+            JWT_REFRESH_SECRET,
+            { expiresIn: '30d' }
+        );
+        
+        user.updatedAt = new Date();
+        await user.save();
+        
+        res.json({
+            success: true,
+            token,
+            refreshToken,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                phone: user.phone,
+                entityType: user.entityType,
+                status: user.status,
+                emailVerified: user.emailVerified,
+                companyName: user.companyName,
+                balance: user.balance || 0,
+                totalEarned: user.totalEarned || 0
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// REFRESH TOKEN
+app.post('/api/auth/refresh', async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+        const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
+        const user = await User.findById(decoded.userId);
+        if (!user) {
+            return res.status(401).json({ error: 'User not found' });
+        }
+        const token = jwt.sign(
+            { userId: user._id, email: user.email, entityType: user.entityType },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        res.json({ token });
+    } catch (error) {
+        res.status(401).json({ error: 'Invalid refresh token' });
+    }
+});
+
+// RESET PASSWORD
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { email, newPassword } = req.body;
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        await user.save();
+        await OTP.deleteMany({ email, type: 'reset' });
+        res.json({ success: true, message: 'Password reset successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 9. USER ROUTES
+// ============================================================
+app.put('/api/auth/verify/:userId', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const { status } = req.body;
+        const user = await User.findById(req.params.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        user.status = status;
+        await user.save();
+        await createNotification(
+            user._id,
+            `Account ${status}`,
+            `Your account has been ${status}`,
+            status === 'verified' ? 'success' : 'error'
+        );
+        try {
+            await sendEmail(
+                user.email,
+                `Account ${status}`,
+                `Hello ${user.name},\n\nYour account has been ${status}.\n\nBest regards,\nEthiopia Travel Team`
+            );
+        } catch (emailError) {
+            console.log('Email not sent:', emailError.message);
+        }
+        res.json({ success: true, status });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/users', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const users = await User.find().select('-password');
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/users/:userId', authenticate, async (req, res) => {
+    try {
+        const user = await User.findById(req.params.userId).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/users/:userId', authenticate, async (req, res) => {
+    try {
+        if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const user = await User.findByIdAndUpdate(
+            req.params.userId,
+            { ...req.body, updatedAt: new Date() },
+            { new: true, runValidators: true }
+        ).select('-password');
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 10. TOUR ROUTES
+// ============================================================
+app.get('/api/tours', async (req, res) => {
+    try {
+        const { category, status, featured, search, minPrice, maxPrice, location } = req.query;
+        let query = {};
+        if (category) query.category = category;
+        if (featured === 'true') query.featured = true;
+        if (minPrice || maxPrice) {
+            query.price = {};
+            if (minPrice) query.price.$gte = parseInt(minPrice);
+            if (maxPrice) query.price.$lte = parseInt(maxPrice);
+        }
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { location: { $regex: search, $options: 'i' } },
+                { description: { $regex: search, $options: 'i' } }
+            ];
+        }
+        if (location) {
+            query.location = { $regex: location, $options: 'i' };
+        }
+        if (status) {
+            query.status = status;
+        } else if (!req.user) {
+            query.status = 'approved';
+        }
+        if (req.user) {
+            if (req.user.entityType === 'admin') {
+                // Admin sees all
+            } else if (req.user.entityType === 'tour_company') {
+                query.$or = [
+                    { hostId: req.user._id },
+                    { status: 'approved' }
+                ];
+            } else {
+                query.status = 'approved';
+            }
+        } else {
+            query.status = 'approved';
+        }
+        
+        const tours = await Tour.find(query)
+            .populate('hostId', 'name companyName rating')
+            .sort({ featured: -1, rating: -1, createdAt: -1 });
+        res.json(tours);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/tours/:id', async (req, res) => {
+    try {
+        const tour = await Tour.findById(req.params.id)
+            .populate('hostId', 'name companyName rating phone email');
+        if (!tour) {
+            return res.status(404).json({ error: 'Tour not found' });
+        }
+        res.json(tour);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/tours', authenticate, upload.single('image'), async (req, res) => {
+    try {
+        let imageUrl = null;
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(
+                `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+                { folder: 'ethiopia_travel/tours' }
+            );
+            imageUrl = result.secure_url;
+        }
+        
+        let galleryUrls = [];
+        if (req.body.gallery && Array.isArray(req.body.gallery)) {
+            for (const img of req.body.gallery) {
+                try {
+                    const result = await cloudinary.uploader.upload(img, {
+                        folder: 'ethiopia_travel/tours/gallery'
+                    });
+                    galleryUrls.push(result.secure_url);
+                } catch(e) {
+                    console.error('Gallery upload error:', e);
+                }
+            }
+        }
+        
+        const tourData = {
+            ...req.body,
+            hostId: req.user._id,
+            company: req.user.companyName || req.user.name,
+            image: imageUrl,
+            gallery: galleryUrls
+        };
+        const tour = new Tour(tourData);
+        await tour.save();
+        const admin = await User.findOne({ entityType: 'admin' });
+        if (admin) {
+            await createNotification(
+                admin._id,
+                'New Tour Submitted',
+                `${tour.name} has been submitted for approval`,
+                'info'
+            );
+        }
+        res.status(201).json(tour);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/tours/:id', authenticate, upload.single('image'), async (req, res) => {
+    try {
+        const tour = await Tour.findById(req.params.id);
+        if (!tour) {
+            return res.status(404).json({ error: 'Tour not found' });
+        }
+        if (tour.hostId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(
+                `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+                { folder: 'ethiopia_travel/tours' }
+            );
+            req.body.image = result.secure_url;
+        }
+        Object.assign(tour, req.body);
+        tour.updatedAt = new Date();
+        await tour.save();
+        res.json(tour);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/tours/:id/status', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const { status } = req.body;
+        const tour = await Tour.findById(req.params.id);
+        if (!tour) {
+            return res.status(404).json({ error: 'Tour not found' });
+        }
+        tour.status = status;
+        await tour.save();
+        await createNotification(
+            tour.hostId,
+            `Tour ${status}`,
+            `Your tour "${tour.name}" has been ${status}`,
+            status === 'approved' ? 'success' : 'error'
+        );
+        res.json({ success: true, status });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/tours/:id', authenticate, async (req, res) => {
+    try {
+        const tour = await Tour.findById(req.params.id);
+        if (!tour) {
+            return res.status(404).json({ error: 'Tour not found' });
+        }
+        if (tour.hostId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (tour.image) {
+            const publicId = tour.image.split('/').pop().split('.')[0];
+            await cloudinary.uploader.destroy(`ethiopia_travel/tours/${publicId}`);
+        }
+        await tour.deleteOne();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 11. BOOKING ROUTES WITH PAYMENT SYSTEM
+// ============================================================
+app.post('/api/bookings', authenticate, async (req, res) => {
+    try {
+        const tour = await Tour.findById(req.body.tourId);
+        if (!tour) {
+            return res.status(404).json({ error: 'Tour not found' });
+        }
+        
+        const commission = req.body.totalPrice * 0.10;
+        const advanceAmount = req.body.totalPrice * 0.35;
+        const remainingAmount = req.body.totalPrice - commission - advanceAmount;
+        
+        const bookingData = {
+            ...req.body,
+            userId: req.user._id,
+            hostId: tour.hostId,
+            userName: req.user.name,
+            userEmail: req.user.email,
+            userPhone: req.user.phone,
+            commissionAmount: commission,
+            advanceAmount: advanceAmount,
+            remainingAmount: remainingAmount,
+            paymentStatus: 'pending',
+            status: 'pending'
+        };
+        const booking = new Booking(bookingData);
+        await booking.save();
+        
+        await createNotification(
+            tour.hostId,
+            'New Booking',
+            `New booking for ${tour.name} by ${req.user.name}`,
+            'booking'
+        );
+        await createNotification(
+            req.user._id,
+            'Booking Created',
+            `Your booking for ${tour.name} has been created. Please complete payment.`,
+            'success'
+        );
+        
+        res.status(201).json(booking);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Upload payment screenshot (Telebirr)
+app.post('/api/bookings/:id/payment-screenshot', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const { screenshot } = req.body;
+        if (screenshot) {
+            const result = await cloudinary.uploader.upload(screenshot, {
+                folder: 'ethiopia_travel/payments'
+            });
+            booking.paymentScreenshot = result.secure_url;
+            booking.paymentStatus = 'paid';
+            await booking.save();
+            
+            const admin = await User.findOne({ entityType: 'admin' });
+            if (admin) {
+                await createNotification(
+                    admin._id,
+                    'Payment Screenshot Uploaded',
+                    `Payment screenshot uploaded for booking #${booking._id}`,
+                    'payment'
+                );
+            }
+        }
+        res.json({ success: true, screenshot: booking.paymentScreenshot });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin verify payment
+app.put('/api/bookings/:id/verify-payment', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        
+        booking.paymentStatus = 'confirmed';
+        booking.paymentVerifiedBy = req.user._id;
+        booking.paymentVerifiedAt = new Date();
+        booking.status = 'confirmed';
+        await booking.save();
+        
+        const host = await User.findById(booking.hostId);
+        if (host) {
+            const amountAfterCommission = booking.totalPrice - booking.commissionAmount;
+            host.balance = (host.balance || 0) + amountAfterCommission;
+            host.totalEarned = (host.totalEarned || 0) + amountAfterCommission;
+            await host.save();
+            
+            await createNotification(
+                host._id,
+                'Payment Received',
+                `Payment of ${formatPrice(amountAfterCommission)} received for booking #${booking._id} (10% commission deducted)`,
+                'payment'
+            );
+        }
+        
+        await createNotification(
+            booking.userId,
+            'Payment Verified',
+            `Your payment for booking #${booking._id} has been verified.`,
+            'success'
+        );
+        
+        res.json({ success: true, booking });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Host request advance withdrawal (35%)
+app.post('/api/bookings/:id/request-advance', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.hostId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (booking.paymentStatus !== 'confirmed') {
+            return res.status(400).json({ error: 'Payment not confirmed yet' });
+        }
+        if (booking.hostPaidAdvance) {
+            return res.status(400).json({ error: 'Advance already paid' });
+        }
+        
+        const withdrawal = new Withdrawal({
+            userId: req.user._id,
+            bookingId: booking._id,
+            amount: booking.advanceAmount,
+            type: 'advance',
+            status: 'pending',
+            phoneNumber: req.user.phone
+        });
+        await withdrawal.save();
+        
+        await createNotification(
+            req.user._id,
+            'Advance Withdrawal Requested',
+            `Advance withdrawal of ${formatPrice(booking.advanceAmount)} requested for booking #${booking._id}`,
+            'withdrawal'
+        );
+        
+        const admin = await User.findOne({ entityType: 'admin' });
+        if (admin) {
+            await createNotification(
+                admin._id,
+                'Advance Withdrawal Request',
+                `Host ${req.user.name} requested advance withdrawal of ${formatPrice(booking.advanceAmount)}`,
+                'withdrawal'
+            );
+        }
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin approve advance withdrawal
+app.put('/api/withdrawals/:id/approve-advance', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const withdrawal = await Withdrawal.findById(req.params.id);
+        if (!withdrawal) {
+            return res.status(404).json({ error: 'Withdrawal not found' });
+        }
+        
+        withdrawal.status = 'approved';
+        withdrawal.approvedBy = req.user._id;
+        withdrawal.approvedAt = new Date();
+        await withdrawal.save();
+        
+        const booking = await Booking.findById(withdrawal.bookingId);
+        if (booking) {
+            booking.hostPaidAdvance = true;
+            await booking.save();
+        }
+        
+        await createNotification(
+            withdrawal.userId,
+            'Advance Withdrawal Approved',
+            `Advance withdrawal of ${formatPrice(withdrawal.amount)} has been approved`,
+            'success'
+        );
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Guest confirms tour completion
+app.put('/api/bookings/:id/confirm-completion', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        booking.guestConfirmedCompletion = true;
+        booking.tourCompleted = true;
+        booking.completedAt = new Date();
+        await booking.save();
+        
+        await createNotification(
+            booking.hostId,
+            'Tour Completed',
+            `Guest confirmed completion of tour for booking #${booking._id}`,
+            'success'
+        );
+        
+        res.json({ success: true, booking });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Host request remaining withdrawal (after tour completion)
+app.post('/api/bookings/:id/request-remaining', authenticate, async (req, res) => {
+    try {
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.hostId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        if (!booking.guestConfirmedCompletion) {
+            return res.status(400).json({ error: 'Guest has not confirmed tour completion' });
+        }
+        if (booking.hostPaidRemaining) {
+            return res.status(400).json({ error: 'Remaining balance already paid' });
+        }
+        
+        const withdrawal = new Withdrawal({
+            userId: req.user._id,
+            bookingId: booking._id,
+            amount: booking.remainingAmount,
+            type: 'remaining',
+            status: 'pending',
+            phoneNumber: req.user.phone
+        });
+        await withdrawal.save();
+        
+        await createNotification(
+            req.user._id,
+            'Remaining Withdrawal Requested',
+            `Remaining withdrawal of ${formatPrice(booking.remainingAmount)} requested for booking #${booking._id}`,
+            'withdrawal'
+        );
+        
+        const admin = await User.findOne({ entityType: 'admin' });
+        if (admin) {
+            await createNotification(
+                admin._id,
+                'Remaining Withdrawal Request',
+                `Host ${req.user.name} requested remaining withdrawal of ${formatPrice(booking.remainingAmount)}`,
+                'withdrawal'
+            );
+        }
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin approve remaining withdrawal
+app.put('/api/withdrawals/:id/approve-remaining', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const withdrawal = await Withdrawal.findById(req.params.id);
+        if (!withdrawal) {
+            return res.status(404).json({ error: 'Withdrawal not found' });
+        }
+        
+        withdrawal.status = 'approved';
+        withdrawal.approvedBy = req.user._id;
+        withdrawal.approvedAt = new Date();
+        await withdrawal.save();
+        
+        const booking = await Booking.findById(withdrawal.bookingId);
+        if (booking) {
+            booking.hostPaidRemaining = true;
+            await booking.save();
+        }
+        
+        await createNotification(
+            withdrawal.userId,
+            'Remaining Withdrawal Approved',
+            `Remaining withdrawal of ${formatPrice(withdrawal.amount)} has been approved`,
+            'success'
+        );
+        
+        res.json({ success: true, withdrawal });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get host balance and withdrawals
+app.get('/api/host/balance', authenticate, async (req, res) => {
+    try {
+        if (req.user.entityType !== 'tour_company' && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const bookings = await Booking.find({ 
+            hostId: req.user._id,
+            paymentStatus: 'confirmed'
+        });
+        
+        const totalEarned = bookings.reduce((sum, b) => sum + (b.totalPrice - (b.commissionAmount || 0)), 0);
+        const advancePaid = bookings.filter(b => b.hostPaidAdvance).reduce((sum, b) => sum + (b.advanceAmount || 0), 0);
+        const remainingPaid = bookings.filter(b => b.hostPaidRemaining).reduce((sum, b) => sum + (b.remainingAmount || 0), 0);
+        const availableBalance = totalEarned - advancePaid - remainingPaid;
+        
+        const withdrawals = await Withdrawal.find({ userId: req.user._id }).sort({ createdAt: -1 });
+        
+        res.json({
+            balance: req.user.balance || 0,
+            totalEarned: req.user.totalEarned || 0,
+            availableBalance,
+            advancePaid,
+            remainingPaid,
+            withdrawals
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all bookings for admin
+app.get('/api/bookings', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const bookings = await Booking.find()
+            .populate('tourId', 'name')
+            .populate('userId', 'name email')
+            .populate('hostId', 'name companyName')
+            .sort({ createdAt: -1 });
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get user bookings
+app.get('/api/bookings/user/:userId', authenticate, async (req, res) => {
+    try {
+        if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const bookings = await Booking.find({ userId: req.params.userId })
+            .populate('tourId', 'name location image price duration')
+            .populate('hostId', 'name companyName')
+            .sort({ createdAt: -1 });
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get host bookings
+app.get('/api/bookings/host/:hostId', authenticate, async (req, res) => {
+    try {
+        if (req.params.hostId !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const bookings = await Booking.find({ hostId: req.params.hostId })
+            .populate('tourId', 'name location image price duration')
+            .populate('userId', 'name email phone')
+            .sort({ createdAt: -1 });
+        res.json(bookings);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Update booking status
+app.put('/api/bookings/:id/status', authenticate, async (req, res) => {
+    try {
+        const { status } = req.body;
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) {
+            return res.status(404).json({ error: 'Booking not found' });
+        }
+        if (booking.hostId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        booking.status = status;
+        booking.updatedAt = new Date();
+        await booking.save();
+        await createNotification(
+            booking.userId,
+            `Booking ${status}`,
+            `Your booking has been ${status}`,
+            status === 'confirmed' ? 'success' : 'error'
+        );
+        res.json({ success: true, status });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 12. REVIEW ROUTES
+// ============================================================
+app.post('/api/reviews', authenticate, async (req, res) => {
+    try {
+        const { tourId, rating, comment, images } = req.body;
+        const booking = await Booking.findOne({
+            tourId,
+            userId: req.user._id,
+            status: { $in: ['completed', 'confirmed'] }
+        });
+        if (!booking && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'You must book this tour before reviewing' });
+        }
+        const existing = await Review.findOne({ tourId, userId: req.user._id });
+        if (existing) {
+            return res.status(400).json({ error: 'You already reviewed this tour' });
+        }
+        let imageUrls = [];
+        if (images && images.length > 0) {
+            for (const img of images) {
+                const result = await cloudinary.uploader.upload(img, {
+                    folder: 'ethiopia_travel/reviews'
+                });
+                imageUrls.push(result.secure_url);
+            }
+        }
+        const review = new Review({
+            tourId,
+            userId: req.user._id,
+            userName: req.user.name,
+            rating,
+            comment,
+            images: imageUrls
+        });
+        await review.save();
+        const reviews = await Review.find({ tourId, status: 'approved' });
+        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length || 0;
+        await Tour.findByIdAndUpdate(tourId, {
+            rating: Math.round(avgRating * 10) / 10,
+            reviews: reviews.length
+        });
+        res.status(201).json(review);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/reviews/tour/:tourId', async (req, res) => {
+    try {
+        const reviews = await Review.find({
+            tourId: req.params.tourId,
+            status: 'approved'
+        }).sort({ createdAt: -1 });
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/reviews/:id/status', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const review = await Review.findById(req.params.id);
+        if (!review) {
+            return res.status(404).json({ error: 'Review not found' });
+        }
+        review.status = req.body.status;
+        await review.save();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/reviews/:id', authenticate, async (req, res) => {
+    try {
+        const review = await Review.findById(req.params.id);
+        if (!review) {
+            return res.status(404).json({ error: 'Review not found' });
+        }
+        if (review.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        await review.deleteOne();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 13. CHAT ROUTES
+// ============================================================
+app.post('/api/chats', authenticate, async (req, res) => {
+    try {
+        const { to, message } = req.body;
+        const chat = new Chat({
+            from: req.user._id,
+            to,
+            message
+        });
+        await chat.save();
+        io.to(to.toString()).emit('new_message', {
+            from: req.user._id,
+            to,
+            message,
+            createdAt: chat.createdAt,
+            _id: chat._id
+        });
+        res.status(201).json(chat);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/chats/user/:userId', authenticate, async (req, res) => {
+    try {
+        const chats = await Chat.find({
+            $or: [
+                { from: req.params.userId, to: req.user._id },
+                { from: req.user._id, to: req.params.userId }
+            ]
+        }).sort({ createdAt: 1 });
+        res.json(chats);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/chats/conversations', authenticate, async (req, res) => {
+    try {
+        const conversations = await Chat.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { from: req.user._id },
+                        { to: req.user._id }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $cond: [
+                            { $eq: ['$from', req.user._id] },
+                            '$to',
+                            '$from'
+                        ]
+                    },
+                    lastMessage: { $last: '$message' },
+                    lastMessageTime: { $last: '$createdAt' },
+                    unread: {
+                        $sum: {
+                            $cond: [
+                                { $and: [
+                                    { $eq: ['$to', req.user._id] },
+                                    { $eq: ['$read', false] }
+                                ]},
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            { $sort: { lastMessageTime: -1 } }
+        ]);
+        const populated = [];
+        for (const conv of conversations) {
+            const user = await User.findById(conv._id).select('name email phone profileImage entityType');
+            if (user) {
+                populated.push({
+                    ...conv,
+                    user
+                });
+            }
+        }
+        res.json(populated);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/chats/read/:chatId', authenticate, async (req, res) => {
+    try {
+        await Chat.updateMany(
+            { _id: req.params.chatId, to: req.user._id },
+            { read: true }
+        );
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 14. NOTIFICATION ROUTES
+// ============================================================
+async function createNotification(userId, title, message, type = 'info') {
+    const notification = new Notification({
+        userId,
+        title,
+        message,
+        type
+    });
+    await notification.save();
+    io.to(userId.toString()).emit('new_notification', notification);
+}
+
+app.get('/api/notifications/user/:userId', authenticate, async (req, res) => {
+    try {
+        if (req.params.userId !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        const notifications = await Notification.find({ userId: req.params.userId })
+            .sort({ createdAt: -1 });
+        res.json(notifications);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/notifications/:id/read', authenticate, async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.id);
+        if (!notification) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+        if (notification.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        notification.read = true;
+        await notification.save();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/notifications/read-all', authenticate, async (req, res) => {
+    try {
+        await Notification.updateMany(
+            { userId: req.user._id, read: false },
+            { read: true }
+        );
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/notifications/:id', authenticate, async (req, res) => {
+    try {
+        const notification = await Notification.findById(req.params.id);
+        if (!notification) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+        if (notification.userId.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        await notification.deleteOne();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 15. HOTEL ROUTES
+// ============================================================
+app.get('/api/hotels', async (req, res) => {
+    try {
+        const { city, search } = req.query;
+        let query = { status: 'active' };
+        if (city) query.city = { $regex: city, $options: 'i' };
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { city: { $regex: search, $options: 'i' } }
+            ];
+        }
+        const hotels = await Hotel.find(query)
+            .populate('userId', 'name rating')
+            .sort({ rating: -1, createdAt: -1 });
+        res.json(hotels);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/hotels/:id', async (req, res) => {
+    try {
+        const hotel = await Hotel.findById(req.params.id)
+            .populate('userId', 'name email phone rating');
+        if (!hotel) {
+            return res.status(404).json({ error: 'Hotel not found' });
+        }
+        res.json(hotel);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/hotels', authenticate, upload.array('gallery', 10), async (req, res) => {
+    try {
+        let galleryUrls = [];
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const result = await cloudinary.uploader.upload(
+                    `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+                    { folder: 'ethiopia_travel/hotels' }
+                );
+                galleryUrls.push(result.secure_url);
+            }
+        }
+        const hotelData = {
+            ...req.body,
+            userId: req.user._id,
+            gallery: galleryUrls
+        };
+        const hotel = new Hotel(hotelData);
+        await hotel.save();
+        res.status(201).json(hotel);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/hotels/:id/status', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const hotel = await Hotel.findById(req.params.id);
+        if (!hotel) {
+            return res.status(404).json({ error: 'Hotel not found' });
+        }
+        hotel.status = req.body.status;
+        await hotel.save();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/hotels/:id', authenticate, async (req, res) => {
+    try {
+        const hotel = await Hotel.findById(req.params.id);
+        if (!hotel) {
+            return res.status(404).json({ error: 'Hotel not found' });
+        }
+        if (hotel.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        await hotel.deleteOne();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 16. VEHICLE ROUTES
+// ============================================================
+app.get('/api/vehicles', async (req, res) => {
+    try {
+        const { search } = req.query;
+        let query = { status: 'active' };
+        if (search) {
+            query.$or = [
+                { type: { $regex: search, $options: 'i' } },
+                { company: { $regex: search, $options: 'i' } },
+                { plate: { $regex: search, $options: 'i' } }
+            ];
+        }
+        const vehicles = await Vehicle.find(query)
+            .populate('userId', 'name rating')
+            .sort({ createdAt: -1 });
+        res.json(vehicles);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/vehicles/:id', async (req, res) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id)
+            .populate('userId', 'name email phone rating');
+        if (!vehicle) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+        res.json(vehicle);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.post('/api/vehicles', authenticate, upload.array('gallery', 10), async (req, res) => {
+    try {
+        let galleryUrls = [];
+        if (req.files && req.files.length > 0) {
+            for (const file of req.files) {
+                const result = await cloudinary.uploader.upload(
+                    `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
+                    { folder: 'ethiopia_travel/vehicles' }
+                );
+                galleryUrls.push(result.secure_url);
+            }
+        }
+        const vehicleData = {
+            ...req.body,
+            userId: req.user._id,
+            gallery: galleryUrls
+        };
+        const vehicle = new Vehicle(vehicleData);
+        await vehicle.save();
+        res.status(201).json(vehicle);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.put('/api/vehicles/:id/status', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id);
+        if (!vehicle) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+        vehicle.status = req.body.status;
+        await vehicle.save();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/vehicles/:id', authenticate, async (req, res) => {
+    try {
+        const vehicle = await Vehicle.findById(req.params.id);
+        if (!vehicle) {
+            return res.status(404).json({ error: 'Vehicle not found' });
+        }
+        if (vehicle.userId.toString() !== req.user._id.toString() && req.user.entityType !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        await vehicle.deleteOne();
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 17. EMAIL SERVICE
+// ============================================================
+async function sendEmail(to, subject, message) {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com',
+            to,
+            subject,
+            text: message,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f4f6fa;">
+                    <div style="background: #1b5e20; padding: 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                        <h1 style="color: white; margin: 0;">🇪🇹 Ethiopia Travel</h1>
+                    </div>
+                    <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px;">
+                        <h2 style="color: #1b5e20;">${subject}</h2>
+                        <p style="line-height: 1.6; color: #333;">${message.replace(/\n/g, '<br>')}</p>
+                        <hr style="border: 1px solid #e9ecef; margin: 20px 0;">
+                        <p style="color: #6c757d; font-size: 0.9rem;">This is an automated message from Ethiopia Travel.</p>
+                        <p style="color: #6c757d; font-size: 0.9rem;">📞 +251 91 162 6671 | 📧 bookings@ethiopiatravelapp.com</p>
+                    </div>
+                </div>
+            `
+        };
+        await transporter.sendMail(mailOptions);
+        console.log(`📧 Email sent to ${to}`);
+    } catch (error) {
+        console.error('Email send error:', error);
+        throw error;
+    }
+}
+
+// ============================================================
+// 18. HELPER: FORMAT PRICE
+// ============================================================
+function formatPrice(amount) {
+    return `Br ${Math.round(amount || 0).toLocaleString()}`;
+}
+
+// ============================================================
+// 19. ANALYTICS ROUTES
+// ============================================================
+app.get('/api/analytics', authenticate, authorize('admin'), async (req, res) => {
+    try {
+        const totalUsers = await User.countDocuments();
+        const totalTours = await Tour.countDocuments();
+        const totalHotels = await Hotel.countDocuments();
+        const totalVehicles = await Vehicle.countDocuments();
+        const totalBookings = await Booking.countDocuments();
+        const totalRevenue = await Booking.aggregate([
+            { $match: { paymentStatus: 'confirmed' } },
+            { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        ]);
+        const totalCommission = await Booking.aggregate([
+            { $match: { paymentStatus: 'confirmed' } },
+            { $group: { _id: null, total: { $sum: '$commissionAmount' } } }
+        ]);
+        const recentBookings = await Booking.find()
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .populate('tourId', 'name')
+            .populate('userId', 'name email')
+            .populate('hostId', 'name companyName');
+        const popularTours = await Tour.find()
+            .sort({ bookings: -1, rating: -1 })
+            .limit(5)
+            .select('name rating reviews price');
+        const pendingWithdrawals = await Withdrawal.find({ status: 'pending' }).countDocuments();
+        res.json({
+            totalUsers,
+            totalTours,
+            totalHotels,
+            totalVehicles,
+            totalBookings,
+            totalRevenue: totalRevenue[0]?.total || 0,
+            totalCommission: totalCommission[0]?.total || 0,
+            pendingWithdrawals,
+            recentBookings,
+            popularTours
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ============================================================
+// 20. HEALTH CHECK
+// ============================================================
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// ============================================================
+// 21. SOCKET.IO
+// ============================================================
+io.on('connection', (socket) => {
+    console.log('New client connected:', socket.id);
+    socket.on('join_room', (userId) => {
+        socket.join(userId);
+        console.log(`User ${userId} joined room`);
+    });
+    socket.on('typing', ({ from, to }) => {
+        io.to(to).emit('user_typing', { from });
+    });
+    socket.on('stop_typing', ({ to }) => {
+        io.to(to).emit('user_stop_typing');
+    });
+    socket.on('mark_read', async ({ chatId, userId }) => {
+        try {
+            await Chat.findByIdAndUpdate(chatId, { read: true });
+            io.to(userId).emit('message_read', { chatId });
+        } catch (error) {
+            console.error('Mark read error:', error);
+        }
+    });
+    socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+    });
+});
+
+// ============================================================
+// 22. SERVE FRONTEND FOR ALL OTHER ROUTES
+// ============================================================
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ============================================================
+// 23. START SERVER
+// ============================================================
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📊 API available at http://localhost:${PORT}/api`);
+    console.log(`🔌 WebSocket available at ws://localhost:${PORT}`);
+    console.log(`📸 Cloudinary: ${process.env.CLOUDINARY_CLOUD_NAME || 'fxszo8e5'}`);
+    console.log(`📧 Email: ${process.env.EMAIL_USER || 'Kurabachew0910090363@gmail.com'}`);
+    console.log(`✅ ALL FEATURES ARE LIVE!`);
+    console.log(`🌐 Frontend available at http://localhost:${PORT}`);
+    console.log(`⚠️  OTP will be shown in console for testing`);
+});
